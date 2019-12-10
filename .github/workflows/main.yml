@@ -6,7 +6,7 @@ on:
 # Environment variables available to all jobs and steps in this workflow
 env:
   PROJECT: ${{ secrets.GCP_PROJECT_ID }}
-  EMAIL: ${{ secrets.GCP_SA_EMAIL }}
+  EMAIL: ${{ secrets.CLIENT_EMAIL }}
   GITHUB_SHA: ${{ github.sha }}
   IMAGE: gke-test
 jobs:
@@ -21,7 +21,7 @@ jobs:
         uses: GoogleCloudPlatform/github-actions/setup-gcloud@master
         with:
           version: "270.0.0"
-          service_account_email: ${{ secrets.GCP_SA_EMAIL }}
+          service_account_email: ${{ secrets.CLIENT_EMAIL }}
           service_account_key: ${{ secrets.GCE_KEY }}
       - name: gcloud info
         run: gcloud info
