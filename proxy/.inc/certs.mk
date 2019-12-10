@@ -83,13 +83,15 @@ certsRenew:
 .PHONY: certsToHost
 certsToHost:
 	@echo '## $@ ##'
+	@gcloud compute ssh gmack --command 'mkdir -p ./certs'
 	@gcloud compute ssh $(HOST) --command \
- 'docker cp or:$(LETSENCRYPT)/live/$(TLS_COMMON_NAME)/cert.pem ./ -L'
+ 'docker cp or:$(LETSENCRYPT)/live/$(TLS_COMMON_NAME)/cert.pem ./certs -L'
 	@gcloud compute ssh $(HOST) --command \
- 'docker cp or:$(LETSENCRYPT)/live/$(TLS_COMMON_NAME)/fullchain.pem ./ -L'
+ 'docker cp or:$(LETSENCRYPT)/live/$(TLS_COMMON_NAME)/fullchain.pem ./certs -L'
 	@gcloud compute ssh $(HOST) --command \
- 'docker cp or:$(LETSENCRYPT)/live/$(TLS_COMMON_NAME)/privkey.pem ./ -L'
-	@gcloud compute ssh $(HOST) --command 'ls -al .'
+ 'docker cp or:$(LETSENCRYPT)/live/$(TLS_COMMON_NAME)/privkey.pem ./certs -L'
+	@gcloud compute ssh $(HOST) --command 'ls -al ./certs'
+	@ls -al /etc
 
 .PHONY: certsToLocal
 certsToLocal:
