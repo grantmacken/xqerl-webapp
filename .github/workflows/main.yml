@@ -31,5 +31,5 @@ jobs:
             gcloud config get-value project
             gcloud compute project-info describe --project gmack-200121
             # gcloud projects list
-            # gcloud compute config-ssh --dry-run
+            gcloud compute config-ssh --dry-run
             # gcloud compute ssh gmack --container or --command 'ls -al /etc/letsencrypt/live'
