@@ -13,14 +13,12 @@ make certsRenew
 make certsToLocal
 ```
 
-After renewal nginx must be restarted
-
-```
-make remote-nginx-restart
-make dkr-logs
-```
-
 endef
+
+mkCertsHelp: export mkCertsHelp=$(certsHelp)
+mkCertsHelp:
+	@echo "$${mkCertsHelp}"
+
 
 define certbotConfig
 

@@ -1,12 +1,28 @@
 SHELL=/bin/bash
 include .env
 include ../.env
+ifdef INC
+ include .inc/$(INC).mk
+ $(info included $(INC).mk )
+endif
+
+HOST := $(PROJECT_NAME)
 T := .tmp
 B := .build
 COMMA := ,
 EMPTY :=
 SPACE := $(EMPTY) $(EMPTY)
 DELIMIT := $(COMMA)$(EMPTY)
+
+define mkHelp
+-------------------------------------------------------------------------------
+-------------------------------------------------------------------------------
+endef
+
+help: export HELP=$(mkHelp)
+help:
+	@echo "$${HELP}"
+
 
 .PHONY: build
 build: clean \
@@ -89,3 +105,14 @@ $(B)/nginx/conf/%: conf/%
 	@mkdir -p $(dir $@)
 	@cp $< $@
 
+.PHONY: sa
+sa: 
+	@#gcloud iam service-accounts list
+	@#gcloud iam service-accounts create gcp-service-account --description "My gmack service account" --display-name "gmackServiceAccount"
+	@#gcloud iam service-accounts list
+	@#gcloud iam service-accounts keys create ../../key.json --iam-account gcp-service-account@gmack-200121.iam.gserviceaccount.com
+	@#mkdir .tmp; cat ../../key.json | base64 > .tmp/key.txt
+	@#gcloud auth activate-service-account --project=gmack-200121 --key-file=../../key.json 
+	@#gcloud iam service-accounts keys list --iam-account gcp-service-account@gmack-200121.iam.gserviceaccount.com
+	@#gcloud auth activate-service-account --project=gmack-200121 --key-
+	@gcloud iam service-accounts list

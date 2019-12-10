@@ -6,11 +6,6 @@ on:
 # Environment variables available to all jobs and steps in this workflow
 env:
   GITHUB_SHA: ${{ github.sha }}
-  GCE_PROJECT: ${{ secrets.PROJECT_ID }}
-  GCE_ZONE: australia-southeast1-b
-  GCE_NAME: gmack
-  LETSENCRYPT: /etc/letsencrypt
-  TLS_COMMON_NAME: ${{ secrets.TLS_COMMON_NAME }}
 
 jobs:
   build:
@@ -28,12 +23,14 @@ jobs:
           service_account_key: ${{ secrets.GCE_KEY }}
       - name: gcloud configure
         run: |
+          source .env
           gcloud config set project ${GCE_PROJECT}
           gcloud config set compute/zone ${GCE_ZONE}
           gcloud compute instances list
           gcloud compute config-ssh &>/dev/null
       - name: gcloud ssh
         run: |
+            gcloud info
           #echo ${HOST}
           # gcloud compute ssh ${GCE_NAME} --container or --command 'ls -al .'
           # copy from container 'or' into GCE host
