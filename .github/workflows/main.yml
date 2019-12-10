@@ -16,7 +16,7 @@ jobs:
         with:
           fetch-depth: 1
       - name: Debug
-        uses: hmarr/debug-action
+        uses: hmarr/debug-action@master
       # - name: Setup gcloud
       #   uses: GoogleCloudPlatform/github-actions/setup-gcloud@master
       #   with:
