@@ -28,9 +28,13 @@ jobs:
           echo '-------------------------------'
           # gcloud info
           echo '-------------------------------'
-          echo -n 'region: '
-          gcloud config get-value compute region
+          echo -n 'project: '
+          gcloud config get-value project
           echo -n 'zone: '
-          gcloud config get-value compute zone
+          gcloud config get-value compute/zone
+          echo -n 'region: '
+          gcloud config get-value compute/region
+          echo -n 'zone: '
+          gcloud config get-value compute/zone
           echo '-------------------------------'
           # gcloud compute ssh gmack --container or --command 'ls -al /etc/letsencrypt/live'
