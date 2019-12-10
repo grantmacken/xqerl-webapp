@@ -24,5 +24,6 @@ jobs:
       - name: gcloud info
         run: |
             gcloud config set project ${{ secrets.PROJECT_ID }}
-            gcloud info
-            gcloud compute ssh gmack --container or --command 'ls -al /etc/letsencrypt/live'
+            gcloud config get-value project
+            gcloud compute config-ssh --dry-run
+            # gcloud compute ssh gmack --container or --command 'ls -al /etc/letsencrypt/live'
