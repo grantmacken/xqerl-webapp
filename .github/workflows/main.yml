@@ -32,8 +32,12 @@ jobs:
           gcloud compute config-ssh &>/dev/null
       - name: gcloud info
         run: gcloud info
-      - name: certs to host
+      - name: set up certs and hosts file
         run: |
           cd proxy
           make certsToHost INC=certs
+      - name: create openresty proxy image
+        run: |
+            pwd
+
 

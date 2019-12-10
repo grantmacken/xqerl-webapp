@@ -83,7 +83,7 @@ certsRenew:
 .PHONY: certsToHost
 certsToHost:
 	@echo '## $@ ##'
-	@gcloud compute ssh gmack --command 'mkdir -p ./live/$(TLS_COMMON_NAME)'
+	@gcloud compute ssh $(HOST) --command 'mkdir -p ./live/$(TLS_COMMON_NAME)'
 	@gcloud compute ssh $(HOST) --command \
  'docker cp or:$(LETSENCRYPT)/live/$(TLS_COMMON_NAME)/cert.pem ./live/$(TLS_COMMON_NAME) -L'
 	@gcloud compute ssh $(HOST) --command \
@@ -91,18 +91,20 @@ certsToHost:
 	@gcloud compute ssh $(HOST) --command \
  'docker cp or:$(LETSENCRYPT)/live/$(TLS_COMMON_NAME)/privkey.pem ./live/$(TLS_COMMON_NAME) -L'
 	# dh param in different location
-	@gcloud compute ssh gmack --command  'docker cp or:$(LETSENCRYPT)/dh-param.pem ./live/$(TLS_COMMON_NAME)'
+	@gcloud compute ssh $(HOST) --command  'docker cp or:$(LETSENCRYPT)/dh-param.pem ./live/$(TLS_COMMON_NAME) -L'
 	@gcloud compute ssh $(HOST) --command 'ls -al ./live/$(TLS_COMMON_NAME)'
 	@sudo mkdir -p $(LETSENCRYPT)
 	@sudo chown ${USER} $(LETSENCRYPT)
 	@gcloud compute scp  $(HOST):~/live $(LETSENCRYPT) --recurse
+	# clean up on GCE Host
+	@gcloud compute ssh $(HOST) --command 'rm -r ./live'
 	# relocate dh param
 	@mv $(LETSENCRYPT)/live/$(TLS_COMMON_NAME)/dh-param.pem $(LETSENCRYPT)/dh-param.pem
 	@ls -al $(LETSENCRYPT)
 	@ls -al $(LETSENCRYPT)/live/$(TLS_COMMON_NAME)
-	@printf %60s | tr ' ' '-' && echo
+	# adjust hosts file TODO all domains
 	@echo "127.0.0.1  $(TLS_COMMON_NAME)" | sudo tee -a /etc/hosts
-	@grep  -oP '^.+$(TLS_COMMON_NAME)$$'  /etc/hosts
+	@printf %60s | tr ' ' '-' && echo
 
 .PHONY: certsToLocal
 certsToLocal:
