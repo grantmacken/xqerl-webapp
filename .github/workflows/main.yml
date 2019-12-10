@@ -6,6 +6,9 @@ on:
 # Environment variables available to all jobs and steps in this workflow
 env:
   GITHUB_SHA: ${{ github.sha }}
+  GCE_PROJECT:  ${{ secrets.PROJECT_ID }}
+  GCE_ZONE: australia-southeast1-b
+  GCE_NAME: gmack
 
 jobs:
   build:
@@ -23,18 +26,23 @@ jobs:
           service_account_key: ${{ secrets.GCE_KEY }}
       - name: gcloud configure
         run: |
-          gcloud config set project gmack-200121
-          gcloud compute config-ssh --dry-run
+          gcloud config set project ${GCE_PROJECT}
+          gcloud compute config-ssh
+      - name: gcloud ssh
+        run: |
+          HOST="${GCE_NAME}.${GCE_ZONE}.${GCE_PROJECT}"
           echo '-------------------------------'
+          echo ${HOST}
+           gcloud compute ssh ${HOST} --container or --command 'ls -al /etc/letsencrypt/live'
           # gcloud info
           echo '-------------------------------'
-          echo -n 'project: '
-          gcloud config get-value project
-          echo -n 'zone: '
-          gcloud config get-value compute/zone
-          echo -n 'region: '
-          gcloud config get-value compute/region
-          echo -n 'zone: '
-          gcloud config get-value compute/zone
-          echo '-------------------------------'
+          # echo -n 'project: '
+          # gcloud config get-value project
+          # echo -n 'zone: '
+          # gcloud config get-value compute/zone
+          # echo;echo -n 'region: '
+          # gcloud config get-value compute/region
+          # echo;echo -n 'zone: '
+          # gcloud config get-value compute/zone
+          # echo '-------------------------------'
           # gcloud compute ssh gmack --container or --command 'ls -al /etc/letsencrypt/live'
