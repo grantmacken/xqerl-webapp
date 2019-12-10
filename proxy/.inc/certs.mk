@@ -85,10 +85,10 @@ certsRenew:
 .PHONY: certsToHost
 certsToHost:
 	@echo '## $@ ##'
-	@gcloud compute ssh $(HOST) --container $(CONTAINER) \
- --command 'ls -al $(LETSENCRYPT)/live/$(TLS_COMMON_NAME)'
-	@gcloud compute ssh $(HOST) \
- --command 'docker cp $(CONTAINER):$(LETSENCRYPT)/live/$(TLS_COMMON_NAME)/cert.pem /tmp -L'
+	@gcloud compute ssh $(HOST) --container $(CONTAINER) --command 'ls -al $(LETSENCRYPT)/live/$(TLS_COMMON_NAME)'
+	@gcloud compute ssh $(HOST) --command 'docker cp $(CONTAINER):$(LETSENCRYPT)/live/$(TLS_COMMON_NAME)/cert.pem /tmp -L'
+	@gcloud compute ssh $(HOST) --command 'docker cp $(CONTAINER):$(LETSENCRYPT)/live/$(TLS_COMMON_NAME)/fullchain.pem /tmp -L'
+	@gcloud compute ssh $(HOST) --command 'docker cp $(CONTAINER):$(LETSENCRYPT)/live/$(TLS_COMMON_NAME)/privkey.pem /tmp -L'
 	@gcloud compute ssh $(HOST) --container $(CONTAINER) --command 'ls -al /tmp'
 
 .PHONY: certsToLocal
