@@ -26,7 +26,7 @@ jobs:
         run: |
             gcloud config set account ${GIT_EMAIL}
             gcloud auth list
-            # gcloud projects list
+            gcloud projects list
             #gcloud config set project gmack-200121
             # gcloud config get-value project
             # gcloud compute config-ssh --dry-run
