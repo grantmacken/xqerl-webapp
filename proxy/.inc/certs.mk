@@ -98,7 +98,9 @@ certsToHost:
 	@gcloud compute scp  $(HOST):~/live $(LETSENCRYPT) --recurse
 	# relocate dh param
 	@mv $(LETSENCRYPT)/live/$(TLS_COMMON_NAME)/dh-param.pem ../../
-	@tree $(LETSENCRYPT)
+	@ls -al $(LETSENCRYPT)
+	@ls -al $(LETSENCRYPT)/live/$(TLS_COMMON_NAME)
+	@printf %60s | tr ' ' '-' && echo
 
 .PHONY: certsToLocal
 certsToLocal:
