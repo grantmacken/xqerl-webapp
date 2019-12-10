@@ -9,6 +9,8 @@ env:
   GCE_PROJECT: ${{ secrets.PROJECT_ID }}
   GCE_ZONE: australia-southeast1-b
   GCE_NAME: gmack
+  LETSENCRYPT: /etc/letsencrypt
+  TLS_COMMON_NAME: ${{ secrets.TLS_COMMON_NAME }}
 
 jobs:
   build:
@@ -27,14 +29,25 @@ jobs:
       - name: gcloud configure
         run: |
           gcloud config set project ${GCE_PROJECT}
+          cloud config set compute/zone ${GCE_ZONE}
           gcloud compute instances list
-          gcloud compute zones list
           gcloud compute config-ssh &>/dev/null
       - name: gcloud ssh
         run: |
           echo '-------------------------------'
           #echo ${HOST}
-          gcloud compute ssh ${GCE_NAME} --zone ${GCE_ZONE} --container or --command 'ls -al .'
+          gcloud compute ssh ${GCE_NAME} --container or --command 'ls -al .'
+          gcloud compute ssh ${GCE_NAME} --command 'mkdir -p ./certs'
+          gcloud compute ssh ${GCE_NAME} \
+          --command "docker cp or:${LETSENCRYPT}/dh-param.pem ~/certs -L"
+          gcloud compute ssh ${GCE_NAME} \
+          --command 'docker cp or:${LETSENCRYPT}/live/${TLS_COMMON_NAME}/fullchain.pem ~/certs -L'
+          gcloud compute ssh ${GCE_NAME} \
+          --command 'docker cp or:${LETSENCRYPT}/live/${TLS_COMMON_NAME}/privkey.pem ~/certs -L'
+          gcloud compute ssh ${GCE_NAME}  \
+          --command 'docker cp or:${LETSENCRYPT}/live/${TLS_COMMON_NAME}/cert.pem ~/certs -L'
+          mkdir -p ${LETSENCRYPT}/live/${TLS_COMMON_NAME}
+          gcloud compute scp  ${GCE_NAME}:~/certs ${LETSENCRYPT}/live/${TLS_COMMON_NAME} --dry-run 
           # gcloud info
           echo '-------------------------------'
           # echo -n 'project: '
