@@ -36,5 +36,4 @@ jobs:
         run: |
           cd proxy
           make certsToHost INC=certs
-          cat /etc/hosts
 
