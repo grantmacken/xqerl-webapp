@@ -6,7 +6,6 @@ ifdef INC
  $(info included $(INC).mk )
 endif
 
-HOST := $(PROJECT_NAME)
 T := .tmp
 B := .build
 COMMA := ,

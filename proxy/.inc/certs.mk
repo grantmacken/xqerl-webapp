@@ -4,12 +4,17 @@
 # MYDOMAIN is read for config at root
 #########################################################
 
+HOST := $(GCE_NAME)
+
 define certsHelp
+```
+make [target] INC=certs
+```
 
 ## To renew certs
 
 ```
-make certsRenew
+make certsRenew INC=certs
 make certsToLocal
 ```
 
@@ -74,6 +79,13 @@ certsRenew:
  -v "letsencrypt:/etc/letsencrypt" \
  -v "html:/home" \
  certbot/certbot renew'
+
+.PHONY: certsToHost
+certsToHost:
+	@echo '## $@ ##'
+	@gcloud compute ssh $(HOST) --container or --command  'ls -al $(LETSENCRYPT)/live/$(TLS_COMMON_NAME)'
+
+
 
 .PHONY: certsToLocal
 certsToLocal:

@@ -28,6 +28,10 @@ jobs:
           gcloud config set compute/zone ${GCE_ZONE}
           gcloud compute instances list
           gcloud compute config-ssh &>/dev/null
-      - name: gcloud ssh
+      - name: gcloud info
+        run: gcloud info
+      - name: gcloud configure
         run: |
-          gcloud info
+          cd proxy
+          make certsToHost INC=certs
+
