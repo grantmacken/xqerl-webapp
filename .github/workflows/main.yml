@@ -37,13 +37,17 @@ jobs:
           #echo ${HOST}
           # gcloud compute ssh ${GCE_NAME} --container or --command 'ls -al .'
           # copy from container 'or' into GCE host
-          gcloud compute ssh ${GCE_NAME} --container or --command 'mkdir -p ./certs'
-          gcloud compute ssh ${GCE_NAME} --container or --command 'ls -al ./certs'
-          gcloud compute ssh ${GCE_NAME} --container or --command 'ls -al ${LETSENCRYPT}'
-          gcloud compute ssh ${GCE_NAME} --command "docker cp or:${LETSENCRYPT}/dh-param.pem ~/certs -L"
-          gcloud compute ssh ${GCE_NAME} --container or --command 'ls -al ${LETSENCRYPT}'
+          gcloud compute ssh ${GCE_NAME} --container or --command 'tar zpcvf /tmp/certs.tar.gz /etc/letsencrypt/'
+          gcloud compute ssh ${GCE_NAME} --container or --command 'ls  /tmp'
+          echo '-------------------------------'
+          # gcloud compute ssh ${GCE_NAME} --container or --command 'ls -al ${LETSENCRYPT}'
+          # echo '-------------------------------'
+          # gcloud compute ssh ${GCE_NAME} --container or --command 'ls -al ${LETSENCRYPT}'
+          # echo '-------------------------------'
+          # gcloud compute ssh ${GCE_NAME} --command "docker cp or:${LETSENCRYPT}/dh-param.pem ~/certs -L"
+          # gcloud compute ssh ${GCE_NAME} --container or --command 'ls -al ${LETSENCRYPT}'
           # gcloud compute ssh ${GCE_NAME} \
-          # --command 'docker cp or:${LETSENCRYPT}/live/${TLS_COMMON_NAME}/fullchain.pem ~/certs -L'
+          #  --command 'docker cp or:${LETSENCRYPT}/live/${TLS_COMMON_NAME} ~/certs/ -L'
           # gcloud compute ssh ${GCE_NAME} \
           # --command 'docker cp or:${LETSENCRYPT}/live/${TLS_COMMON_NAME}/privkey.pem ~/certs -L'
           # gcloud compute ssh ${GCE_NAME}  \
