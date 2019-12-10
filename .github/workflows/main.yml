@@ -28,7 +28,8 @@ jobs:
             # gcloud config set account grantmacken@gmail.com
             # gcloud auth list
             gcloud config get-value project
-            #gcloud config set project gmack-200121
+            gcloud config set project gmack-200121
+            gcloud config get-value project
             # gcloud projects list
             # gcloud compute config-ssh --dry-run
             # gcloud compute ssh gmack --container or --command 'ls -al /etc/letsencrypt/live'
