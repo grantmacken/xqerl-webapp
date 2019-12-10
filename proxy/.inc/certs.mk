@@ -83,17 +83,17 @@ certsRenew:
 .PHONY: certsToHost
 certsToHost:
 	@echo '## $@ ##'
-	@gcloud compute ssh gmack --command 'mkdir -p ./certs'
+	@gcloud compute ssh gmack --command 'mkdir -p ./live/$(TLS_COMMON_NAME)'
 	@gcloud compute ssh $(HOST) --command \
- 'docker cp or:$(LETSENCRYPT)/live/$(TLS_COMMON_NAME)/cert.pem ./certs -L'
+ 'docker cp or:$(LETSENCRYPT)/live/$(TLS_COMMON_NAME)/cert.pem ./live/$(TLS_COMMON_NAME) -L'
 	@gcloud compute ssh $(HOST) --command \
- 'docker cp or:$(LETSENCRYPT)/live/$(TLS_COMMON_NAME)/fullchain.pem ./certs -L'
+ 'docker cp or:$(LETSENCRYPT)/live/$(TLS_COMMON_NAME)/fullchain.pem ./live/$(TLS_COMMON_NAME) -L'
 	@gcloud compute ssh $(HOST) --command \
- 'docker cp or:$(LETSENCRYPT)/live/$(TLS_COMMON_NAME)/privkey.pem ./certs -L'
-	@gcloud compute ssh $(HOST) --command 'ls -al ./certs'
-	@sudo mkdir -p $(LETSENCRYPT)/live/$(TLS_COMMON_NAME)
-	@sudo chown ${USER} $(LETSENCRYPT)/live/$(TLS_COMMON_NAME)
-	@gcloud compute scp  $(HOST):~/certs $(LETSENCRYPT)/live/$(TLS_COMMON_NAME) --recurse
+ 'docker cp or:$(LETSENCRYPT)/live/$(TLS_COMMON_NAME)/privkey.pem ./live/$(TLS_COMMON_NAME) -L'
+	@gcloud compute ssh $(HOST) --command 'ls -al ./live/$(TLS_COMMON_NAME)'
+	@sudo mkdir -p $(LETSENCRYPT)
+	@sudo chown ${USER} $(LETSENCRYPT)
+	@gcloud compute scp  $(HOST):~/live $(LETSENCRYPT) --recurse
 	@ls -al $(LETSENCRYPT)/live/$(TLS_COMMON_NAME)
 
 .PHONY: certsToLocal
