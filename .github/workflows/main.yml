@@ -17,23 +17,23 @@ jobs:
           fetch-depth: 1
       - name: Debug
         uses: hmarr/debug-action@master
-      # - name: Setup gcloud
-      #   uses: GoogleCloudPlatform/github-actions/setup-gcloud@master
-      #   with:
-      #     version: "270.0.0"
-      #     service_account_email: ${{ secrets.CLIENT_EMAIL }}
-      #     service_account_key: ${{ secrets.GCE_KEY }}
-      # - name: gcloud configure
-      #   run: |
-      #     source .env
-      #     gcloud config set project ${GCE_PROJECT}
-      #     gcloud config set compute/zone ${GCE_ZONE}
-      #     gcloud compute instances list
-      #     gcloud compute config-ssh &>/dev/null
-      # - name: gcloud info
-      #   run: gcloud info
-      # - name: certs to host
-      #   run: |
-      #     cd proxy
-      #     make certsToHost INC=certs
+      - name: Setup gcloud
+        uses: GoogleCloudPlatform/github-actions/setup-gcloud@master
+        with:
+          version: "270.0.0"
+          service_account_email: ${{ secrets.CLIENT_EMAIL }}
+          service_account_key: ${{ secrets.GCE_KEY }}
+      - name: gcloud configure
+        run: |
+          source .env
+          gcloud config set project ${GCE_PROJECT}
+          gcloud config set compute/zone ${GCE_ZONE}
+          gcloud compute instances list
+          gcloud compute config-ssh &>/dev/null
+      - name: gcloud info
+        run: gcloud info
+      - name: certs to host
+        run: |
+          cd proxy
+          make certsToHost INC=certs
 
