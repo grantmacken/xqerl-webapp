@@ -6,7 +6,6 @@ on:
 # Environment variables available to all jobs and steps in this workflow
 env:
   GITHUB_SHA: ${{ github.sha }}
-  GIT_EMAIL: ${{ secrets.GIT_EMAIL }}
 
 jobs:
   build:
@@ -24,9 +23,10 @@ jobs:
           service_account_key: ${{ secrets.GCE_KEY }}
       - name: gcloud info
         run: |
-            gcloud config set account ${GIT_EMAIL}
-            gcloud auth list
-            gcloud projects list
+            gcloud iam service-accounts list
+            # gcloud config set account grantmacken@gmail.com
+            # gcloud auth list
+            # gcloud projects list
             #gcloud config set project gmack-200121
             # gcloud config get-value project
             # gcloud compute config-ssh --dry-run
