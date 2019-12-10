@@ -28,7 +28,8 @@ jobs:
         run: |
           gcloud config set project ${GCE_PROJECT}
           gcloud compute instances list
-          # gcloud compute config-ssh
+          gcloud compute zones list
+          gcloud compute config-ssh &>/dev/null
       - name: gcloud ssh
         run: |
           echo '-------------------------------'
