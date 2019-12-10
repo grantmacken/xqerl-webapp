@@ -21,12 +21,12 @@ jobs:
           version: "270.0.0"
           service_account_email: ${{ secrets.CLIENT_EMAIL }}
           service_account_key: ${{ secrets.GCE_KEY }}
+      - name: gcloud configure
         run: |
           gcloud config set project gmack-200121
           gcloud compute config-ssh --dry-run
-      - name: gcloud info
-        run: |
-          gcloud info
+          echo '-------------------------------'
+          # gcloud info
           echo '-------------------------------'
           echo -n 'region: '
           gcloud config get-value compute region
