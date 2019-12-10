@@ -11,9 +11,11 @@ jobs:
         uses: actions/checkout@v1
         with:
           fetch-depth: 1
-      - uses: GoogleCloudPlatform/github-actions/setup-gcloud@master
+      - name: Setup gcloud
+        uses: GoogleCloudPlatform/github-actions/setup-gcloud@master
         with:
-          version: "272.0.0"
+          version: "270.0.0"
           service_account_email: ${{ secrets.GCP_SA_EMAIL }}
           service_account_key: ${{ secrets.GCP_SA_KEY }}
-      - run: gcloud info
+      - name: gcloud info
+        run: gcloud info
