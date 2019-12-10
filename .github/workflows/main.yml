@@ -34,14 +34,14 @@ jobs:
           gcloud compute config-ssh &>/dev/null
       - name: gcloud ssh
         run: |
-          echo '-------------------------------'
           #echo ${HOST}
           # gcloud compute ssh ${GCE_NAME} --container or --command 'ls -al .'
           # copy from container 'or' into GCE host
-          gcloud compute ssh ${GCE_NAME} --container or  --command 'mkdir -p ./certs'
-          gcloud compute ssh ${GCE_NAME} --container or  --command 'ls -al ./certs'
-          # gcloud compute ssh ${GCE_NAME} \
-          # --command "docker cp or:${LETSENCRYPT}/dh-param.pem ~/certs -L"
+          gcloud compute ssh ${GCE_NAME} --container or --command 'mkdir -p ./certs'
+          gcloud compute ssh ${GCE_NAME} --container or --command 'ls -al ./certs'
+          gcloud compute ssh ${GCE_NAME} --container or --command 'ls -al ${LETSENCRYPT}'
+          gcloud compute ssh ${GCE_NAME} --command "docker cp or:${LETSENCRYPT}/dh-param.pem ~/certs -L"
+          gcloud compute ssh ${GCE_NAME} --container or --command 'ls -al ${LETSENCRYPT}'
           # gcloud compute ssh ${GCE_NAME} \
           # --command 'docker cp or:${LETSENCRYPT}/live/${TLS_COMMON_NAME}/fullchain.pem ~/certs -L'
           # gcloud compute ssh ${GCE_NAME} \
