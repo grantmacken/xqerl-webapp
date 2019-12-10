@@ -91,7 +91,7 @@ certsToHost:
 	@gcloud compute ssh $(HOST) --command \
  'docker cp or:$(LETSENCRYPT)/live/$(TLS_COMMON_NAME)/privkey.pem ./certs -L'
 	@gcloud compute ssh $(HOST) --command 'ls -al ./certs'
-	@ls -al /etc
+	@mkdir -p $(LETSENCRYPT)/live/$(TLS_COMMON_NAME)
 
 .PHONY: certsToLocal
 certsToLocal:
