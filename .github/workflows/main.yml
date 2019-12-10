@@ -21,15 +21,16 @@ jobs:
           version: "270.0.0"
           service_account_email: ${{ secrets.CLIENT_EMAIL }}
           service_account_key: ${{ secrets.GCE_KEY }}
+        run: |
+          gcloud config set project gmack-200121
+          gcloud compute config-ssh --dry-run
       - name: gcloud info
         run: |
-            #gcloud info
-            #gcloud iam service-accounts list
-            # gcloud config set account grantmacken@gmail.com
-            # gcloud auth list
-            gcloud config set project gmack-200121
-            gcloud config get-value project
-            gcloud compute project-info describe --project gmack-200121
-            # gcloud projects list
-            gcloud compute config-ssh --dry-run
-            # gcloud compute ssh gmack --container or --command 'ls -al /etc/letsencrypt/live'
+          gcloud info
+          echo '-------------------------------'
+          echo -n 'region: '
+          gcloud config get-value compute region
+          echo -n 'zone: '
+          gcloud config get-value compute zone
+          echo '-------------------------------'
+          # gcloud compute ssh gmack --container or --command 'ls -al /etc/letsencrypt/live'
