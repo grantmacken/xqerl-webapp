@@ -97,10 +97,12 @@ certsToHost:
 	@sudo chown ${USER} $(LETSENCRYPT)
 	@gcloud compute scp  $(HOST):~/live $(LETSENCRYPT) --recurse
 	# relocate dh param
-	@mv $(LETSENCRYPT)/live/$(TLS_COMMON_NAME)/dh-param.pem ../../
+	@mv $(LETSENCRYPT)/live/$(TLS_COMMON_NAME)/dh-param.pem $(LETSENCRYPT)/dh-param.pem
 	@ls -al $(LETSENCRYPT)
 	@ls -al $(LETSENCRYPT)/live/$(TLS_COMMON_NAME)
 	@printf %60s | tr ' ' '-' && echo
+	@echo "127.0.0.1  $(TLS_COMMON_NAME)" | sudo tee -a /etc/hosts
+	@grep  -oP '^.+$(TLS_COMMON_NAME)$$'  /etc/hosts
 
 .PHONY: certsToLocal
 certsToLocal:
