@@ -34,10 +34,12 @@ jobs:
         run: gcloud info
       - name: set up certs and hosts file
         run: |
-          cd proxy
+          pushd proxy
           make certsToHost INC=certs
-      - name: create openresty proxy image
+          popd
+      - name: bring containers up
         run: |
             pwd
+            make up
 
 
