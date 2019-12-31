@@ -34,7 +34,7 @@ email = $(GIT_EMAIL)
 
 # Uncomment and update to generate certificates for the specified
 # domains.
-domains = $(subst $(space),$(delimit)$(space),$(DOMAINS))
+domains = $(subst $(SPACE),$(DELIMIT)$(SPACE),$(DOMAINS))
 
 # use a text interface instead of ncurses
 text = true
@@ -102,6 +102,8 @@ certsToHost:
 	@mv $(LETSENCRYPT)/live/$(TLS_COMMON_NAME)/dh-param.pem $(LETSENCRYPT)/dh-param.pem
 	@ls -al $(LETSENCRYPT)
 	@ls -al $(LETSENCRYPT)/live/$(TLS_COMMON_NAME)
+	# on github host we should be able to copy into a stopped container
+	@docker cp /etc/letsencrypt 
 	# adjust hosts file TODO all domains
 	@echo "127.0.0.1  $(TLS_COMMON_NAME)" | sudo tee -a /etc/hosts
 	@printf %60s | tr ' ' '-' && echo

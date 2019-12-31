@@ -14,6 +14,7 @@ EMPTY :=
 SPACE := $(EMPTY) $(EMPTY)
 DELIMIT := $(COMMA)$(EMPTY)
 DEO  = docker exec $(OR)
+
 define ProxyHelp
 -------------------------------------------------------------------------------
 $(CURDIR)
@@ -46,6 +47,16 @@ define mkCertsConf
 ssl_certificate         $(LETSENCRYPT)/live/$(TLS_COMMON_NAME)/fullchain.pem;
 ssl_certificate_key     $(LETSENCRYPT)/live/$(TLS_COMMON_NAME)/privkey.pem;
 ssl_trusted_certificate $(LETSENCRYPT)/live/$(TLS_COMMON_NAME)/chain.pem;
+endef
+
+define mkDockerfile
+FROM  $(PROXY_IMAGE_FROM) as proxy
+RUN  rm $(OPENRESTY_HOME)/nginx/conf/*
+COPY ./nginx/conf  $(OPENRESTY_HOME)/nginx/conf
+# add env vars
+ENV PROXY_CONTAINER_NAME $(PROXY_CONTAINER_NAME)
+ENV XQERL_CONTAINER_NAME $(XQERL_CONTAINER_NAME)
+ENV XQERL_PORT $(XQERL_PORT)
 endef
 
 $(B)/proxy/conf/%.conf: proxy/conf/%.conf
@@ -96,4 +107,33 @@ or-test:
 	@echo "## $@ ##"
 	@echo ' - local test nginx configuration'
 	@docker exec -t or openresty -t
+
+.PHONY: certsToHost
+certsToHost:
+	@echo '## $@ ##'
+	@gcloud compute ssh $(GCE_NAME) --command 'mkdir -p ./live/$(TLS_COMMON_NAME)'
+	@gcloud compute ssh $(GCE_NAME) --command \
+ 'docker cp or:$(LETSENCRYPT)/live/$(TLS_COMMON_NAME)/cert.pem ./live/$(TLS_COMMON_NAME) -L'
+	@gcloud compute ssh $(GCE_NAME) --command \
+ 'docker cp or:$(LETSENCRYPT)/live/$(TLS_COMMON_NAME)/fullchain.pem ./live/$(TLS_COMMON_NAME) -L'
+	@gcloud compute ssh $(GCE_NAME) --command \
+ 'docker cp or:$(LETSENCRYPT)/live/$(TLS_COMMON_NAME)/privkey.pem ./live/$(TLS_COMMON_NAME) -L'
+	# dh param in different location
+	@gcloud compute ssh $(GCE_NAME) --command  'docker cp or:$(LETSENCRYPT)/dh-param.pem ./live/$(TLS_COMMON_NAME) -L'
+	@gcloud compute ssh $(GCE_NAME) --command 'ls -al ./live/$(TLS_COMMON_NAME)'
+	@sudo mkdir -p $(LETSENCRYPT)
+	@sudo chown ${USER} $(LETSENCRYPT)
+	@gcloud compute scp  $(GCE_NAME):~/live $(LETSENCRYPT) --recurse
+	# clean up on GCE Host
+	@gcloud compute ssh $(GCE_NAME) --command 'rm -r ./live'
+	# relocate dh param
+	@mv $(LETSENCRYPT)/live/$(TLS_COMMON_NAME)/dh-param.pem $(LETSENCRYPT)/dh-param.pem
+	@ls -al $(LETSENCRYPT)
+	@ls -al $(LETSENCRYPT)/live/$(TLS_COMMON_NAME)
+	# on github host we should be able to copy into a stopped container
+	@docker cp $(LETSENCRYPT) $(OR):$(LETSENCRYPT) 
+	# adjust hosts file TODO all domains
+	@echo "127.0.0.1  $(TLS_COMMON_NAME)" | sudo tee -a /etc/hosts
+	@printf %60s | tr ' ' '-' && echo
+
 

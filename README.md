@@ -30,6 +30,7 @@ WIP TODO: SECTIONS
   - gcloud client
 
 ## Setting Up Proxy Server
+  - obtaining letsencrypt TLS certs
   - TLS lockdown 
   - SNI capabilities: routing via domain
   - OAuth2 Token Bearer authentication
