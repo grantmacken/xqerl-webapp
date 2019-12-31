@@ -17,6 +17,12 @@ jobs:
           fetch-depth: 1
       # - name: Debug
       #   uses: hmarr/debug-action@master
+      - name: Pull images
+        run: |
+          source .env
+          docker pull ${XQERL_DOCKER_IMAGE}
+          echo ${{ secrets.GITHUB_TOKEN }} | docker login docker.pkg.github.com --username ${{ secrets.DOCKER_USERNAME }} --password-stdin
+          docker pull ${PROXY_DOCKER_IMAGE}
       - name: Setup gcloud
         uses: GoogleCloudPlatform/github-actions/setup-gcloud@master
         with:
@@ -37,12 +43,6 @@ jobs:
           pushd proxy
           make certsToHost
           popd
-      - name: Pull images
-        run: |
-          source .env
-          docker pull ${XQERL_DOCKER_IMAGE}
-          echo ${{ secrets.GITHUB_TOKEN }} | docker login docker.pkg.github.com --username ${{ secrets.DOCKER_USERNAME }} --password-stdin
-          docker pull ${PROXY_DOCKER_IMAGE}
       - name: bring containers up
         run: |
             pwd
