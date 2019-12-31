@@ -7,9 +7,9 @@ maybe a template for a xQuery webapp projects using xqerl, but just now an exper
 2. xqerl resides behind our openresty proxy as an web application server
 
 xqerl provides capabilities to handle structured marked up data resources like HTML, XML, JSON and CSV
- - a restXQ implementation:  providing an API interface to Create Retrieve Update Delete these resources in its internal data store.
- - a HTTP client:  ability to retrieve external resources 
- - an xQuery application engine: retrieve, query and transform data resources via xQuery
+ - a restXQ implementation providing an API interface to Create Retrieve Update Delete these resources in its internal data store.
+ - a HTTP client giving the ability to retrieve external and internal network resources 
+ - an xQuery application engine to retrieve, query and transform data resources via the *functional*, *typed* **xQuery** language
 
 ## Persistent Container Volumes
 
