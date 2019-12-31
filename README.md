@@ -11,11 +11,15 @@ xqerl provides capabilities to handle structured marked up data resources like H
  - a HTTP client giving the ability to retrieve external and internal network resources 
  - an xQuery application engine to retrieve, query and transform data resources via the *functional*, *typed* **xQuery** language
 
-## Persistent Container Volumes
-
 Since containers are ephemeral by nature, 
 we provide volumes to persist data between stopping and starting the containers.
-These volumes are in the 'docker-compose' file and their purpose should be self evident. 
+These volumes are in the 'docker-compose' file and their purpose should be self evident.
+
+# Building a xqerl webapp
+
+
+
+
 
 ## Setting Up the proxy server.
 

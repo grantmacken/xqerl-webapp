@@ -39,9 +39,9 @@ jobs:
       #     popd
       - name: Pull images
         run: |
+          source .env
           docker pull ${XQERL_DOCKER_IMAGE}
           echo ${{ secrets.GITHUB_TOKEN }} | docker login docker.pkg.github.com --username ${{ secrets.DOCKER_USERNAME }} --password-stdin
-          source .env
           docker pull ${PROXY_DOCKER_IMAGE}
       # - name: bring containers up
       #   run: |
