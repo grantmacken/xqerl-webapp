@@ -1,6 +1,7 @@
 SHELL=/bin/bash
-include .env
-include ../.env
+include $(abspath ../.env)
+XQ=$(XQERL_CONTAINER_NAME)
+OR=$(PROXY_CONTAINER_NAME)
 ifdef INC
  include .inc/$(INC).mk
  $(info included $(INC).mk )
@@ -12,106 +13,87 @@ COMMA := ,
 EMPTY :=
 SPACE := $(EMPTY) $(EMPTY)
 DELIMIT := $(COMMA)$(EMPTY)
-
-define mkHelp
+DEO  = docker exec $(OR)
+define ProxyHelp
 -------------------------------------------------------------------------------
+$(CURDIR)
+
+PROXY_CONTAINER_NAME: $(PROXY_CONTAINER_NAME)
+ENV OPENRESTY_HOME $(OPENRESTY_HOME)
+ENV XQERL_CONTAINER_NAME $(XQERL_CONTAINER_NAME)
+ENV XQERL_PORT $(XQERL_PORT)
+ 
 -------------------------------------------------------------------------------
 endef
 
-help: export HELP=$(mkHelp)
+help: export mkProxyHelp=$(ProxyHelp)
 help:
-	@echo "$${HELP}"
+	@echo "$${mkProxyHelp}"
 
-
-.PHONY: build
-build: clean \
- $(B)/Dockerfile \
- $(B)/docker-compose.yml \
- $(B)/nginx/conf/certs.conf \
- $(patsubst %,$(B)/nginx/%, $(wildcard conf/*))
+.PHONY: conf
+conf: clean \
+ $(B)/nginx/conf/certs.conf $(patsubst %,$(B)/nginx/%, $(wildcard conf/*))
 	@echo '## $(@) ##'
-	@cd $(B); docker build --tag='docker.pkg.github.com/$(REPO_OWNER)/$(REPO_NAME)/$(PROXY_NAME):$(PROXY_VER)' .
-	@docker images
-
-
-.PHONY: dkrLogin
-dkrLogin:
-	@echo '## $(@) ##'
-	@$(if ${GITHUB_WORKSPACE},\
- echo ${{ secrets.GITHUB_TOKEN }} | docker login docker.pkg.github.com --username ${{ secrets.DOCKER_USERNAME }} --password-stdin,\
- echo ${GITHUB_ACCESS_TOKEN} | docker login docker.pkg.github.com --username $(REPO_OWNER) --password-stdin )
-
-xxxx:
-	@cd $(B) ; docker-compose up -d
-	@sleep 1
-	@cd $(B); docker-compose logs
-	@curl -s http://localhost
-	@cd $(B) ; docker-compose down
+	@$(DEO) ./bin/openresty -s reload
 
 .PHONY: clean
 clean:
 	@echo '## $(@) ##'
 	@rm -rf $(B)
 
-define mkDockerfile
-FROM  $(IMAGE_FROM) as proxy
-RUN  rm nginx/conf/*
-COPY ./nginx/conf  $(OPENRESTY_HOME)/nginx/conf
-RUN  ls -al nginx/conf
-endef
-
 define mkCertsConf
 # My LETSENCRYPT certs
 ssl_certificate         $(LETSENCRYPT)/live/$(TLS_COMMON_NAME)/fullchain.pem;
 ssl_certificate_key     $(LETSENCRYPT)/live/$(TLS_COMMON_NAME)/privkey.pem;
 ssl_trusted_certificate $(LETSENCRYPT)/live/$(TLS_COMMON_NAME)/chain.pem;
-#  Diffie-Hellman parameter for DHE ciphersuites
-##################################################
-ssl_dhparam /etc/letsencrypt/dh-param.pem;
 endef
 
-define mkDockerCompose
-version: '3.7'
-services:
-  openresty:
-    container_name: orProxy
-    image: ${DOCKER_IMAGE}:proxy
-    ports:
-        - 80:80
-        - 443:443
-endef
-
-$(B)/Dockerfile: export mkDockerfile:=$(mkDockerfile)
-$(B)/Dockerfile:
-	@echo '## $(@) ##'
+$(B)/proxy/conf/%.conf: proxy/conf/%.conf
+	@echo '##[ $< ]##'
 	@mkdir -p $(dir $@)
-	@echo "$${mkDockerfile}" > $@
-
-$(B)/docker-compose.yml: export mkDockerCompose:=$(mkDockerCompose)
-$(B)/docker-compose.yml:
-	@echo '## $(@) ##'
-	@mkdir -p $(dir $@)
-	@echo "$${mkDockerCompose}" > $@
+	@$(DEO) ls -al $(patsubst proxy/conf/%,nginx/conf/%,$<)
+	@$(DEO) cat $(patsubst proxy/conf/%,nginx/conf/%,$<)
+	@cp $< $@
 
 $(B)/nginx/conf/certs.conf: export mkCertsConf:=$(mkCertsConf)
 $(B)/nginx/conf/certs.conf:
-	@echo '## $(@) ##'
+	@echo '## $(patsubst $(B)/%,%,$@) ##'
 	@mkdir -p $(dir $@)
 	@echo "$${mkCertsConf}" > $@
+	@docker cp $@ $(OR):$(OPENRESTY_HOME)/$(patsubst $(B)/%,%,$@)
+	@$(DEO) ls -al $(patsubst $(B)/%,%,$@)
+	@$(DEO) ls -al ./bin
+	@$(DEO) ./bin/openresty -c $(OPENRESTY_HOME)/nginx/conf/nginx.conf -t
 
 $(B)/nginx/conf/%: conf/%
-	@echo '## $(@) ##'
+	@echo '## $(patsubst $(B)/%,%,$@) ##'
 	@mkdir -p $(dir $@)
+	@docker cp $< $(OR):$(OPENRESTY_HOME)/$(patsubst $(B)/%,%,$@)
+	@$(DEO) ls -al $(patsubst $(B)/%,%,$@)
+	@$(DEO) ./bin/openresty -c $(OPENRESTY_HOME)/nginx/conf/nginx.conf -t
 	@cp $< $@
 
-.PHONY: sa
-sa: 
-	@#gcloud iam service-accounts list
-	@#gcloud iam service-accounts create gcp-service-account --description "My gmack service account" --display-name "gmackServiceAccount"
-	@#gcloud iam service-accounts list
-	@#gcloud iam service-accounts keys create ../../key.json --iam-account gcp-service-account@gmack-200121.iam.gserviceaccount.com
-	@#mkdir .tmp; cat ../../key.json | base64 > .tmp/key.txt
-	@#gcloud auth activate-service-account --project=gmack-200121 --key-file=../../key.json 
-	@#gcloud iam service-accounts keys list --iam-account gcp-service-account@gmack-200121.iam.gserviceaccount.com
-	@#gcloud auth activate-service-account --project=gmack-200121 --key-
-	@gcloud iam service-accounts list
+.PHONY: dkrLogin
+dkrLogin:
+	@echo '## $(@) ##'
+	@$(if $${GITHUB_WORKSPACE},\
+ echo ${{ secrets.GITHUB_TOKEN }} | docker login docker.pkg.github.com --username ${{ secrets.DOCKER_USERNAME }} --password-stdin,\
+ echo ${GITHUB_ACCESS_TOKEN} | docker login docker.pkg.github.com --username $(REPO_OWNER) --password-stdin )
+
+.PHONY: or-restart
+or-restart:
+	@echo "## $@ ##"
+	@echo ' - local test nginx configuration'
+	@docker exec -t or openresty -t | grep 'syntax is ok'
+	@echo ' - local restart'
+	@#docker exec or kill -HUP 1
+	@docker exec or openresty -s reload
+	@#docker exec or openresty start
+	@docker ps | grep 'openresty'
+
+.PHONY: or-test
+or-test:
+	@echo "## $@ ##"
+	@echo ' - local test nginx configuration'
+	@docker exec -t or openresty -t
+

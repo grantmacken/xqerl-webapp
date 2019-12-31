@@ -1,0 +1,2 @@
+Inlining: inline_size=24 inline_effort=150
+modules/render-feed.xqm:1:I: compiled ok!

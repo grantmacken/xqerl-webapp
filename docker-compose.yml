@@ -1,0 +1,64 @@
+version: "3.7"
+services:
+  or:
+    image: ${PROXY_DOCKER_IMAGE}
+    container_name: ${PROXY_CONTAINER_NAME}
+    hostname: ${PROXY_CONTAINER_NAME}
+    ports:
+      - 80:80
+      - 443:443
+    volumes:
+      - type: volume
+        source: letsencrypt
+        target: ${LETSENCRYPT}
+      - type: volume
+        source: html
+        target: ${OPENRESTY_HOME}/nginx/html
+      - type: volume
+        source: conf
+        target: ${OPENRESTY_HOME}/nginx/conf
+      - type: volume
+        source: lualib
+        target: ${OPENRESTY_HOME}/site/lualib/${REPO_OWNER}
+    depends_on:
+      - "${XQERL_CONTAINER_NAME}"
+  xq:
+    image: ${XQERL_DOCKER_IMAGE}
+    container_name: ${XQERL_CONTAINER_NAME}
+    hostname: ${XQERL_CONTAINER_NAME}
+    ports:
+      - ${XQERL_PORT}:${XQERL_PORT}
+    volumes:
+      - type: volume
+        source: db
+        target: ${XQERL_HOME}/data
+      - type: volume
+        source: code
+        target: ${XQERL_HOME}/code
+      - type: bind
+        source: ./bin
+        target: ${XQERL_HOME}/bin/scripts
+volumes:
+  letsencrypt:
+    driver: local
+    name: letsencrypt
+  html:
+    driver: local
+    name: static-assets
+  conf:
+    driver: local
+    name: nginx-configuration
+  lualib:
+    driver: local
+    name: repo-owners-lualibs
+  db:
+    driver: local
+    name: xqerl-database
+  code:
+    driver: local
+    name: xqerl-compiled-code
+
+networks:
+  default:
+    external:
+      name: $NETWORK
