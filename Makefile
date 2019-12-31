@@ -68,7 +68,7 @@ up:
 	@$(if $$(docker ps --filter name=$(XQ) --format '{{.Names}}' | grep '$(XQ)'),,echo  '- container NOT running';false )
 	@echo -n '- started: '
 	@$(EVAL) 'application:ensure_all_started(xqerl).'
-	@#$(MAKE) -silent info
+	@$(MAKE) -silent info
 	@#cd site/$(DOMAIN) && $(MAKE) -silent app
 	@#$(MAKE) -silent surf
 
