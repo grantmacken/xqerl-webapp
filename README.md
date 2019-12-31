@@ -15,18 +15,29 @@ Since containers are ephemeral by nature,
 we provide volumes to persist data between stopping and starting the containers.
 These volumes are in the 'docker-compose' file and their purpose should be self evident.
 
-# Building a xqerl webapp
+
+WIP TODO: SECTIONS
+
+## example: building a micropub server implementation 
+
+## Using github actions
 
 
+## Setting Up Container Hosting 
+
+- Google Compute Engine (GCE)
+  - ingress: controlling ports
+  - gcloud client
+
+## Setting Up Proxy Server
+  - TLS lockdown 
+  - SNI capabilities: routing via domain
+  - OAuth2 Token Bearer authentication
+  - cache server
+  - static file server
 
 
-
-## Setting Up the proxy server.
-
-TODO!
-
-
-
+## Setting Up xqerl 
 
 
 
