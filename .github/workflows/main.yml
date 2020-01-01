@@ -20,8 +20,8 @@ jobs:
       #
       - name: Install Dependencies
         run: |
-            pip install scour
-            scour --help
+            # pip install scour
+            # scour --help
             ls -al /usr/bin
       # - name: Pull images
       #   run: |
