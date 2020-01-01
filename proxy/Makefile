@@ -147,7 +147,8 @@ certsToHost:
  --mount type=volume,target=${LETSENCRYPT},source=letsencrypt \
  --entrypoint "/usr/bin/tail" $(PROXY_DOCKER_IMAGE)  -f /dev/null
 	# copy retrieved certs into letsencrypt volume
-	docker cp $(LETSENCRYPT) dummy:$(LETSENCRYPT) 
+	docker cp $(LETSENCRYPT)/live/$(TLS_COMMON_NAME) dummy:$(LETSENCRYPT)/live 
+	docker cp $(LETSENCRYPT)/dh-param.pem dummy:$(LETSENCRYPT)
 	docker exec dummy ls $(LETSENCRYPT) 
 	docker exec dummy ls $(LETSENCRYPT)/live
 	docker stop dummy

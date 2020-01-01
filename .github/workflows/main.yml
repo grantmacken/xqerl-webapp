@@ -43,9 +43,9 @@ jobs:
           pushd proxy
           make certsToHost
           popd
-      # - name: bring containers up
-      #   run: |
-      #       pwd
-      #       make up
+      - name: bring containers up
+        run: |
+            pwd
+            make up
 
 
