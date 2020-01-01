@@ -21,7 +21,8 @@ jobs:
       - name: Install Dependencies
         run: |
             pip install scour
-            which scour
+            scour --help
+            ls -al /usr/bin
       # - name: Pull images
       #   run: |
       #     source .env
