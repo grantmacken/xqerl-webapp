@@ -140,11 +140,10 @@ certsToHost:
 	# copy retrieved certs into letsencrypt volume
 	@docker cp $(LETSENCRYPT)/live/$(TLS_COMMON_NAME) dummy:$(LETSENCRYPT)/live 
 	@docker cp $(LETSENCRYPT)/dh-param.pem dummy:$(LETSENCRYPT)
-	@docker exec dummy ls $(LETSENCRYPT) 
-	@docker exec dummy ls $(LETSENCRYPT)/live
+	# view created items
+	@docker exec dummy ls $(LETSENCRYPT) | grep 'dh-param.pem'
 	@docker exec dummy ls $(LETSENCRYPT)/live/$(TLS_COMMON_NAME)
 	@docker stop dummy
-	# on github host we should be able to copy into a stopped container
 	# adjust hosts file TODO all domains
 	@echo "127.0.0.1  $(TLS_COMMON_NAME)" | sudo tee -a /etc/hosts
 	@printf %60s | tr ' ' '-' && echo

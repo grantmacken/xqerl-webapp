@@ -1,2 +1,0 @@
-Inlining: inline_size=24 inline_effort=150
-modules/newBase60.xqm:1:I: compiled ok!

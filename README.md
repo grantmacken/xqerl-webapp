@@ -83,6 +83,19 @@ gmack.nz
 │   └── routes.xqm
 ```
 
+The build order of compiling is important,
+as some xQuery modules depend upon others.
+
+The build sequence, can be defined in the Makefile.
+
+1. stand alone utility modules e.g.  newBase60
+2. the publish libs that perform Create Retrieve Update Deletes operation on data
+3. the render HTML view libs  
+4. restXQ lib
+
+
+
+
 To build the app...
 
 ```

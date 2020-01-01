@@ -1,19 +1,10 @@
-XQ := $(XQERL_CONTAINER_NAME)
-DEX := docker exec $(XQ)
-EVAL := $(DEX) xqerl eval
-ESCRIPT := $(DEX) xqerl escript
 CODE_SRC :=  $(XQERL_HOME)/code/src
-RESTXQ := routes.xqm
 
 xqIPAddress = $(shell  docker inspect --format='{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' $(XQ))
 xqStatus != docker ps --filter name=$(XQ) --format 'status: {{.Status}}'
 xqPortInUse != docker ps --format '{{.Ports}}' | grep -oP '^(.+)8081->\K(8081)'
 
-library-modules := $(filter-out modules/$(RESTXQ), $(wildcard modules/*xqm)) 
-main-modules := $(wildcard modules/*xq)
-
 compile =  $(ESCRIPT) bin/scripts/compile.escript ./code/src/$1
-
 compiledLibs := 'BinList = xqerl_code_server:library_namespaces(),\
  NormalList = [binary_to_list(X) || X <- BinList],\
  io:fwrite("~1p~n",[lists:sort(NormalList)]).'
@@ -24,21 +15,8 @@ define modulesHelp
 WORKING SITE: [ $(DOMAIN) ]
 DIRECTORY:    [ modules ]
 
-XQUERY MODULES :
- - restXQ module: [ $(RESTXQ) ] 
- - xQuery library modules [ $(library-modules) ]
- - xQuery main modules   [ ]
-$(patsubst modules/%,$(B)/modules/$(Domain)-%, $(library-modules))
-
-`make app` 
- First compiles library xQuery files,
- then compiles restXQ 
-
-restXQ maps **URI template** endpoints to xQuery functions.
-
-Since a restXQ may depend on library module functions ,
-libs must compiled be called prior compiling restXQ module
-
+Since some modules may depend on other library module functions ,
+libs must compiled in an ordered sequence
 ===============================================================================
 endef
 
@@ -53,18 +31,10 @@ curl:
 	@curl -v https://gmack.nz/micropub -d h=entry -d "content=Hello World"
 	@echo;printf %60s | tr ' ' '-' && echo
 
-.PHONY: app
-app: libs restXQ
-
-.PHONY: restXQ
-restXQ: $(B)/modules/$(RESTXQ)
-
-.PHONY: libs
-libs: $(patsubst %,$(B)/%, $(library-modules))
-
 $(B)/modules/%.xqm: modules/%.xqm
 	@echo '##[ $* ]##'
-	@mkdir -p $(@)
+	@mkdir -p $(dir $@)
+	@rm -f $(T)/*
 	@docker cp $(<) $(XQ):$(CODE_SRC)
 	@$(call compile,$(notdir $<)) | tee $(T)/compile_$(*).txt
 	@cat $(T)/compile_$(*).txt | grep -q ':I:'
@@ -86,19 +56,13 @@ $(B)/app/modules/%.xq: app/modules/%.xq
 	@$(EVAL) 'io:fwrite("~1p~n",[xqerl_code_server:library_namespaces()]).'
 	@echo;printf %60s | tr ' ' '-' && echo
 
-PHONY: clean
-clean: 
-	@echo "## $(@) ##"
-	@rm -rf $(B)
-	@touch $(library-modules) 
-
 PHONY: clean-code
 clean-code: 
 	@echo "## $(@) ##"
 	@echo ' - remove the code volume '
 	@$(if $(dkrStatus),docker-compose down,)
 	@docker volume rm xqerl-compiled-code
-	@$(MAKE) -silent up 
+	@pushd ../../ && $(MAKE) -silent up && popd
 
 .PHONY: escript
 escript: 

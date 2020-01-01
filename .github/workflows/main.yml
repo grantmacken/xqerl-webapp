@@ -34,10 +34,10 @@ jobs:
           source .env
           gcloud config set project ${GCE_PROJECT}
           gcloud config set compute/zone ${GCE_ZONE}
-          gcloud compute instances list
+          # gcloud compute instances list
           gcloud compute config-ssh &>/dev/null
-      - name: gcloud info
-        run: gcloud info
+      # - name: gcloud info
+      #   run: gcloud info
       - name: set up certs and hosts file
         run: |
           pushd proxy
@@ -46,8 +46,17 @@ jobs:
       - name: bring containers up
         run: |
             make up
-            sleep 3
-            docker-compose logs
+            docker ps
+      - name: build the xqerl web app
+        run: |
+            source .env
+            # move to domain
+            pushd site/${DOMAIN}
+            # compile xQuery libs
+            # compile order is defined in the  site/[DOMAIN] Makefile 
+            # NOTE! order in important as some libs depend on others
+            make app
+            popd 
       - name: take containers down
         run: |
             make down

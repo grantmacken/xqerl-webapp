@@ -1,1 +1,0 @@
-modules/restXQ:16:E: It is a static error if the expanded QName and number of arguments in a static function call do not match the name and arity of a function signature in the static context.

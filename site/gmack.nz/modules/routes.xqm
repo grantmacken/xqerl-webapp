@@ -14,7 +14,7 @@ import module namespace mp  = "http://gmack.nz/#mp";
 declare variable $_:card := map { 
     'name' : 'Grant Mackenzie',
     'url' : 'https://gmack.nz'
-    } ;
+    };
 
 declare 
   %rest:path("/gmack.nz")
@@ -69,9 +69,6 @@ return
   )
 };
 
-
-
-
 (:
 Micropub Server
 A Micropub Server is an implementation that can create and optionally edit and 
@@ -79,7 +76,9 @@ delete posts given a Micropub request.
 https://www.w3.org/TR/micropub/
 :)
 
-(: micropub FORM endpoint :)
+(: micropub FORM endpoint
+Creating a post using x-www-form-urlencoded syntax with one or more properties
+:)
 declare 
   %rest:path("/gmack.nz/micropub")
   %rest:POST
@@ -172,46 +171,6 @@ function _:post_form_54a($files){
   }
 };
 
-declare 
-  %rest:path("/gmack.nz/options/xml")
-  %rest:OPTIONS
-function _:options_xml_103(){
-  <rest:response>
-    <http:response status="200">
-      <http:header name="Allow" value="GET,HEAD"/>
-    </http:response>
-  </rest:response>,
-  'empty?'
-};
-
-declare 
-  %rest:path("/gmack.nz/post/get")
-  %rest:query-param("id", "{$id}")
-  %rest:POST('{$body}')
-  %updating
-function _:post_get_1($body, $id){
-  fn:put($body, 'http://xqerl.org/gmack.nz/restxq/' || $id),
-  <rest:response>
-    <http:response status="201">
-      <http:header name="Location" value="/gmack.nz/post/get/doc/{$id}"/>
-    </http:response>
-  </rest:response>
-};
-
-declare 
-  %rest:path("/gmack.nz/post/get/doc/{$id}")
-  %rest:produces("application/xml")
-  %rest:GET
-function _:post_get_1a($id){
-  let $uri := 'http://xqerl.org/gmack.nz/restxq/' || $id
-  return
-  if (doc-available($uri)) then
-    doc($uri)
-  else
-  <rest:response>
-    <http:response status="404"/>
-  </rest:response>
-};
 
 
 
