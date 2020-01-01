@@ -45,7 +45,11 @@ jobs:
           popd
       - name: bring containers up
         run: |
-            pwd
             make up
+            sleep 3
+            docker-compose logs
+      - name: take containers down
+        run: |
+            make down
 
 

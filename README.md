@@ -15,6 +15,7 @@ Since containers are ephemeral by nature,
 we provide volumes to persist data between stopping and starting the containers.
 These volumes are in the 'docker-compose' file and their purpose should be self evident.
 
+<!--
 
 WIP TODO: SECTIONS
 
@@ -23,25 +24,71 @@ WIP TODO: SECTIONS
 ## Using github actions
 
 
-## Setting Up Container Hosting 
+## Container Hosting 
 
-- Google Compute Engine (GCE)
+  - Google Compute Engine (GCE)
   - ingress: controlling ports
-  - gcloud client
+  - using the gcloud client
 
-## Setting Up Proxy Server
-  - obtaining letsencrypt TLS certs
-  - TLS lockdown 
-  - SNI capabilities: routing via domain
-  - OAuth2 Token Bearer authentication
-  - cache server
-  - static file server
+## Proxy Server Container
 
-
-## Setting Up xqerl 
-
-
-
+ - CI pipeline setup on 'github actions'
+ - a nginx configuration for generic routing via site domain 
+ - secure setup
+   - obtaining letsencrypt TLS certs with SNI certs 
+   - TLS lockdown headers, rerouting port 80
+   - OAuth2 Token Bearer authentication
+ - generic proxy pass
+ - cache server
+ - static file server
 
 
+## xqerl Web App
+
+This repos web site development environment 
+consist of the bundle of site **domains** I can manage 
+under a TLS common name.
+
+```
+└── site
+    ├── gmack.nz
+    │   ├── Makefile
+    │   ├── modules
+    │   │   └── routes.xqm
+    │   └── resources
+    │       ├── icons
+    │       │   ├── article.svg
+    │       ├── images
+    │       ├── scripts
+    │       └── styles
+    │           └── main.css
+    ├── example.com
+    ├── example2.com
+```
+
+A xqerl app consists of 
+   - a module which establishes restXQ routes ( routes.xqm )
+   - xQuery modules for querying, transforming, storing and viewing data resources
+
+At the moment `site/gmack.nz` modules look like this
+
+```
+gmack.nz
+├── Makefile
+├── modules
+│   ├── micropub.xqm
+│   ├── newBase60.xqm
+│   ├── render-feed.xqm
+│   ├── render-note.xqm
+│   └── routes.xqm
+```
+
+To build the app...
+
+```
+cd site/gmack.nz
+```
+
+
+-->
 

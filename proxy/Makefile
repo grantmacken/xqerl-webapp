@@ -109,15 +109,6 @@ or-test:
 	@docker exec -t or openresty -t
 
 
-.PHONY: orDummy
-orDummy:
-	@docker run --rm --name dummy --detach \
- --mount type=volume,target=${LETSENCRYPT},source=letsencrypt \
- --entrypoint "/usr/bin/tail" $(PROXY_DOCKER_IMAGE)  -f /dev/null
-
-
-
-
 .PHONY: certsToHost
 certsToHost:
 	@echo '## $@ ##'
@@ -141,17 +132,18 @@ certsToHost:
 	@ls -al $(LETSENCRYPT)
 	@ls -al $(LETSENCRYPT)/live/$(TLS_COMMON_NAME)
 	# create letsencrypt volume
-	docker volume create --driver local --name letsencrypt
+	@docker volume create --driver local --name letsencrypt
 	# create a dummy container and attach to letsencypt volume
 	@docker run --rm --name dummy --detach \
  --mount type=volume,target=${LETSENCRYPT},source=letsencrypt \
  --entrypoint "/usr/bin/tail" $(PROXY_DOCKER_IMAGE)  -f /dev/null
 	# copy retrieved certs into letsencrypt volume
-	docker cp $(LETSENCRYPT)/live/$(TLS_COMMON_NAME) dummy:$(LETSENCRYPT)/live 
-	docker cp $(LETSENCRYPT)/dh-param.pem dummy:$(LETSENCRYPT)
-	docker exec dummy ls $(LETSENCRYPT) 
-	docker exec dummy ls $(LETSENCRYPT)/live
-	docker stop dummy
+	@docker cp $(LETSENCRYPT)/live/$(TLS_COMMON_NAME) dummy:$(LETSENCRYPT)/live 
+	@docker cp $(LETSENCRYPT)/dh-param.pem dummy:$(LETSENCRYPT)
+	@docker exec dummy ls $(LETSENCRYPT) 
+	@docker exec dummy ls $(LETSENCRYPT)/live
+	@docker exec dummy ls $(LETSENCRYPT)/live/$(TLS_COMMON_NAME)
+	@docker stop dummy
 	# on github host we should be able to copy into a stopped container
 	# adjust hosts file TODO all domains
 	@echo "127.0.0.1  $(TLS_COMMON_NAME)" | sudo tee -a /etc/hosts
