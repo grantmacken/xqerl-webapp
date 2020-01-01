@@ -20,9 +20,8 @@ jobs:
       #
       - name: Install Dependencies
         run: |
-            which xmllint
-            # pip install --upgrade pip setuptools wheel
-            # pip install scour
+            python -m pip install --upgrade pip
+            pip install scour
       # - name: Pull images
       #   run: |
       #     source .env
