@@ -20,7 +20,6 @@ jobs:
       #
       - name: Install Dependencies
         run: |
-            python -m pip install --upgrade pip
             pip install scour
       # - name: Pull images
       #   run: |
