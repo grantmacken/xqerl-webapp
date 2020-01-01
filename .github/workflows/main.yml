@@ -20,7 +20,7 @@ jobs:
       #
       - name: Install Dependencies
         run: |
-            pip3 install scour
+            pip install scour
             which scour
       # - name: Pull images
       #   run: |
