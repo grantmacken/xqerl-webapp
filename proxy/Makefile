@@ -108,6 +108,16 @@ or-test:
 	@echo ' - local test nginx configuration'
 	@docker exec -t or openresty -t
 
+
+.PHONY: orDummy
+orDummy:
+	@docker run --rm --name dummy --detach \
+ --mount type=volume,target=${LETSENCRYPT},source=letsencrypt \
+ --entrypoint "/usr/bin/tail" $(PROXY_DOCKER_IMAGE)  -f /dev/null
+
+
+
+
 .PHONY: certsToHost
 certsToHost:
 	@echo '## $@ ##'
@@ -130,8 +140,18 @@ certsToHost:
 	@mv $(LETSENCRYPT)/live/$(TLS_COMMON_NAME)/dh-param.pem $(LETSENCRYPT)/dh-param.pem
 	@ls -al $(LETSENCRYPT)
 	@ls -al $(LETSENCRYPT)/live/$(TLS_COMMON_NAME)
+	# create letsencrypt volume
+	docker volume create --driver local --name letsencrypt letsencrypt
+	# create a dummy container and attach to letsencypt volume
+	@docker run --rm --name dummy --detach \
+ --mount type=volume,target=${LETSENCRYPT},source=letsencrypt \
+ --entrypoint "/usr/bin/tail" $(PROXY_DOCKER_IMAGE)  -f /dev/null
+	# copy retrieved certs into letsencrypt volume
+	docker cp $(LETSENCRYPT) dummy:$(LETSENCRYPT) 
+	docker exec dummy ls $(LETSENCRYPT) 
+	docker exec dummy ls $(LETSENCRYPT)/live
+	docker stop dummy
 	# on github host we should be able to copy into a stopped container
-	@docker cp $(LETSENCRYPT) $(OR):$(LETSENCRYPT) 
 	# adjust hosts file TODO all domains
 	@echo "127.0.0.1  $(TLS_COMMON_NAME)" | sudo tee -a /etc/hosts
 	@printf %60s | tr ' ' '-' && echo
