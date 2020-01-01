@@ -141,7 +141,7 @@ certsToHost:
 	@ls -al $(LETSENCRYPT)
 	@ls -al $(LETSENCRYPT)/live/$(TLS_COMMON_NAME)
 	# create letsencrypt volume
-	docker volume create --driver local --name letsencrypt letsencrypt
+	docker volume create --driver local --name letsencrypt
 	# create a dummy container and attach to letsencypt volume
 	@docker run --rm --name dummy --detach \
  --mount type=volume,target=${LETSENCRYPT},source=letsencrypt \
