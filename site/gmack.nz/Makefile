@@ -39,6 +39,17 @@ clean:
 	@rm -rfv $(B)
 
 
+.PHONY: icons
+icons: $(patsubst  %.svg,$(B)/%.svgz,$(wildcard resources/icons/*.svg))
+
+.PHONY: clean-icons
+clean-icons:
+	@rm -f $(patsubst  %.svg,$(B)/%.svgz,$(wildcard resources/icons/*.svg))
+	@rm -fr $(T)/*
+
+
+
+
 #Creating a post using x-www-form-urlencoded syntax with one or more properties
 
 

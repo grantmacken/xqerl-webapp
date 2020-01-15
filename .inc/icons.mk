@@ -33,30 +33,26 @@ icons-help: export iconHelp:=$(iconHelp)
 icons-help:
 	echo "$${iconHelp}"
 
-.PHONY: icons
-icons: $(patsubst  %.svg,$(B)/%.svgz,$(wildcard resources/icons/*.svg))
 
-clean-icons:
-	@rm -f $(patsubst  %.svg,$(B)/%.svgz,$(wildcard resources/icons/*.svg))
-
-$(B)/resources/icons/%.svgz: resources/icons/%.svg
+$(T)/resources/icons/%.svg: resources/icons/%.svg
 	@echo "##[ $* ]##"
 	@[ -d $(dir $@) ] || mkdir -p $(dir $@)
-	@rm -fr $(T)/*
-	@# mkdir -p $(patsubst %,t/%,$(dir $<))
-	@echo -en ' - use xmllint check if SVG document well formed'
-	@[ -z $(shell xmllint --noout $<) ] && echo -e ' [ OK! ]'
-	@echo -e ' - use scour to optimise and create zipped file'
-	@scour -i $< -o  $(T)/$(notdir $@)\
- --enable-viewboxing \
- --enable-id-stripping \
- --enable-comment-stripping \
- --shorten-ids \
- --indent=none >/dev/null
-	@echo -e "      orginal size: [ $$(wc -c $< | cut -d' ' -f1) ]"
-	@echo -e "gzipped scour size: [ $$(wc -c $(T)/$(notdir $@) | cut -d' ' -f1) ]"
-	@$(DEO) mkdir -p $(STATIC_ASSETS)/$(patsubst $(B)/%,%,$(dir $@))
-	@docker cp $(T)/$(notdir $@) or:$(STATIC_ASSETS)/$(patsubst $(B)/%,%,$(dir $@))
-	@$(DEO) ls $(STATIC_ASSETS)/$(patsubst $(B)/%,%,$(dir $@)) | grep -q $(notdir $<) 
-	@mv $(T)/$(notdir $@) $@
-	@echo "========================================================="
+	@echo  ' - use scour to clean and optimize SVG'
+	@cat $< | docker run \
+  --rm \
+  --name scour \
+  --interactive \
+docker.pkg.github.com/grantmacken/alpine-scour/scour:0.0.2 >  $@
+
+$(B)/resources/icons/%.svgz: $(T)/resources/icons/%.svg
+	@echo "##[ $* ]##"
+	@[ -d $(dir $@) ] || mkdir -p $(dir $@)
+	@echo  ' - use zopfli to compress image'
+	@cat $< | docker run \
+  --rm \
+  --name zopfli \
+  --interactive \
+  docker.pkg.github.com/grantmacken/alpine-zopfli/zopfli:0.0.1 > $@
+	@echo " orginal size: [ $$(wc -c $< | cut -d' ' -f1) ]"
+	@echo "   scour size: [ $$(wc -c $(T)/resources/icons/$*.svg | cut -d' ' -f1) ]"
+	@echo "   gzip size: [ $$(wc -c  $@ | cut -d' ' -f1) ]"

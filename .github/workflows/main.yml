@@ -18,17 +18,20 @@ jobs:
       # - name: Debug
       #   uses: hmarr/debug-action@master
       #
-      - name: Install Dependencies
+      - name: Pull images
         run: |
-            # pip install scour
-            # scour --help
-            ls -al /usr/bin
-      # - name: Pull images
-      #   run: |
-      #     source .env
-      #     docker pull ${XQERL_DOCKER_IMAGE}
-      #     echo ${{ secrets.GITHUB_TOKEN }} | docker login docker.pkg.github.com --username ${{ secrets.DOCKER_USERNAME }} --password-stdin
-      #     docker pull ${PROXY_DOCKER_IMAGE}
+          source .env
+          docker pull ${XQERL_DOCKER_IMAGE}
+          echo ${{ secrets.GITHUB_TOKEN }} | docker login docker.pkg.github.com --username ${REPO_OWNER} --password-stdin
+          docker pull docker.pkg.github.com/grantmacken/alpine-scour/scour:0.0.2
+          docker pull docker.pkg.github.com/grantmacken/alpine-zopfli/zopfli:0.0.1
+      - name: Create Site Resources 
+        run: |
+          source .env
+          cd site/gmack.nz 
+          make icons
+          ls .build/resources/icons
+          # docker pull ${PROXY_DOCKER_IMAGE}
       # - name: Setup gcloud
       #   uses: GoogleCloudPlatform/github-actions/setup-gcloud@master
       #   with:
