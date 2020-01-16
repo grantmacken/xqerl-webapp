@@ -13,6 +13,7 @@ jobs:
           fetch-depth: 1
       - name: Pull images
         run: |
+          echo ${{ secrets.GITHUB_TOKEN }} | docker login docker.pkg.github.com --username ${REPO_OWNER} --password-stdin
           docker pull docker.pkg.github.com/grantmacken/alpine-scour/scour:0.0.2
           docker pull docker.pkg.github.com/grantmacken/alpine-zopfli/zopfli:0.0.1
           docker pull docker.pkg.github.com/grantmacken/alpine-cssnano/cssnano:0.0.3
