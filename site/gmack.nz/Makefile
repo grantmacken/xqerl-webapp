@@ -38,7 +38,6 @@ clean:
 	@echo "## $(@) ##"
 	@rm -rfv $(B)
 
-
 .PHONY: icons
 icons: $(patsubst  %.svg,$(B)/%.svgz,$(wildcard resources/icons/*.svg))
 
@@ -47,7 +46,16 @@ clean-icons:
 	@rm -f $(patsubst  %.svg,$(B)/%.svgz,$(wildcard resources/icons/*.svg))
 	@rm -fr $(T)/*
 
+# STYLES: CASCADING STYLESHEETS
 
+.PHONY: styles
+styles: $(patsubst %.css,$(B)/%.css.gz,$(wildcard resources/styles/*.css))
+
+.PHONY: clean-styles
+clean-styles:
+	echo '## $@ ##'
+	@rm -f $(patsubst %.css,$(B)/%.css.gz,$(wildcard resources/styles/*.css))
+	@rm -fr $(T)/*
 
 
 #Creating a post using x-www-form-urlencoded syntax with one or more properties

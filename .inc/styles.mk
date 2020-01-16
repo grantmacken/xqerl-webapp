@@ -36,27 +36,32 @@ styles-help: export stylesHelp:=$(stylesHelp)
 styles-help:
 	echo "$${stylesHelp}"
 
+$(T)/resources/styles/%.css: resources/styles/%.css
+	@echo "##[ $(notdir $@) ]##"
+	@[ -d $(dir $@) ] || mkdir -p $(dir $@)
+	@echo  ' - use cssnano to reduce css file size'
+	@cat $< | docker run \
+  --rm \
+  --init \
+  --name cssnano \
+  --interactive \
+   docker.pkg.github.com/grantmacken/alpine-cssnano/cssnano:0.0.3 > $@
 
-styles: $(patsubst %.css,$(B)/%.css.gz,$(wildcard resources/styles/*.css))
 
+$(B)/resources/styles/%.css.gz: $(T)/resources/styles/%.css
+	@echo "##[ $(notdir $@) ]##"
+	@[ -d $(dir $@) ] || mkdir -p $(dir $@)
+	@echo  ' - use zopfli to gzip file'
+	@cat $< | docker run \
+  --rm \
+  --name zopfli \
+  --interactive \
+  docker.pkg.github.com/grantmacken/alpine-zopfli/zopfli:0.0.1 > $@
+	@echo " orginal size: [ $$(wc -c $< | cut -d' ' -f1) ]"
+	@echo "   cssnano size: [ $$(wc -c $(T)/resources/styles/$*.css | cut -d' ' -f1) ]"
+	@echo "   gzip size: [ $$(wc -c  $@ | cut -d' ' -f1) ]"
 
-watch-styles:
-	@watch -q $(MAKE) styles
-
-.PHONY:  watch-styles
-
-$(B)/resources/styles/%.css.gz: resources/styles/%.css
-	@echo "##[ $* ]##"
-	@echo "##[ $@ ]##"
-	@mkdir -p $(dir $@)
-	@mkdir -p $(T)
-	@rm -fr $(T)/*
-	@postcss \
- --use autoprefixer \
- --use cssnano\
- --output $(T)/$(notdir $<) $< &&  echo -e ' - shrinked with cssnano' || false;
-	@echo  "  orginal size: [ $$(wc -c $< | cut -d' ' -f1) ] "
-	@echo  "  cssnano size: [ $$(wc -c $(T)/$(notdir $<) | cut -d' ' -f1) ]"
+xxxasasa:
 	@zopfli $(T)/$(notdir $<) &&  echo -e ' - gziped with zopfli' || false
 	@echo  "  gzip bld size: [ $$(wc -c  $(T)/$(notdir $@)  | cut -d' ' -f1) ]"
 	@echo  ' - copy local files: [ $(T)/$(notdir $@) $(T)/$(notdir $<) ] '
