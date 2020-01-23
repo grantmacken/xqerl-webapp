@@ -83,30 +83,43 @@ certsRenew:
 .PHONY: certsToHost
 certsToHost:
 	@echo '## $@ ##'
-	@gcloud compute ssh $(HOST) --command 'mkdir -p ./live/$(TLS_COMMON_NAME)'
-	@gcloud compute ssh $(HOST) --command \
+	@gcloud compute ssh $(GCE_NAME) --command 'mkdir -p ./live/$(TLS_COMMON_NAME)'
+	@gcloud compute ssh $(GCE_NAME) --command \
  'docker cp or:$(LETSENCRYPT)/live/$(TLS_COMMON_NAME)/cert.pem ./live/$(TLS_COMMON_NAME) -L'
-	@gcloud compute ssh $(HOST) --command \
+	@gcloud compute ssh $(GCE_NAME) --command \
  'docker cp or:$(LETSENCRYPT)/live/$(TLS_COMMON_NAME)/fullchain.pem ./live/$(TLS_COMMON_NAME) -L'
-	@gcloud compute ssh $(HOST) --command \
+	@gcloud compute ssh $(GCE_NAME) --command \
  'docker cp or:$(LETSENCRYPT)/live/$(TLS_COMMON_NAME)/privkey.pem ./live/$(TLS_COMMON_NAME) -L'
 	# dh param in different location
-	@gcloud compute ssh $(HOST) --command  'docker cp or:$(LETSENCRYPT)/dh-param.pem ./live/$(TLS_COMMON_NAME) -L'
-	@gcloud compute ssh $(HOST) --command 'ls -al ./live/$(TLS_COMMON_NAME)'
+	@gcloud compute ssh $(GCE_NAME) --command  'docker cp or:$(LETSENCRYPT)/dh-param.pem ./live/$(TLS_COMMON_NAME) -L'
+	@gcloud compute ssh $(GCE_NAME) --command 'ls -al ./live/$(TLS_COMMON_NAME)'
 	@sudo mkdir -p $(LETSENCRYPT)
 	@sudo chown ${USER} $(LETSENCRYPT)
-	@gcloud compute scp  $(HOST):~/live $(LETSENCRYPT) --recurse
+	@gcloud compute scp  $(GCE_NAME):~/live $(LETSENCRYPT) --recurse
 	# clean up on GCE Host
-	@gcloud compute ssh $(HOST) --command 'rm -r ./live'
+	@gcloud compute ssh $(GCE_NAME) --command 'rm -r ./live'
 	# relocate dh param
 	@mv $(LETSENCRYPT)/live/$(TLS_COMMON_NAME)/dh-param.pem $(LETSENCRYPT)/dh-param.pem
 	@ls -al $(LETSENCRYPT)
 	@ls -al $(LETSENCRYPT)/live/$(TLS_COMMON_NAME)
-	# on github host we should be able to copy into a stopped container
-	@docker cp /etc/letsencrypt 
+	# create letsencrypt volume
+	@docker volume create --driver local --name letsencrypt
+	# create a dummy container and attach to letsencypt volume
+	@docker run --rm --name dummy --detach \
+ --mount type=volume,target=${LETSENCRYPT},source=letsencrypt \
+ --entrypoint "/usr/bin/tail" $(PROXY_DOCKER_IMAGE)  -f /dev/null
+	# copy retrieved certs into letsencrypt volume
+	@docker cp $(LETSENCRYPT)/live/$(TLS_COMMON_NAME) dummy:$(LETSENCRYPT)/live 
+	@docker cp $(LETSENCRYPT)/dh-param.pem dummy:$(LETSENCRYPT)
+	# view created items
+	@docker exec dummy ls $(LETSENCRYPT) | grep 'dh-param.pem'
+	@docker exec dummy ls $(LETSENCRYPT)/live/$(TLS_COMMON_NAME)
+	@docker stop dummy
 	# adjust hosts file TODO all domains
 	@echo "127.0.0.1  $(TLS_COMMON_NAME)" | sudo tee -a /etc/hosts
 	@printf %60s | tr ' ' '-' && echo
+
+
 
 .PHONY: certsToLocal
 certsToLocal:

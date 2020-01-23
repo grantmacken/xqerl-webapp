@@ -11,10 +11,37 @@ import module namespace feed = "http://gmack.nz/#feed";
 (: micropub CRUD ops :)
 import module namespace mp  = "http://gmack.nz/#mp";
 
-declare variable $_:card := map { 
-    'name' : 'Grant Mackenzie',
-    'url' : 'https://gmack.nz'
-    };
+declare variable $_:myCard := map { 
+    'card' : map {
+       'name' : 'Grant Mackenzie',
+       'url' : 'https://gmack.nz',
+       'uuid' : 'https://gmack.nz',
+       'email' : 'mailto:grantmacken@gmail.com',
+       'note' : 'somewhere over the rainbow',
+       'nickname' : 'grantmacken',
+       'adr' : map {
+          'street-address' : '8 Featon Ave',
+          'locality' : 'Awhitu',
+          'country-name' : 'New Zealand'
+        }
+    }
+};
+
+declare variable $_:myProfiles := map { 
+    'card' : map {
+       'name' : 'Grant Mackenzie',
+       'url' : 'https://gmack.nz',
+       'uuid' : 'https://gmack.nz',
+       'email' : 'mailto:grantmacken@gmail.com',
+       'note' : 'somewhere over the rainbow',
+       'adr' : map {
+          'street-address' : '8 Featon Ave',
+          'locality' : 'Awhitu',
+          'country-name' : 'New Zealand'
+        }
+    }
+};
+
 
 declare 
   %rest:path("/gmack.nz")
@@ -25,7 +52,7 @@ declare
   %output:include-content-type("yes")
   %rest:header-param("Host", "{$host}")
 function _:home($host){
-    let $map := map { "domain" : $host }
+    let $map := map:merge(( $_:myCard, map { "domain" : $host }))
     return 
     feed:render( $map ) 
 };
@@ -47,7 +74,7 @@ declare
 function _:archive($uid, $host){
 let $doc := fn:doc( 'http://' || $host || '/archive/' || $uid )
 let $map := map {} => 
-            map:put( 'card', $_:card )
+            map:put( 'card', $_:myCard )
 return
   if ( $doc instance of document-node() )
   then (

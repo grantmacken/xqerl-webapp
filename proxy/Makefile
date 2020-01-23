@@ -1,11 +1,7 @@
 SHELL=/bin/bash
 include $(abspath ../.env)
-XQ=$(XQERL_CONTAINER_NAME)
+
 OR=$(PROXY_CONTAINER_NAME)
-ifdef INC
- include .inc/$(INC).mk
- $(info included $(INC).mk )
-endif
 
 T := .tmp
 B := .build
@@ -14,75 +10,33 @@ EMPTY :=
 SPACE := $(EMPTY) $(EMPTY)
 DELIMIT := $(COMMA)$(EMPTY)
 DEO  = docker exec $(OR)
+include $(abspath ../.inc/nginx-configuration.mk) $(abspath ../.inc/lualibs.mk)
 
-define ProxyHelp
--------------------------------------------------------------------------------
-$(CURDIR)
+.PHONY: libs  clean-libs
 
-PROXY_CONTAINER_NAME: $(PROXY_CONTAINER_NAME)
-ENV OPENRESTY_HOME $(OPENRESTY_HOME)
-ENV XQERL_CONTAINER_NAME $(XQERL_CONTAINER_NAME)
-ENV XQERL_PORT $(XQERL_PORT)
- 
--------------------------------------------------------------------------------
-endef
+libs: $(patsubst lualib/%.lua,$(B)/site/lualib/$(REPO_OWNER)/%.lua, $(wildcard lualib/*))
+	@$(DEO) ls -al site/lualib/$(REPO_OWNER)
 
-help: export mkProxyHelp=$(ProxyHelp)
-help:
-	@echo "$${mkProxyHelp}"
-
-.PHONY: conf
-conf: clean \
- $(B)/nginx/conf/certs.conf $(patsubst %,$(B)/nginx/%, $(wildcard conf/*))
+clean-libs:
 	@echo '## $(@) ##'
+	@rm -rf $(B)/site
+	@#$(DEO) rm -fr site/lualib/$(REPO_OWNER)
+	@$(DEO) mkdir -p site/lualib/$(REPO_OWNER)
+
+.PHONY: confs certs conf
+confs: $(patsubst %,$(B)/nginx/%, $(wildcard conf/*))
+certs: $(B)/nginx/conf/certs.conf
+conf: certs confs
+	@echo '## $(@) ##'
+	@$(DEO) ls -al nginx/conf
+	@$(DEO) ./bin/openresty -c $(OPENRESTY_HOME)/nginx/conf/nginx.conf -t
 	@$(DEO) ./bin/openresty -s reload
 
-.PHONY: clean
-clean:
+.PHONY: clean-conf
+clean-conf:
 	@echo '## $(@) ##'
-	@rm -rf $(B)
+	@rm -rf $(B)/nginx
 
-define mkCertsConf
-# My LETSENCRYPT certs
-ssl_certificate         $(LETSENCRYPT)/live/$(TLS_COMMON_NAME)/fullchain.pem;
-ssl_certificate_key     $(LETSENCRYPT)/live/$(TLS_COMMON_NAME)/privkey.pem;
-ssl_trusted_certificate $(LETSENCRYPT)/live/$(TLS_COMMON_NAME)/chain.pem;
-endef
-
-define mkDockerfile
-FROM  $(PROXY_IMAGE_FROM) as proxy
-RUN  rm $(OPENRESTY_HOME)/nginx/conf/*
-COPY ./nginx/conf  $(OPENRESTY_HOME)/nginx/conf
-# add env vars
-ENV PROXY_CONTAINER_NAME $(PROXY_CONTAINER_NAME)
-ENV XQERL_CONTAINER_NAME $(XQERL_CONTAINER_NAME)
-ENV XQERL_PORT $(XQERL_PORT)
-endef
-
-$(B)/proxy/conf/%.conf: proxy/conf/%.conf
-	@echo '##[ $< ]##'
-	@mkdir -p $(dir $@)
-	@$(DEO) ls -al $(patsubst proxy/conf/%,nginx/conf/%,$<)
-	@$(DEO) cat $(patsubst proxy/conf/%,nginx/conf/%,$<)
-	@cp $< $@
-
-$(B)/nginx/conf/certs.conf: export mkCertsConf:=$(mkCertsConf)
-$(B)/nginx/conf/certs.conf:
-	@echo '## $(patsubst $(B)/%,%,$@) ##'
-	@mkdir -p $(dir $@)
-	@echo "$${mkCertsConf}" > $@
-	@docker cp $@ $(OR):$(OPENRESTY_HOME)/$(patsubst $(B)/%,%,$@)
-	@$(DEO) ls -al $(patsubst $(B)/%,%,$@)
-	@$(DEO) ls -al ./bin
-	@$(DEO) ./bin/openresty -c $(OPENRESTY_HOME)/nginx/conf/nginx.conf -t
-
-$(B)/nginx/conf/%: conf/%
-	@echo '## $(patsubst $(B)/%,%,$@) ##'
-	@mkdir -p $(dir $@)
-	@docker cp $< $(OR):$(OPENRESTY_HOME)/$(patsubst $(B)/%,%,$@)
-	@$(DEO) ls -al $(patsubst $(B)/%,%,$@)
-	@$(DEO) ./bin/openresty -c $(OPENRESTY_HOME)/nginx/conf/nginx.conf -t
-	@cp $< $@
 
 .PHONY: dkrLogin
 dkrLogin:
@@ -95,7 +49,7 @@ dkrLogin:
 or-restart:
 	@echo "## $@ ##"
 	@echo ' - local test nginx configuration'
-	@docker exec -t or openresty -t | grep 'syntax is ok'
+	@docker exec or openresty -t | grep 'syntax is ok'
 	@echo ' - local restart'
 	@#docker exec or kill -HUP 1
 	@docker exec or openresty -s reload
@@ -107,45 +61,5 @@ or-test:
 	@echo "## $@ ##"
 	@echo ' - local test nginx configuration'
 	@docker exec -t or openresty -t
-
-
-.PHONY: certsToHost
-certsToHost:
-	@echo '## $@ ##'
-	@gcloud compute ssh $(GCE_NAME) --command 'mkdir -p ./live/$(TLS_COMMON_NAME)'
-	@gcloud compute ssh $(GCE_NAME) --command \
- 'docker cp or:$(LETSENCRYPT)/live/$(TLS_COMMON_NAME)/cert.pem ./live/$(TLS_COMMON_NAME) -L'
-	@gcloud compute ssh $(GCE_NAME) --command \
- 'docker cp or:$(LETSENCRYPT)/live/$(TLS_COMMON_NAME)/fullchain.pem ./live/$(TLS_COMMON_NAME) -L'
-	@gcloud compute ssh $(GCE_NAME) --command \
- 'docker cp or:$(LETSENCRYPT)/live/$(TLS_COMMON_NAME)/privkey.pem ./live/$(TLS_COMMON_NAME) -L'
-	# dh param in different location
-	@gcloud compute ssh $(GCE_NAME) --command  'docker cp or:$(LETSENCRYPT)/dh-param.pem ./live/$(TLS_COMMON_NAME) -L'
-	@gcloud compute ssh $(GCE_NAME) --command 'ls -al ./live/$(TLS_COMMON_NAME)'
-	@sudo mkdir -p $(LETSENCRYPT)
-	@sudo chown ${USER} $(LETSENCRYPT)
-	@gcloud compute scp  $(GCE_NAME):~/live $(LETSENCRYPT) --recurse
-	# clean up on GCE Host
-	@gcloud compute ssh $(GCE_NAME) --command 'rm -r ./live'
-	# relocate dh param
-	@mv $(LETSENCRYPT)/live/$(TLS_COMMON_NAME)/dh-param.pem $(LETSENCRYPT)/dh-param.pem
-	@ls -al $(LETSENCRYPT)
-	@ls -al $(LETSENCRYPT)/live/$(TLS_COMMON_NAME)
-	# create letsencrypt volume
-	@docker volume create --driver local --name letsencrypt
-	# create a dummy container and attach to letsencypt volume
-	@docker run --rm --name dummy --detach \
- --mount type=volume,target=${LETSENCRYPT},source=letsencrypt \
- --entrypoint "/usr/bin/tail" $(PROXY_DOCKER_IMAGE)  -f /dev/null
-	# copy retrieved certs into letsencrypt volume
-	@docker cp $(LETSENCRYPT)/live/$(TLS_COMMON_NAME) dummy:$(LETSENCRYPT)/live 
-	@docker cp $(LETSENCRYPT)/dh-param.pem dummy:$(LETSENCRYPT)
-	# view created items
-	@docker exec dummy ls $(LETSENCRYPT) | grep 'dh-param.pem'
-	@docker exec dummy ls $(LETSENCRYPT)/live/$(TLS_COMMON_NAME)
-	@docker stop dummy
-	# adjust hosts file TODO all domains
-	@echo "127.0.0.1  $(TLS_COMMON_NAME)" | sudo tee -a /etc/hosts
-	@printf %60s | tr ' ' '-' && echo
 
 

@@ -10,16 +10,15 @@ ESCRIPT := $(DEX) xqerl escript
 EVAL := $(DEX) xqerl eval
 OR := $(PROXY_CONTAINER_NAME)
 DEO := docker exec $(OR)
-STATIC_ASSETS :=  $(OPENRESTY_HOME)/nginx/html/$(DOMAIN)
-# 
+STATIC_ASSETS :=  nginx/html/$(DOMAIN)
 dkrNetworkInUse != docker network list --format '{{.Name}}' | grep -oP "$(NETWORK)"
 # add includes
-include ../../.inc/*
+include ../.inc/*
 mpURL := https://$(DOMAIN)/micropub
 mpJSON := $(mpURL) -H 'Content-Type: application/json' 
 
-.PHONY: app
-app: utilites publishing views routes
+.PHONY: mods
+mods: utilites publishing views routes
 
 .PHONY: utilites
 utilites: $(B)/modules/newBase60.xqm
@@ -37,6 +36,27 @@ PHONY: clean
 clean: 
 	@echo "## $(@) ##"
 	@rm -rfv $(B)
+
+### resources 
+
+.PHONY: assets
+assets: icons styles
+	echo '## $@ ##'
+	# create a dummy container and mounted onto 'static-assets' volume
+	@docker run --rm --name dummy --detach \
+ --mount type=volume,target=$(OPENRESTY_HOME)/nginx/html,source=static-assets \
+ -v $(CURDIR)/$(T):/tmp \
+ --entrypoint "/usr/bin/tail" $(PROXY_DOCKER_IMAGE)  -f /dev/null
+	@#docker exec dummy  rm -r $(OPENRESTY_HOME)/$(STATIC_ASSETS)
+	# copy built assets into 'static-assets' volume
+	@docker exec dummy mkdir -p $(OPENRESTY_HOME)/$(STATIC_ASSETS)
+	@# $(DEO) mkdir -p $(STATIC_ASSETS)/resources
+	@docker cp $(B)/resources dummy:$(OPENRESTY_HOME)/$(STATIC_ASSETS)
+	@# docker exec dummy tar cvf /tmp/static-assets.tar $(OPENRESTY_HOME)/nginx/html
+	@docker exec dummy  ls -al $(OPENRESTY_HOME)/$(STATIC_ASSETS)/resources/styles
+	@docker stop dummy
+	@# cd $(T) && tar xvf static-assets.tar
+	@#docker cp $(B)/resources/. or:$(OPENRESTY_HOME)/$(STATIC_ASSETS)/resources
 
 .PHONY: icons
 icons: $(patsubst  %.svg,$(B)/%.svgz,$(wildcard resources/icons/*.svg))
@@ -56,6 +76,15 @@ clean-styles:
 	echo '## $@ ##'
 	@rm -f $(patsubst %.css,$(B)/%.css.gz,$(wildcard resources/styles/*.css))
 	@rm -fr $(T)/*
+
+.PHONY: res
+res:
+	@rm -fr $(T)/*
+	tar cvf $(T)/resources.tar resources
+	# docker run -v /backup --name resources  alpine:3.11 /bin/ash
+	# docker run --rm --volumes-from resources -v $(CURDIR):/backup alpine:3.11 /bin/ash -c "cd /dbdata && tar xvf /backup/backup.tar --strip 1"
+
+
 
 
 #Creating a post using x-www-form-urlencoded syntax with one or more properties

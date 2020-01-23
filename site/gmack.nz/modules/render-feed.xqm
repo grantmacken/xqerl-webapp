@@ -50,17 +50,64 @@ element head {
   }
 };
 
+
+
+declare
+function feed:banner( $map as map(*)) {
+ element svg {
+   attribute viewBox { '0 0 1024 60' },
+   attribute id { 'banner' },
+   element defs {
+     element linearGradient {
+       attribute id { 'rainbow' },
+       attribute x1 { '0' },
+       attribute x2 { '0' },
+       attribute y1 { '0' },
+       attribute y2 { '100%' },
+       attribute  gradientUnits{ 'userSpaceOnUse' },
+       element stop {
+         attribute stop-color { '#FF5B99' },
+         attribute offset { '0%' }
+        },
+       element stop {
+         attribute stop-color { '#FF5447' },
+         attribute offset { '20%' }
+        },
+       element stop {
+         attribute stop-color { '#FF7B21' },
+         attribute offset { '40%' }
+        },
+       element stop {
+         attribute stop-color { '#EAFC37' },
+         attribute offset { '60%' }
+        },
+       element stop {
+         attribute stop-color { '#4FCB6B' },
+         attribute offset { '80%' }
+        },
+       element stop {
+         attribute stop-color { '#51F7FE' },
+         attribute offset { '100%' }
+        }
+     }
+   }
+ }
+};
+
+    
+
+
+
 declare
 function feed:header( $map as map(*)) {
 element header {
+(:
   attribute title { $map('repo-description') },
   attribute role  { 'banner' },
-  element a {
-    attribute href {'.'},
-    attribute title {'home page'},
-    $map('card-name')
-   }
-  }
+:)
+  feed:rep-card( $map )
+}
+
 };
 
 declare
@@ -76,7 +123,7 @@ element form {
     attribute id {'url'},
     attribute type {'text'},
     attribute name {'me'},
-    attribute placeholder {'https://gmack.nz'}
+    attribute placeholder { $map('url') }
    },
   element p {
     element button {
@@ -87,7 +134,7 @@ element form {
   element input {
     attribute type {'hidden'},
     attribute name {'client_id'},
-    attribute value {'https://gmack.nz'}
+    attribute value {$map('url')}
    },
 
   element input {
@@ -99,8 +146,102 @@ element form {
   element input {
     attribute type {'hidden'},
     attribute name {'state'},
-    attribute value {'jwiusuerujs'}
+    attribute value {'skdsldslmdmdaaaqwpomnzx'}
    }
+  }
+};
+
+declare
+function feed:rep-card( $map as map(*)) {
+element div {
+  attribute id {'rep-card'},
+  element a {
+    attribute class { 'u-url' },
+    attribute rel { 'me' },
+    attribute href { $map('url') },
+    element figure {
+      element img {
+        attribute width { '16' },
+        attribute height { '16' },
+        attribute alt { 'user' },
+        attribute src { '/icons/user' }
+      },
+      element figcaption {
+        attribute class { 'nameAsHeader' },
+         $map('name') 
+      }
+    }
+   },
+   element a {
+     attribute class { 'u-email' },
+     attribute href { $map('email') },
+     element figure {
+       attribute class { 'contact-info' },
+       element img {
+         attribute width { '16' },
+         attribute height { '16' },
+         attribute alt { 'email' },
+         attribute src { '/icons/mail' }
+       },
+       element figcaption { $map('email') }
+     }
+   },
+ (: address :)
+  element div {
+    element figure {
+      attribute class { 'h-adr' },
+      element img {
+      attribute width { '16' },
+      attribute height { '16' },
+      attribute alt { 'geo location' },
+      attribute src { '/icons/geolocation' }
+      },
+      element figcaption {
+        element span {
+            attribute class { 'p-street-address'  },
+            $map('adr')('street-address')
+        }, ', ' ,
+      element span {
+            attribute class { 'p-locality'  },
+            $map('adr')('locality' )
+        }, ', ',
+      element span {
+            attribute class { 'p-country-name'  },
+            $map('adr')('country-name')
+        }
+      }
+    }
+  },
+  element div {
+    attribute id { 'link-to-profiles' },
+    element p {'my profile links'},
+     element a {
+       attribute href {  'https://github.com/' || $map('nickname') },
+       element figure {
+         attribute class { 'contact-info' },
+         element img {
+           attribute width { '16' },
+           attribute height { '16' },
+           attribute alt { 'github icon' },
+           attribute src { '/icons/github' }
+         },
+         element figcaption { 'https://github.com/' || $map('nickname') }
+       }
+     },
+     element a {
+       attribute href {  'https://twitter.com/' || $map('nickname') },
+       element figure {
+         attribute class { 'contact-info' },
+         element img {
+           attribute width { '16' },
+           attribute height { '16' },
+           attribute alt { 'github icon' },
+           attribute src { '/icons/twitter' }
+         },
+         element figcaption { 'https://twitter.com/' || $map('nickname') }
+       }
+     }
+    }
   }
 };
 
@@ -113,19 +254,19 @@ function feed:footer( $map as map(*)) {
     element a {
       attribute href {'/'},
       attribute title {'home page'},
-      $map('domain')
+      (:$map('url'):) '𝔾ℝ𝔸ℕ𝕋 𝕄𝔸ℂ𝕂𝔼ℕℤ𝕀𝔼'
     },
     ' is the website',
-     '(v' || $map('pkg-version') || ')',
     'owned, authored and operated by ' ,
     element a {
       attribute href {'.'},
       attribute title {'author'},
-      $map('card-name')
+      $map('name')
     }
   }
-
 };
+
+
 
 declare
 function feed:recent-entries( $map as map(*)) {
@@ -165,21 +306,21 @@ function feed:recent-entries( $map as map(*)) {
  };
 
 
-
 declare
 function feed:render( $map as map(*) ) {
   element html {
     attribute lang {'en'},
     feed:head( $map ),
     element body {
-      feed:header( $map ),
+      feed:header( $map('card') ),
       element main {
         attribute class {'h-feed'},
         feed:recent-entries( $map )
       },
-      element aside { ()
+      element aside {
+        feed:sign-in-form( $map('card') )
         },
-      feed:footer( $map )
+      feed:footer( $map('card') )
       }
     }
 };
