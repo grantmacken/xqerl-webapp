@@ -97,7 +97,7 @@ certsToHost:
  --entrypoint "/usr/bin/tail" $(PROXY_DOCKER_IMAGE)  -f /dev/null
 	@docker exec dummy ls -alR $(LETSENCRYPT)
 	@docker exec dummy ls /tmp
-	@docker exec dummy cd $(LETSENCRYPT); tar xvf /tmp/backup/backup.tar -C /
+	@docker exec dummy tar xvf /tmp/letsencrypt.tar -C /
 	@docker exec dummy ls -alR $(LETSENCRYPT)
 
 
