@@ -30,41 +30,46 @@ jobs:
           source .env
           echo ' - pull in my docker images as helpers'
           echo ${{ secrets.GITHUB_TOKEN }} | docker login docker.pkg.github.com --username ${REPO_OWNER} --password-stdin
+          docker pull ${PROXY_DOCKER_IMAGE}
           docker pull docker.pkg.github.com/grantmacken/alpine-scour/scour:0.0.2
           docker pull docker.pkg.github.com/grantmacken/alpine-zopfli/zopfli:0.0.1
           docker pull docker.pkg.github.com/grantmacken/alpine-cssnano/cssnano:0.0.3
           echo ' - create static-assets volume'
           docker volume create --driver local --name static-assets
-          echo ' - build static assets for site'
-          cd site/gmack.nz
+          echo ' - build static assets for $(DOMAIN) website '
+          pushd site/$(DOMAIN)
           make assets
-          
+          popd
+      - name: Create Generic Nginx Config
+        run: |
+          source .env   
       # - name: Pull proxy and xqerl images
       #   run: |
       #     source .env
       #     docker pull ${XQERL_DOCKER_IMAGE}
       #     echo ${{ secrets.GITHUB_TOKEN }} | docker login docker.pkg.github.com --username ${REPO_OWNER} --password-stdin
       #     docker pull ${PROXY_DOCKER_IMAGE}
-      # - name: Setup gcloud
-      #   uses: GoogleCloudPlatform/github-actions/setup-gcloud@master
-      #   with:
-      #     version: "270.0.0"
-      #     service_account_email: ${{ secrets.CLIENT_EMAIL }}
-      #     service_account_key: ${{ secrets.GCE_KEY }}
-      # - name: gcloud configure
-      #   run: |
-      #     source .env
-      #     gcloud config set project ${GCE_PROJECT}
-      #     gcloud config set compute/zone ${GCE_ZONE}
-      #     # gcloud compute instances list
-      #     gcloud compute config-ssh &>/dev/null
-      # # - name: gcloud info
-      # #   run: gcloud info
-      # - name: set up certs and hosts file
-      #   run: |
-      #     pushd proxy
-      #     make certsToHost
-      #     popd
+      - name: Setup gcloud to work with GCE project
+        uses: GoogleCloudPlatform/github-actions/setup-gcloud@master
+        with:
+          version: "270.0.0"
+          service_account_email: ${{ secrets.CLIENT_EMAIL }}
+          service_account_key: ${{ secrets.GCE_KEY }}
+      - name: gcloud configure
+        run: |
+          source .env
+          gcloud config set project ${GCE_PROJECT}
+          gcloud config set compute/zone ${GCE_ZONE}
+          # gcloud compute instances list
+          gcloud compute config-ssh &>/dev/null
+      # - name: gcloud info
+      #   run: gcloud info
+      - name: Letsencypt volume and Hosts file
+        run: |
+          source .env
+          pushd proxy
+          make certsToHost
+          popd
       # - name: bring containers up
       #   run: |
       #       make up
