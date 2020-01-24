@@ -83,17 +83,23 @@ certsRenew:
 .PHONY: certsToHost
 certsToHost:
 	@echo '## $@ ##'
+	@mkdir -p ./certs
 	@gcloud compute ssh $(GCE_NAME) --command \
  'docker run --rm --volumes-from or -v /tmp:/tmp alpine:3.11 tar cvf /tmp/letsencrypt.tar $(LETSENCRYPT)'
 	@gcloud compute ssh $(GCE_NAME) --command 'ls /tmp'
-	@gcloud compute scp  $(GCE_NAME):/tmp/letsencrypt.tar ./
-	@ls -al .
+	@gcloud compute scp  $(GCE_NAME):/tmp/letsencrypt.tar ./certs/
+	@ls -al ./certs
 	@docker volume create --driver local --name letsencrypt
 	@echo '---------------------------------------------------------------------'
 	@docker run --init --rm --name dummy --detach \
  --mount type=volume,target=$(LETSENCRYPT),source=letsencrypt \
+ -v ./certs:/tmp \
  --entrypoint "/usr/bin/tail" $(PROXY_DOCKER_IMAGE)  -f /dev/null
 	@docker exec dummy ls -alR $(LETSENCRYPT)
+	@docker exec dummy ls /tmp
+	@docker exec dummy cd $(LETSENCRYPT); tar xvf /tmp/backup/backup.tar strip 1
+	@docker exec dummy ls -alR $(LETSENCRYPT)
+
 
 xxxxx:
 	@gcloud compute ssh $(GCE_NAME) --command 'mkdir -p ./live/$(TLS_COMMON_NAME)'
