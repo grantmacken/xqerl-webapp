@@ -101,7 +101,8 @@ certsToHost:
 	@gcloud compute ssh $(GCE_NAME) --command 'rm -r ./live'
 	# relocate dh param
 	@# mv $(LETSENCRYPT)/live/$(TLS_COMMON_NAME)/dh-param.pem $(LETSENCRYPT)/dh-param.pem
-	@ls -al $(B)/live/$(TLS_COMMON_NAME)
+	@ls -alR $(B)
+	@echo '---------------------------------------------------------------------'
 	@#ls -al $(LETSENCRYPT)/live/$(TLS_COMMON_NAME)
 	# create letsencrypt volume
 	@docker volume create --driver local --name letsencrypt
@@ -112,7 +113,7 @@ certsToHost:
 	# copy retrieved certs into letsencrypt volume
 	@docker exec dummy mkdir -p $(LETSENCRYPT)/live/$(TLS_COMMON_NAME)
 	@docker cp $(B)/live/$(TLS_COMMON_NAME)/. dummy:$(LETSENCRYPT)/live/$(TLS_COMMON_NAME)
-	@docker exec dummy mv $(LETSENCRYPT)/dh-param.pem $(LETSENCRYPT)/
+	@docker exec dummy mv $(LETSENCRYPT)/live/$(TLS_COMMON_NAME)/dh-param.pem ../../
 	# view created items
 	@echo '---------------------------------------------------------------------'
 	@docker exec dummy ls -al $(LETSENCRYPT) | grep 'dh-param.pem'
