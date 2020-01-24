@@ -86,22 +86,26 @@ certsToHost:
 	@mkdir -p ./certs
 	@gcloud compute ssh $(GCE_NAME) --command \
  'docker run --rm --volumes-from or -v /tmp:/tmp alpine:3.11 tar cvf /tmp/letsencrypt.tar $(LETSENCRYPT)'
-	@gcloud compute ssh $(GCE_NAME) --command 'ls /tmp'
+	@#gcloud compute ssh $(GCE_NAME) --command 'ls /tmp'
 	@gcloud compute scp  $(GCE_NAME):/tmp/letsencrypt.tar ./certs/
-	@ls -al ./certs
+	@#ls -al ./certs
 	@docker volume create --driver local --name letsencrypt
-	@echo '---------------------------------------------------------------------'
 	@docker run --init --rm --name dummy --detach \
  --mount type=volume,target=$(LETSENCRYPT),source=letsencrypt \
  --mount type=bind,target=/tmp,source=$(CURDIR)/certs \
  --entrypoint "/usr/bin/tail" $(PROXY_DOCKER_IMAGE)  -f /dev/null
-	@docker exec dummy ls -alR $(LETSENCRYPT)
-	@docker exec dummy ls /tmp
+	@#docker exec dummy ls -alR $(LETSENCRYPT)
+	@#docker exec dummy ls /tmp
 	@docker exec dummy tar xvf /tmp/letsencrypt.tar -C /
-	@docker exec dummy ls -alR $(LETSENCRYPT)
+	@#docker exec dummy ls -alR $(LETSENCRYPT)
+	@printf %60s | tr ' ' '-' && echo
+	@docker stop dummy
+	# adjust hosts file TODO all domains
+	@echo "127.0.0.1  $(TLS_COMMON_NAME)" | sudo tee -a /etc/hosts
+	@printf %60s | tr ' ' '-' && echo
 
 
-xxxxx:
+x-certsToHost:
 	@gcloud compute ssh $(GCE_NAME) --command 'mkdir -p ./live/$(TLS_COMMON_NAME)'
 	@gcloud compute ssh $(GCE_NAME) --command \
  'docker cp or:$(LETSENCRYPT)/live/$(TLS_COMMON_NAME)/cert.pem ./live/$(TLS_COMMON_NAME) -L'
@@ -142,8 +146,6 @@ xxxxx:
 	# adjust hosts file TODO all domains
 	@echo "127.0.0.1  $(TLS_COMMON_NAME)" | sudo tee -a /etc/hosts
 	@printf %60s | tr ' ' '-' && echo
-
-
 
 .PHONY: certsToLocal
 certsToLocal:

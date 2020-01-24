@@ -17,8 +17,10 @@ include ../.inc/*
 mpURL := https://$(DOMAIN)/micropub
 mpJSON := $(mpURL) -H 'Content-Type: application/json' 
 
-.PHONY: mods
-mods: utilites publishing views routes
+# xQuery modules [ xqm ]
+
+.PHONY: xqm
+xqm: utilites publishing views routes
 
 .PHONY: utilites
 utilites: $(B)/modules/newBase60.xqm

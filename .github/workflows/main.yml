@@ -62,13 +62,13 @@ jobs:
       #     docker pull ${XQERL_DOCKER_IMAGE}
       #     echo ${{ secrets.GITHUB_TOKEN }} | docker login docker.pkg.github.com --username ${REPO_OWNER} --password-stdin
       #     docker pull ${PROXY_DOCKER_IMAGE}
-      - name: Setup gcloud to work with GCE project
+      - name: Setup Gcloud
         uses: GoogleCloudPlatform/github-actions/setup-gcloud@master
         with:
           version: "270.0.0"
           service_account_email: ${{ secrets.CLIENT_EMAIL }}
           service_account_key: ${{ secrets.GCE_KEY }}
-      - name: gcloud configure
+      - name: Configure GCE Project
         run: |
           source .env
           gcloud config set project ${GCE_PROJECT}
@@ -76,32 +76,28 @@ jobs:
           # gcloud compute instances list
           gcloud compute config-ssh &>/dev/null
           gcloud info
-      - name: Create letsencypt volume and add existing Certs
+      - name: Use Certs From Existing Project
         run: |
           source .env
           pushd proxy
-          pwd
           make certsToHost
           popd
-          pwd
       - name: Bring Containers Up
         run: |
             make up
             docker ps
             docker-compose logs
-
-      # - name: build the xqerl web app
-      #   run: |
-      #       source .env
-      #       # move to domain
-      #       pushd site/${DOMAIN}
-      #       # compile xQuery libs
-      #       # compile order is defined in the  site/[DOMAIN] Makefile 
-      #       # NOTE! order in important as some libs depend on others
-      #       make app
-      #       popd
-
-      - name: take containers down
+      - name: Compile xQuery modules
+        run: |
+            source .env
+            # move to domain
+            pushd site/${DOMAIN}
+            # compile xQuery libs
+            # compile order is defined in the  site/[DOMAIN] Makefile 
+            # NOTE! order in important as some libs depend on others
+            make xqm
+            popd
+      - name: Take Containers Down
         run: |
             make down
 
