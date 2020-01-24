@@ -93,12 +93,12 @@ certsToHost:
 	@echo '---------------------------------------------------------------------'
 	@docker run --init --rm --name dummy --detach \
  --mount type=volume,target=$(LETSENCRYPT),source=letsencrypt \
- --mount type=bind,,target=/tmp,source=$(CURDIR)/certs \
+ --mount type=bind,target=/tmp,source=$(CURDIR)/certs \
  --entrypoint "/usr/bin/tail" $(PROXY_DOCKER_IMAGE)  -f /dev/null
 	@docker exec dummy ls -alR $(LETSENCRYPT)
 	@docker exec dummy ls /tmp
-	@#docker exec dummy cd $(LETSENCRYPT); tar xvf /tmp/backup/backup.tar strip 1
-	@#docker exec dummy ls -alR $(LETSENCRYPT)
+	@docker exec dummy cd $(LETSENCRYPT); tar xvf /tmp/backup/backup.tar -C /
+	@docker exec dummy ls -alR $(LETSENCRYPT)
 
 
 xxxxx:
