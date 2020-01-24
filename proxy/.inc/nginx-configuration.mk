@@ -12,7 +12,6 @@ $(B)/nginx/conf/certs.conf:
 	@mkdir -p $(dir $@)
 	@echo "$${mkCertsConf}" > $@
 	@#$(if $(GITHUB_ACTIONS),docker cp $@ $(OR):$(OPENRESTY_HOME)/$(patsubst $(B)/%,%,$@) )
-	@cp $< $@
 
 $(B)/nginx/conf/%: conf/%
 	@echo '## $(patsubst $(B)/%,%,$@) ##'

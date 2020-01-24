@@ -33,9 +33,13 @@ clean-libs:
 	@#$(DEO) rm -fr site/lualib/$(REPO_OWNER)
 	@$(DEO) mkdir -p site/lualib/$(REPO_OWNER)
 
-.PHONY: confs certs conf
+.PHONY: confs
 confs: $(patsubst %,$(B)/nginx/%, $(wildcard conf/*))
+
+.PHONY: certs 
 certs: $(B)/nginx/conf/certs.conf
+
+.PHONY: conf
 conf: certs confs
 	@echo '## $(@) ##'
 	@docker run --rm --name dummy --detach \
@@ -47,6 +51,14 @@ conf: certs confs
 	@docker exec dummy  ls -al nginx/conf
 	@docker stop dummy
 
+.PHONY: clean-conf
+clean-conf:
+	@echo '## $(@) ##'
+	@rm -rf  $(B)/nginx/conf
+
+
+
+
 sdsfgg:
 	@$(if $(GITHUB_ACTIONS),$(call dummyRun),)
 	@docker run --rm --name dummy --detach \
@@ -57,10 +69,7 @@ sdsfgg:
 	@$(if $(GITHUB_ACTIONS),,echo "- live cp";$(DEO) ./bin/openresty -c $(OPENRESTY_HOME)/nginx/conf/nginx.conf -t)
 	@$(if $(GITHUB_ACTIONS),,$(DEO) ./bin/openresty -s reload)
 
-.PHONY: clean-conf
-clean-conf:
-	@echo '## $(@) ##'
-	@rm -rf $(B)/nginx
+
 
 
 .PHONY: dkrLogin
