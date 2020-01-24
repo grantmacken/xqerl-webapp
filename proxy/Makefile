@@ -10,7 +10,7 @@ EMPTY :=
 SPACE := $(EMPTY) $(EMPTY)
 DELIMIT := $(COMMA)$(EMPTY)
 DEO  = docker exec $(OR)
-include $(abspath ../.inc/nginx-configuration.mk) $(abspath ../.inc/lualibs.mk)
+include ./.inc/*
 
 .PHONY: libs  clean-libs
 

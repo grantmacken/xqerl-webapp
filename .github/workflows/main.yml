@@ -62,6 +62,7 @@ jobs:
           gcloud config set compute/zone ${GCE_ZONE}
           # gcloud compute instances list
           gcloud compute config-ssh &>/dev/null
+          gcloud info
       # - name: gcloud info
       #   run: gcloud info
       - name: Create letsencypt volume and add existing Certs
@@ -74,6 +75,7 @@ jobs:
         run: |
             make up
             docker ps
+
       # - name: build the xqerl web app
       #   run: |
       #       source .env
@@ -85,8 +87,8 @@ jobs:
       #       make app
       #       popd
 
-      # - name: take containers down
-      #   run: |
-      #       make down
+      - name: take containers down
+        run: |
+            make down
 
 
