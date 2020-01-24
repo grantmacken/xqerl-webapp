@@ -83,6 +83,11 @@ certsRenew:
 .PHONY: certsToHost
 certsToHost:
 	@echo '## $@ ##'
+	@gcloud compute ssh $(GCE_NAME) --command \
+ 'docker run --rm --volumes-from or -v /tmp:/tmp alpine:3.11 tar /tmp/letsencrypt.tar $(LETSENCRYPT)'
+	@gcloud compute ssh $(GCE_NAME) --command 'ls /tmp'
+
+xxxxx:
 	@gcloud compute ssh $(GCE_NAME) --command 'mkdir -p ./live/$(TLS_COMMON_NAME)'
 	@gcloud compute ssh $(GCE_NAME) --command \
  'docker cp or:$(LETSENCRYPT)/live/$(TLS_COMMON_NAME)/cert.pem ./live/$(TLS_COMMON_NAME) -L'
@@ -111,8 +116,8 @@ certsToHost:
  --mount type=volume,target=$(LETSENCRYPT),source=letsencrypt \
  --entrypoint "/usr/bin/tail" $(PROXY_DOCKER_IMAGE)  -f /dev/null
 	# copy retrieved certs into letsencrypt volume
-	@docker exec dummy mkdir -p $(LETSENCRYPT)/live/$(TLS_COMMON_NAME)
-	@docker cp $(B)/live/$(TLS_COMMON_NAME)/. dummy:$(LETSENCRYPT)/live/$(TLS_COMMON_NAME)
+	@docker exec dummy mkdir -p $(LETSENCRYPT)/live
+	@docker cp $(B)/live/$(TLS_COMMON_NAME) dummy:$(LETSENCRYPT)/live/$(TLS_COMMON_NAME)
 	@docker exec dummy mv $(LETSENCRYPT)/live/$(TLS_COMMON_NAME)/dh-param.pem ../../
 	# view created items
 	@echo '---------------------------------------------------------------------'
