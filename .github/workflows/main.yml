@@ -31,31 +31,31 @@ jobs:
           echo ' - pull in my docker images as helpers'
           echo ${{ secrets.GITHUB_TOKEN }} | docker login docker.pkg.github.com --username ${REPO_OWNER} --password-stdin
           docker pull ${PROXY_DOCKER_IMAGE}
-      #     docker pull docker.pkg.github.com/grantmacken/alpine-scour/scour:0.0.2
-      #     docker pull docker.pkg.github.com/grantmacken/alpine-zopfli/zopfli:0.0.1
-      #     docker pull docker.pkg.github.com/grantmacken/alpine-cssnano/cssnano:0.0.3
-      #     echo -n ' - create volume: '
-      #     docker volume create --driver local --name static-assets
-      #     echo " - build static assets for ${DOMAIN} website " 
-      #     pushd site/${DOMAIN}
-      #     make assets
-      #     popd
-      # - name: Create Generic Nginx Configuration
-      #   run: |
-      #     source .env   
-      #     echo -n ' - create volume: '
-      #     docker volume create --driver local --name nginx-configuration
-      #     pushd proxy 
-      #     make conf
-      #     popd
-      # - name: Create Repo Owners Lualibs
-      #   run: |
-      #     source .env   
-      #     echo -n ' - create volume: '
-      #     docker volume create --driver local --name repo-owners-lualibs
-      #     pushd proxy 
-      #     make libs
-      #     popd
+          docker pull docker.pkg.github.com/grantmacken/alpine-scour/scour:0.0.2
+          docker pull docker.pkg.github.com/grantmacken/alpine-zopfli/zopfli:0.0.1
+          docker pull docker.pkg.github.com/grantmacken/alpine-cssnano/cssnano:0.0.3
+          echo -n ' - create volume: '
+          docker volume create --driver local --name static-assets
+          echo " - build static assets for ${DOMAIN} website " 
+          pushd site/${DOMAIN}
+          make assets
+          popd
+      - name: Create Generic Nginx Configuration
+        run: |
+          source .env   
+          echo -n ' - create volume: '
+          docker volume create --driver local --name nginx-configuration
+          pushd proxy 
+          make conf
+          popd
+      - name: Create Repo Owners Lualibs
+        run: |
+          source .env   
+          echo -n ' - create volume: '
+          docker volume create --driver local --name repo-owners-lualibs
+          pushd proxy 
+          make libs
+          popd
       # - name: Pull proxy and xqerl images
       #   run: |
       #     source .env
@@ -84,11 +84,11 @@ jobs:
           make certsToHost
           popd
           pwd
-      # - name: Bring Containers Up
-      #   run: |
-      #       make up
-      #       docker ps
-      #       docker-compose logs
+      - name: Bring Containers Up
+        run: |
+            make up
+            docker ps
+            docker-compose logs
 
       # - name: build the xqerl web app
       #   run: |
@@ -101,8 +101,8 @@ jobs:
       #       make app
       #       popd
 
-      # - name: take containers down
-      #   run: |
-      #       make down
+      - name: take containers down
+        run: |
+            make down
 
 
