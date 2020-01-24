@@ -94,17 +94,19 @@ certsToHost:
 	@gcloud compute ssh $(GCE_NAME) --command  'docker cp or:$(LETSENCRYPT)/dh-param.pem ./live/$(TLS_COMMON_NAME) -L'
 	@gcloud compute ssh $(GCE_NAME) --command 'ls -al ./live/$(TLS_COMMON_NAME)'
 	@echo '---------------------------------------------------------------------'
-	@#sudo mkdir -p $(LETSENCRYPT)
-	@#sudo chown ${USER} $(LETSENCRYPT)
-	@#gcloud compute scp  $(GCE_NAME):~/live $(LETSENCRYPT) --recurse
+	@mkdir -p $(B)/certs	
+	@#sudo chown ${USER} $(B)/certs
+	@gcloud compute scp  $(GCE_NAME):~/live $(B)/certs
 	# clean up on GCE Host
-	@#gcloud compute ssh $(GCE_NAME) --command 'rm -r ./live'
+	@gcloud compute ssh $(GCE_NAME) --command 'rm -r ./live'
 	# relocate dh param
 	@# mv $(LETSENCRYPT)/live/$(TLS_COMMON_NAME)/dh-param.pem $(LETSENCRYPT)/dh-param.pem
-	@#ls -al $(LETSENCRYPT)
+	@ls -al $(B)/certs
 	@#ls -al $(LETSENCRYPT)/live/$(TLS_COMMON_NAME)
 	# create letsencrypt volume
-	@docker volume create --driver local --name letsencrypt
+	@#docker volume create --driver local --name letsencrypt
+
+dsddffsfsfs:
 	# create a dummy container and attach to letsencypt volume
 	@docker run --rm --name dummy --detach \
  --mount type=volume,target=$(LETSENCRYPT),source=letsencrypt \
