@@ -88,7 +88,12 @@ certsToHost:
 	@gcloud compute ssh $(GCE_NAME) --command 'ls /tmp'
 	@gcloud compute scp  $(GCE_NAME):/tmp/letsencrypt.tar ./
 	@ls -al .
+	@docker volume create --driver local --name letsencrypt
 	@echo '---------------------------------------------------------------------'
+	@docker run --init --rm --name dummy --detach \
+ --mount type=volume,target=$(LETSENCRYPT),source=letsencrypt \
+ --entrypoint "/usr/bin/tail" $(PROXY_DOCKER_IMAGE)  -f /dev/null
+	@docker exec dummy ls -alR $(LETSENCRYPT)
 
 xxxxx:
 	@gcloud compute ssh $(GCE_NAME) --command 'mkdir -p ./live/$(TLS_COMMON_NAME)'
