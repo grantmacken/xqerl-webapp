@@ -1,10 +1,4 @@
 
-$(B)/nginx/conf/%: conf/%
-	@echo '## $(patsubst $(B)/%,%,$@) ##'
-	@mkdir -p $(dir $@)
-	@docker cp $< $(OR):$(OPENRESTY_HOME)/$(patsubst $(B)/%,%,$@)
-	@cp $< $@
-
 define mkCertsConf
 # My LETSENCRYPT certs
 ssl_certificate         $(LETSENCRYPT)/live/$(TLS_COMMON_NAME)/fullchain.pem;
@@ -17,19 +11,16 @@ $(B)/nginx/conf/certs.conf:
 	@echo '## $(patsubst $(B)/%,%,$@) ##'
 	@mkdir -p $(dir $@)
 	@echo "$${mkCertsConf}" > $@
-	@docker cp $@ $(OR):$(OPENRESTY_HOME)/$(patsubst $(B)/%,%,$@)
+	@#$(if $(GITHUB_ACTIONS),docker cp $@ $(OR):$(OPENRESTY_HOME)/$(patsubst $(B)/%,%,$@) )
+	@cp $< $@
+
+$(B)/nginx/conf/%: conf/%
+	@echo '## $(patsubst $(B)/%,%,$@) ##'
+	@mkdir -p $(dir $@)
+	@#$(if $(GITHUB_ACTIONS),,docker cp $@ $(OR):$(OPENRESTY_HOME)/$(patsubst $(B)/%,%,$@))
+	@cp $< $@
 
 
-
-# define mkDockerfile
-# FROM  $(PROXY_IMAGE_FROM) as proxy
-# RUN  rm $(OPENRESTY_HOME)/nginx/conf/*
-# COPY ./nginx/conf  $(OPENRESTY_HOME)/nginx/conf
-# # add env vars
-# ENV PROXY_CONTAINER_NAME $(PROXY_CONTAINER_NAME)
-# ENV XQERL_CONTAINER_NAME $(XQERL_CONTAINER_NAME)
-# ENV XQERL_PORT $(XQERL_PORT)
-# endef
 
 
 

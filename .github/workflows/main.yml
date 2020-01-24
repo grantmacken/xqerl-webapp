@@ -40,41 +40,56 @@ jobs:
           pushd site/${DOMAIN}
           make assets
           popd
-      - name: Create Generic Nginx Config
+      - name: Create Generic Nginx Configuration
         run: |
           source .env   
+          echo -n ' - create volume: '
+          docker volume create --driver local --name nginx-configuration
+          pushd proxy 
+          make conf
+          popd
+      - name: Create Repo Owners Lualibs
+        run: |
+          source .env   
+          echo -n ' - create volume: '
+          docker volume create --driver local --name repo-owners-lualibs
+          pushd proxy 
+          make libs
+          popd
       # - name: Pull proxy and xqerl images
       #   run: |
       #     source .env
       #     docker pull ${XQERL_DOCKER_IMAGE}
       #     echo ${{ secrets.GITHUB_TOKEN }} | docker login docker.pkg.github.com --username ${REPO_OWNER} --password-stdin
       #     docker pull ${PROXY_DOCKER_IMAGE}
-      - name: Setup gcloud to work with GCE project
-        uses: GoogleCloudPlatform/github-actions/setup-gcloud@master
-        with:
-          version: "270.0.0"
-          service_account_email: ${{ secrets.CLIENT_EMAIL }}
-          service_account_key: ${{ secrets.GCE_KEY }}
-      - name: gcloud configure
-        run: |
-          source .env
-          gcloud config set project ${GCE_PROJECT}
-          gcloud config set compute/zone ${GCE_ZONE}
-          # gcloud compute instances list
-          gcloud compute config-ssh &>/dev/null
-          gcloud info
-      # - name: gcloud info
-      #   run: gcloud info
-      - name: Create letsencypt volume and add existing Certs
-        run: |
-          source .env
-          pushd proxy
-          make certsToHost
-          popd
-      - name: bring containers up
-        run: |
-            make up
-            docker ps
+      # - name: Setup gcloud to work with GCE project
+      #   uses: GoogleCloudPlatform/github-actions/setup-gcloud@master
+      #   with:
+      #     version: "270.0.0"
+      #     service_account_email: ${{ secrets.CLIENT_EMAIL }}
+      #     service_account_key: ${{ secrets.GCE_KEY }}
+      # - name: gcloud configure
+      #   run: |
+      #     source .env
+      #     gcloud config set project ${GCE_PROJECT}
+      #     gcloud config set compute/zone ${GCE_ZONE}
+      #     # gcloud compute instances list
+      #     gcloud compute config-ssh &>/dev/null
+      #     gcloud info
+      # # - name: gcloud info
+      # #   run: gcloud info
+      # - name: Create letsencypt volume and add existing Certs
+      #   run: |
+      #     source .env
+      #     pushd proxy
+      #     pwd
+      #     make certsToHost
+      #     popd
+      #     pwd
+      # - name: bring containers up
+      #   run: |
+      #       make up
+      #       docker ps
 
       # - name: build the xqerl web app
       #   run: |
@@ -87,8 +102,8 @@ jobs:
       #       make app
       #       popd
 
-      - name: take containers down
-        run: |
-            make down
+      # - name: take containers down
+      #   run: |
+      #       make down
 
 

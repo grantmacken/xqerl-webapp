@@ -12,10 +12,20 @@ DELIMIT := $(COMMA)$(EMPTY)
 DEO  = docker exec $(OR)
 include ./.inc/*
 
+# dummyRun = docker run --rm --name dummy --detach \
+#  --mount type=volume,target=$(OPENRESTY_HOME)/nginx/conf,source=nginx-configuration \
+#  --entrypoint "/usr/bin/tail" $(PROXY_DOCKER_IMAGE)  -f /dev/null
+
 .PHONY: libs  clean-libs
 
 libs: $(patsubst lualib/%.lua,$(B)/site/lualib/$(REPO_OWNER)/%.lua, $(wildcard lualib/*))
-	@$(DEO) ls -al site/lualib/$(REPO_OWNER)
+	@echo '## $(@) ##'
+	@#$(DEO) ls -al site/lualib/$(REPO_OWNER)
+	@docker run --rm --name dummy --detach \
+ --mount type=volume,target=$(OPENRESTY_HOME)/site/lualib/$(REPO_OWNER),source=repo-owners-lualibs \
+ --entrypoint "/usr/bin/tail" $(PROXY_DOCKER_IMAGE)  -f /dev/null
+	@docker cp $(B)/site/lualib/$(REPO_OWNER)/. dummy:$(OPENRESTY_HOME)/site/lualib/$(REPO_OWNER)
+	@docker stop dummy
 
 clean-libs:
 	@echo '## $(@) ##'
@@ -28,9 +38,24 @@ confs: $(patsubst %,$(B)/nginx/%, $(wildcard conf/*))
 certs: $(B)/nginx/conf/certs.conf
 conf: certs confs
 	@echo '## $(@) ##'
-	@$(DEO) ls -al nginx/conf
-	@$(DEO) ./bin/openresty -c $(OPENRESTY_HOME)/nginx/conf/nginx.conf -t
-	@$(DEO) ./bin/openresty -s reload
+	@docker run --rm --name dummy --detach \
+ --mount type=volume,target=$(OPENRESTY_HOME)/nginx/conf,source=nginx-configuration \
+ --entrypoint "/usr/bin/tail" $(PROXY_DOCKER_IMAGE)  -f /dev/null
+	@docker cp $(B)/nginx/conf/. dummy:$(OPENRESTY_HOME)/nginx/conf
+	@#docker exec dummy $(OPENRESTY_HOME/bin/openresty -c $(OPENRESTY_HOME)/nginx/conf/nginx.conf -t)
+	@# docker exec dummy bin/openresty -c $(OPENRESTY_HOME)/nginx/conf/nginx.conf -t
+	@docker exec dummy  ls -al nginx/conf
+	@docker stop dummy
+
+sdsfgg:
+	@$(if $(GITHUB_ACTIONS),$(call dummyRun),)
+	@docker run --rm --name dummy --detach \
+ --mount type=volume,target=$(OPENRESTY_HOME)/nginx/conf,source=nginx-configuration \
+ --entrypoint "/usr/bin/tail" $(PROXY_DOCKER_IMAGE)  -f /dev/null
+	@docker cp $(B)/resources dummy:$(OPENRESTY_HOME)/$(STATIC_ASSETS)
+	@$(if $(GITHUB_ACTIONS),docker cp $(B)/resources dummy:$(OPENRESTY_HOME)/$(STATIC_ASSETS),)
+	@$(if $(GITHUB_ACTIONS),,echo "- live cp";$(DEO) ./bin/openresty -c $(OPENRESTY_HOME)/nginx/conf/nginx.conf -t)
+	@$(if $(GITHUB_ACTIONS),,$(DEO) ./bin/openresty -s reload)
 
 .PHONY: clean-conf
 clean-conf:
