@@ -84,8 +84,10 @@ certsRenew:
 certsToHost:
 	@echo '## $@ ##'
 	@gcloud compute ssh $(GCE_NAME) --command \
- 'docker run --rm --volumes-from or -v /tmp:/tmp alpine:3.11 tar /tmp/letsencrypt.tar $(LETSENCRYPT)'
+ 'docker run --rm --volumes-from or -v /tmp:/tmp alpine:3.11 tar cvf /tmp/letsencrypt.tar $(LETSENCRYPT)'
 	@gcloud compute ssh $(GCE_NAME) --command 'ls /tmp'
+	@gcloud compute scp  $(GCE_NAME):/tmp/letsencrypt.tar ./
+	@ls -al .
 	@echo '---------------------------------------------------------------------'
 
 xxxxx:
