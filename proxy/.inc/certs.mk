@@ -101,10 +101,10 @@ certsToHost:
 	@gcloud compute ssh $(GCE_NAME) --command 'rm -r ./live'
 	# relocate dh param
 	@# mv $(LETSENCRYPT)/live/$(TLS_COMMON_NAME)/dh-param.pem $(LETSENCRYPT)/dh-param.pem
-	@ls -al $(B)/certs
+	@ls -al $(B)/certs/live
 	@#ls -al $(LETSENCRYPT)/live/$(TLS_COMMON_NAME)
 	# create letsencrypt volume
-	@#docker volume create --driver local --name letsencrypt
+	@docker volume create --driver local --name letsencrypt
 
 dsddffsfsfs:
 	# create a dummy container and attach to letsencypt volume
