@@ -106,7 +106,7 @@ certsToHost:
 	@docker volume create --driver local --name letsencrypt
 	# create a dummy container and attach to letsencypt volume
 	@docker run --rm --name dummy --detach \
- --mount type=volume,target=${LETSENCRYPT},source=letsencrypt \
+ --mount type=volume,target=$(LETSENCRYPT),source=letsencrypt \
  --entrypoint "/usr/bin/tail" $(PROXY_DOCKER_IMAGE)  -f /dev/null
 	# copy retrieved certs into letsencrypt volume
 	@docker cp $(LETSENCRYPT)/live/$(TLS_COMMON_NAME) dummy:$(LETSENCRYPT)/live 

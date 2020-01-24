@@ -76,8 +76,6 @@ jobs:
           # gcloud compute instances list
           gcloud compute config-ssh &>/dev/null
           gcloud info
-      # - name: gcloud info
-      #   run: gcloud info
       - name: Create letsencypt volume and add existing Certs
         run: |
           source .env
@@ -86,7 +84,7 @@ jobs:
           make certsToHost
           popd
           pwd
-      - name: bring containers up
+      - name: Bring Containers Up
         run: |
             make up
             docker ps
