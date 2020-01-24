@@ -96,7 +96,7 @@ certsToHost:
 	@echo '---------------------------------------------------------------------'
 	@mkdir -p $(B)/certs	
 	@#sudo chown ${USER} $(B)/certs
-	@gcloud compute scp  $(GCE_NAME):~/live $(B)/certs
+	@gcloud compute scp  $(GCE_NAME):~/live $(B)/certs --recurse
 	# clean up on GCE Host
 	@gcloud compute ssh $(GCE_NAME) --command 'rm -r ./live'
 	# relocate dh param
