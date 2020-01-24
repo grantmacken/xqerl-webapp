@@ -25,7 +25,7 @@ jobs:
           fetch-depth: 1
       # - name: Debug
       #   uses: hmarr/debug-action@master
-      # - name: Create Static Assets For Website
+      - name: Create Static Assets For Website
         run: |
           source .env
           echo ' - pull in my docker images as helpers'
