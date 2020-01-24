@@ -112,7 +112,7 @@ certsToHost:
 	# copy retrieved certs into letsencrypt volume
 	@docker exec dummy mkdir -p $(LETSENCRYPT)/live/$(TLS_COMMON_NAME)
 	@docker cp $(B)/live/$(TLS_COMMON_NAME)/. dummy:$(LETSENCRYPT)/live/$(TLS_COMMON_NAME)
-	@docker mv $(LETSENCRYPT)/dh-param.pem $(LETSENCRYPT)/
+	@docker exec dummy mv $(LETSENCRYPT)/dh-param.pem $(LETSENCRYPT)/
 	# view created items
 	@echo '---------------------------------------------------------------------'
 	@docker exec dummy ls -al $(LETSENCRYPT) | grep 'dh-param.pem'
