@@ -86,6 +86,7 @@ certsToHost:
 	@gcloud compute ssh $(GCE_NAME) --command \
  'docker run --rm --volumes-from or -v /tmp:/tmp alpine:3.11 tar /tmp/letsencrypt.tar $(LETSENCRYPT)'
 	@gcloud compute ssh $(GCE_NAME) --command 'ls /tmp'
+	@echo '---------------------------------------------------------------------'
 
 xxxxx:
 	@gcloud compute ssh $(GCE_NAME) --command 'mkdir -p ./live/$(TLS_COMMON_NAME)'
