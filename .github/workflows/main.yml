@@ -97,6 +97,12 @@ jobs:
             # NOTE! order in important as some libs depend on others
             make xqm
             popd
+      - name: Website Tests
+        run: |
+            source .env
+            pushd site/${DOMAIN}/tests
+            make 
+            popd
       - name: Take Containers Down
         run: |
             make down
