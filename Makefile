@@ -43,23 +43,6 @@ debug: export mkDebug=$(Debug)
 debug:
 	@echo "$${mkDebug}"
 
-#########################################
-
-PHONY: surf
-surf:
-	@echo '##[ $@ ]##'
-	@echo 'w3m http request xqerl docker IP address'
-	@echo;printf %60s | tr ' ' '-' && echo
-	@w3m -dump http://$(IPAddress):$(XQERL_PORT)/$(DOMAIN)
-	@w3m -dump http://$(IPAddress):$(XQERL_PORT)/$(DOMAIN)/mySIDi
-	@echo;printf %60s | tr ' ' '-' && echo
-	@echo 'w3m http request www SSL proxy via hosts file'
-	@w3m -dump https://$(DOMAIN)
-	@w3m -dump https://$(DOMAIN)/mySIDi
-	@echo;printf %60s | tr ' ' '-' && echo
-
-#########################################
-
 PHONY: up
 up:
 	@$(if $(dkrNetworkInUse),echo  '- NETWORK [ $(NETWORK) ] is available',docker network create $(NETWORK))
@@ -69,8 +52,8 @@ up:
 	@echo -n '- started: '
 	@$(EVAL) 'application:ensure_all_started(xqerl).'
 	@$(MAKE) -silent info
-	@#cd site/$(DOMAIN) && $(MAKE) -silent app
-	@#$(MAKE) -silent surf
+	@#cd site/$(DOMAIN) && $(MAKE) -silent xqm
+	@#cd site/$(DOMAIN)/tests && $(MAKE) -silent test
 
 .PHONY: down
 down:

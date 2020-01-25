@@ -12,12 +12,22 @@ dkrPortInUse != docker ps --format '{{.Ports}}' | grep -oP '^(.+)80->\K(80)'
 dkrNetworkInUse != docker network list --format '{{.Name}}' | grep -oP "$(NETWORK)"
 URL := https://$(DOMAIN)
 
+define OK
+tput setaf 2
+echo -n ' ✓ ' 
+tput sgr0
+echo
+endef
+
+
 .PHONY: test
-test: styles
+test: clean styles
 
 .PHONY: clean
 clean:
 	@rm -r $(T)
+
+# STYLES
 
 .PHONY: styles
 styles: styles-gzip styles-gunzip
@@ -73,5 +83,21 @@ $(T)/styles/gunzip.txt:
 	@curl -sI $(URL)/styles > $@
 	@curl -s --write-out 'gunzip-size: %{size_download}' --output /dev/null  $(URL)/styles >> $@
 
+# ICONS
 
+.PHONY: icons
+icons: $(T)/icons/mail.txt
+	@echo '## $@ ##'
+	@echo -n ' - should serve HTTP/2'
+	@grep -q 'HTTP/2 200' $< && echo ': OK'
+	@echo -n " - should serve header [ content-type: image/svg+xml ]"
+	@grep -q 'content-type: image/svg+xml'  $< && $(OK)
+	@echo -n " - should serve header [ content-encoding: gzip ]"
+	@grep -q 'content-encoding: gzip'  $< && $(OK) || false
+	@echo -n " - should serve header [ vary: Accept-Encoding ]"
+	@grep -q 'vary: Accept-Encoding'  $< && $(OK) || false
+
+$(T)/icons/mail.txt:
+	@mkdir -p $(dir $@)
+	@curl -sI $(URL)/icons/mail > $@
 
