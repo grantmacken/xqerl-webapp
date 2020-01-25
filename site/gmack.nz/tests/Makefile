@@ -25,7 +25,7 @@ test: clean styles
 
 .PHONY: clean
 clean:
-	@rm -r $(T)
+	@rm -rf $(T)
 
 # STYLES
 
