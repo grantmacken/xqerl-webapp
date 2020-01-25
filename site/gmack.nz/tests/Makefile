@@ -21,7 +21,7 @@ endef
 
 
 .PHONY: test
-test: clean styles
+test: clean styles icons
 
 .PHONY: clean
 clean:
