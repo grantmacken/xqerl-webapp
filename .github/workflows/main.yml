@@ -40,6 +40,7 @@ jobs:
           docker pull docker.pkg.github.com/grantmacken/alpine-cssnano/cssnano:0.0.3
       - name: Create Static Assets For Website
         run: |
+          source .env   
           echo -n ' - create volume: '
           docker volume create --driver local --name static-assets
           echo " - build static assets for ${DOMAIN} website " 
@@ -56,18 +57,11 @@ jobs:
           popd
       - name: Create Repo Owners Lualibs
         run: |
-          source .env   
           echo -n ' - create volume: '
           docker volume create --driver local --name repo-owners-lualibs
           pushd proxy 
           make libs
           popd
-      # - name: Pull proxy and xqerl images
-      #   run: |
-      #     source .env
-      #     docker pull ${XQERL_DOCKER_IMAGE}
-      #     echo ${{ secrets.GITHUB_TOKEN }} | docker login docker.pkg.github.com --username ${REPO_OWNER} --password-stdin
-      #     docker pull ${PROXY_DOCKER_IMAGE}
       - name: Setup Gcloud
         uses: GoogleCloudPlatform/github-actions/setup-gcloud@master
         with:
