@@ -97,6 +97,7 @@ certsToHost:
 
 .PHONY: hostsFile
 hostsFile:
+	@echo '## $@ ##'
 	# adjust hosts file TODO all domains
 	@echo "127.0.0.1  $(TLS_COMMON_NAME)" | sudo tee -a /etc/hosts
 	@cat /etc/hosts
