@@ -19,9 +19,22 @@ tput sgr0
 echo
 endef
 
+define OK!
+tput setaf 2
+echo -n ' ✓ # ' 
+tput sgr0
+endef
 
 .PHONY: test
-test: clean styles icons
+test: clean static-assets nginx-conf site-routes
+
+.PHONY: static-assets
+static-assets: styles icons  
+
+.PHONY: site-routes
+site-routes:  home-page
+
+
 
 .PHONY: clean
 clean:
@@ -35,26 +48,26 @@ styles: styles-gzip styles-gunzip
 	@echo -n " - gzip-static size [ $(shell grep -oP '^gzip-size: \K(.+)' $(T)/styles/gzip.txt ) ]\
  should be smaller than gunzip size [ $(shell grep -oP '^gunzip-size: \K(.+)' $(T)/styles/gunzip.txt ) ] "
 	@[[ $(shell grep -oP '^gzip-size: \K(.+)' $(T)/styles/gzip.txt ) -lt \
- $(shell grep -oP '^gunzip-size: \K(.+)' $(T)/styles/gunzip.txt ) ]] && echo ' OK!'
+ $(shell grep -oP '^gunzip-size: \K(.+)' $(T)/styles/gunzip.txt ) ]] && $(OK)
 
 
 .PHONY: styles-gzip
 styles-gzip: $(T)/styles/gzip.txt
 	@echo '## $@ ##'
 	@echo -n ' - should serve HTTP/2'
-	@grep -q 'HTTP/2 200' $< && echo ': OK'
+	@grep -q 'HTTP/2 200' $< && $(OK)
 	@echo -n " - with gzip-static on then should serve header 'content-type: text/css'"
-	@grep -q 'content-type: text/css' $< && echo ': OK'
+	@grep -q 'content-type: text/css' $< && $(OK)
 	@echo -n " - with gzip-static on then should serve header 'content-encoding: gzip'"
-	@grep -q 'content-encoding: gzip' $< && echo ': OK'
+	@grep -q 'content-encoding: gzip' $< && $(OK)
 	@echo -n ' - should serve *etag* header: '
-	@grep -q 'etag:'  $< && echo -n 'OK! # ' && grep -oP '^etag:.+$$' $<
+	@grep -q 'etag:'  $< && $(OK!) && grep -oP '^etag:.+$$' $<
 	@echo -n " - should serve *last-modified* header: "
-	@grep -q 'last-modified:' $<  && echo -n 'OK! # ' && grep -oP '^last-modified:.+$$' $<
+	@grep -q 'last-modified:' $<  && $(OK!) && grep -oP '^last-modified:.+$$' $<
 	@echo -n " - should serve *expires* header: "
-	@grep -q 'expires:' $<  && echo -n 'OK! # ' && grep -oP '^expires:.+$$' $<
+	@grep -q 'expires:' $<  && $(OK!)  && grep -oP '^expires:.+$$' $<
 	@echo -n  " - should serve *cache-control* with long max age: "
-	@grep -q 'cache-control: max-age' $< && echo -n 'OK! ' && grep -oP '^cache-control:.+$$' $<
+	@grep -q 'cache-control: max-age' $< && $(OK!) && grep -oP '^cache-control:.+$$' $<
 	@echo -n " - INFO: gzip-static size: "
 	@grep -oP '^gzip-size: \K(.+)$$' $<
 
@@ -62,24 +75,20 @@ styles-gzip: $(T)/styles/gzip.txt
 styles-gunzip: $(T)/styles/gunzip.txt
 	@echo '## $@ ##'
 	@echo -n " - gunzip should serve header 'content-type: text/css'"
-	@grep -q 'content-type: text/css' $< && echo ': OK'
+	@grep -q 'content-type: text/css' $< && $(OK)
 	@echo -n " - gunzip should NOT serve header 'content-encoding: gzip'"
-	@grep -q 'content-encoding: gzip' $< || echo ': OK'
+	@grep -q 'content-encoding: gzip' $< || $(OK)
 	@echo -n " - INFO: gunzip size: "
 	@grep -oP '^gunzip-size: \K(.+)$$' $<
 
 
 $(T)/styles/gzip.txt:
-	@echo '## $@ ##'
 	@mkdir -p $(dir $@)
-	@echo 'Fetch Main Stylesheet WITH: [ Header: Accept-Encoding: gzip ]'
 	@curl -sI -H 'Accept-Encoding: gzip'  $(URL)/styles > $@
 	@curl -s --write-out 'gzip-size: %{size_download}' -H 'Accept-Encoding: gzip,deflate' --output /dev/null  $(URL)/styles >> $@
 
 $(T)/styles/gunzip.txt:
-	@echo '## $@ ##'
 	@mkdir -p $(dir $@)
-	@echo 'Fetch Main Stylesheet WITHOUT: [ Header: Accept-Encoding: gzip ]'
 	@curl -sI $(URL)/styles > $@
 	@curl -s --write-out 'gunzip-size: %{size_download}' --output /dev/null  $(URL)/styles >> $@
 
@@ -89,7 +98,7 @@ $(T)/styles/gunzip.txt:
 icons: $(T)/icons/mail.txt
 	@echo '## $@ ##'
 	@echo -n ' - should serve HTTP/2'
-	@grep -q 'HTTP/2 200' $< && echo ': OK'
+	@grep -q 'HTTP/2 200' $< && $(OK)
 	@echo -n " - should serve header [ content-type: image/svg+xml ]"
 	@grep -q 'content-type: image/svg+xml'  $< && $(OK)
 	@echo -n " - should serve header [ content-encoding: gzip ]"
@@ -104,16 +113,15 @@ $(T)/icons/mail.txt:
 
 # proxy nginx configuration
 
-.PHONY: proxy-conf
-proxy-conf: $(T)/proxy/conf/info.txt
+.PHONY: nginx-conf
+nginx-conf: $(T)/nginx/conf/info.txt
 	@echo '## $@ ##'
 	@# TODO
-	@cat $< | grep -q 200
-	@cat $(dir $<)/doc.txt 
-	@cat $(dir $<)/doc-headers.txt
+	@#cat $< | grep -q 200 
+	@#cat $(dir $<)/doc.txt 
+	@#cat $(dir $<)/doc-headers.txt
 
-$(T)/proxy/conf/info.txt:
-	@echo '## $@ ##'
+$(T)/nginx/conf/info.txt:
 	@mkdir -p $(dir $@)
 	@curl -s \
  --output '$(dir $@)/doc.txt' \
@@ -127,7 +135,7 @@ $(T)/proxy/conf/info.txt:
 home-page: $(T)/site/home-page
 	@echo '## $@ ##'
 	@echo -n ' - response code should be 200'
-	@grep -q 'response-code: 200' $< && echo ': OK'
+	@grep -q 'response-code: 200' $< && $(OK)
 	@# TODO
 	@#cat $<
 	@#cat $(dir $<)/doc-$(notdir $<)
@@ -137,7 +145,6 @@ home-page: $(T)/site/home-page
 # https://ec.haxx.se/usingcurl/usingcurl-verbose/usingcurl-writeout
 
 $(T)/site/home-page:
-	@echo '## $@ ##'
 	@mkdir -p $(dir $@)
 	@curl -s \
  --output $(dir $@)/doc-$(notdir $@)\
