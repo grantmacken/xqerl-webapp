@@ -28,89 +28,86 @@ jobs:
       - name: Set Environment Variables
         run: | 
           echo '::set-env name=TERM::xterm'
-      - name: try tput
-        run: | 
-           echo "$(tput setaf 4) color me $(tput sgr 0)"
-      # - name: Create Static Assets For Website
+      - name: Create Static Assets For Website
+        run: |
+          source .env
+          echo ' - pull in my docker images as helpers'
+          echo ${{ secrets.GITHUB_TOKEN }} | docker login docker.pkg.github.com --username ${REPO_OWNER} --password-stdin
+          docker pull ${PROXY_DOCKER_IMAGE}
+          docker pull docker.pkg.github.com/grantmacken/alpine-scour/scour:0.0.2
+          docker pull docker.pkg.github.com/grantmacken/alpine-zopfli/zopfli:0.0.1
+          docker pull docker.pkg.github.com/grantmacken/alpine-cssnano/cssnano:0.0.3
+          echo -n ' - create volume: '
+          docker volume create --driver local --name static-assets
+          echo " - build static assets for ${DOMAIN} website " 
+          pushd site/${DOMAIN}
+          make assets
+          popd
+      - name: Create Generic Nginx Configuration
+        run: |
+          source .env   
+          echo -n ' - create volume: '
+          docker volume create --driver local --name nginx-configuration
+          pushd proxy 
+          make conf
+          popd
+      - name: Create Repo Owners Lualibs
+        run: |
+          source .env   
+          echo -n ' - create volume: '
+          docker volume create --driver local --name repo-owners-lualibs
+          pushd proxy 
+          make libs
+          popd
+      # - name: Pull proxy and xqerl images
       #   run: |
       #     source .env
-      #     echo ' - pull in my docker images as helpers'
+      #     docker pull ${XQERL_DOCKER_IMAGE}
       #     echo ${{ secrets.GITHUB_TOKEN }} | docker login docker.pkg.github.com --username ${REPO_OWNER} --password-stdin
       #     docker pull ${PROXY_DOCKER_IMAGE}
-      #     docker pull docker.pkg.github.com/grantmacken/alpine-scour/scour:0.0.2
-      #     docker pull docker.pkg.github.com/grantmacken/alpine-zopfli/zopfli:0.0.1
-      #     docker pull docker.pkg.github.com/grantmacken/alpine-cssnano/cssnano:0.0.3
-      #     echo -n ' - create volume: '
-      #     docker volume create --driver local --name static-assets
-      #     echo " - build static assets for ${DOMAIN} website " 
-      #     pushd site/${DOMAIN}
-      #     make assets
-      #     popd
-      # - name: Create Generic Nginx Configuration
-      #   run: |
-      #     source .env   
-      #     echo -n ' - create volume: '
-      #     docker volume create --driver local --name nginx-configuration
-      #     pushd proxy 
-      #     make conf
-      #     popd
-      # - name: Create Repo Owners Lualibs
-      #   run: |
-      #     source .env   
-      #     echo -n ' - create volume: '
-      #     docker volume create --driver local --name repo-owners-lualibs
-      #     pushd proxy 
-      #     make libs
-      #     popd
-      # # - name: Pull proxy and xqerl images
-      # #   run: |
-      # #     source .env
-      # #     docker pull ${XQERL_DOCKER_IMAGE}
-      # #     echo ${{ secrets.GITHUB_TOKEN }} | docker login docker.pkg.github.com --username ${REPO_OWNER} --password-stdin
-      # #     docker pull ${PROXY_DOCKER_IMAGE}
-      # - name: Setup Gcloud
-      #   uses: GoogleCloudPlatform/github-actions/setup-gcloud@master
-      #   with:
-      #     version: "270.0.0"
-      #     service_account_email: ${{ secrets.CLIENT_EMAIL }}
-      #     service_account_key: ${{ secrets.GCE_KEY }}
-      # - name: Configure GCE Project
-      #   run: |
-      #     source .env
-      #     gcloud config set project ${GCE_PROJECT}
-      #     gcloud config set compute/zone ${GCE_ZONE}
-      #     # gcloud compute instances list
-      #     gcloud compute config-ssh &>/dev/null
-      #     gcloud info
-      # - name: Use Certs From Existing Project
-      #   run: |
-      #     source .env
-      #     pushd proxy
-      #     make certsToHost
-      #     popd
-      # - name: Bring Containers Up
-      #   run: |
-      #       make up
-      #       docker ps
-      #       docker-compose logs
-      # - name: Compile xQuery modules
-      #   run: |
-      #       source .env
-      #       # move to domain
-      #       pushd site/${DOMAIN}
-      #       # compile xQuery libs
-      #       # compile order is defined in the  site/[DOMAIN] Makefile 
-      #       # NOTE! order in important as some libs depend on others
-      #       make xqm
-      #       popd
-      # - name: Website Tests
-      #   run: |
-      #       source .env
-      #       pushd site/${DOMAIN}/tests
-      #       make 
-      #       popd
-      # - name: Take Containers Down
-      #   run: |
-      #       make down
+      - name: Setup Gcloud
+        uses: GoogleCloudPlatform/github-actions/setup-gcloud@master
+        with:
+          version: "270.0.0"
+          service_account_email: ${{ secrets.CLIENT_EMAIL }}
+          service_account_key: ${{ secrets.GCE_KEY }}
+      - name: Configure GCE Project
+        run: |
+          source .env
+          gcloud config set project ${GCE_PROJECT}
+          gcloud config set compute/zone ${GCE_ZONE}
+          # gcloud compute instances list
+          gcloud compute config-ssh &>/dev/null
+          gcloud info
+      - name: Use Certs From Existing Project
+        run: |
+          source .env
+          pushd proxy
+          make certsToHost
+          popd
+      - name: Bring Containers Up
+        run: |
+            make up
+            docker ps
+            docker-compose logs
+      - name: Compile xQuery modules
+        run: |
+            source .env
+            # move to domain
+            pushd site/${DOMAIN}
+            # compile xQuery libs
+            # compile order is defined in the  site/[DOMAIN] Makefile 
+            # NOTE! order in important as some libs depend on others
+            make xqm
+            popd
+      - name: Website Tests
+        run: |
+            source .env
+            pushd site/${DOMAIN}/tests
+            make 
+            popd
+      - name: Take Containers Down
+        run: |
+            make down
 
 
