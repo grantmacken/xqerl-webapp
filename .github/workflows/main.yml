@@ -98,7 +98,7 @@ jobs:
             # compile xQuery libs
             # compile order is defined in the  site/[DOMAIN] Makefile 
             # NOTE! order in important as some libs depend on others
-            make xqm
+            make site
             popd
       - name: Website Tests
         run: |

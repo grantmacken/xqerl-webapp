@@ -12,12 +12,13 @@ OR := $(PROXY_CONTAINER_NAME)
 DEO := docker exec $(OR)
 STATIC_ASSETS :=  nginx/html/$(DOMAIN)
 dkrNetworkInUse != docker network list --format '{{.Name}}' | grep -oP "$(NETWORK)"
-# add includes
-include ../.inc/*
 mpURL := https://$(DOMAIN)/micropub
 mpJSON := $(mpURL) -H 'Content-Type: application/json' 
 
-# xQuery modules [ xqm ]
+
+####################################################################
+# xQuery MODULES [ xqm ]
+####################################################################
 
 .PHONY: site
 site: utilites publishing views routes
@@ -38,10 +39,44 @@ routes: $(B)/modules/routes.xqm
 clean-routes: 
 	@rm -f $(B)/modules/routes.xqm
 
-
-
 .PHONY: zadean
 zadean: $(B)/modules/zadean-tests.xqm
+
+
+$(B)/modules/%.xqm: modules/%.xqm
+	@echo '##[ $* ]##'
+	@mkdir -p $(dir $@)
+	@rm -fr $(T)/*
+	@docker cp $(<) $(XQ):$(CODE_SRC)
+	@$(call compile,$(notdir $<)) | tee $(T)/compile_$(*).txt
+	@cat $(T)/compile_$(*).txt | grep -q ':I:'
+	@cp $< $@
+	@echo;printf %60s | tr ' ' '-' && echo
+	@$(EVAL) $(compiledLibs)
+	@echo;printf %60s | tr ' ' '-' && echo
+
+$(B)/app/modules/%.xq: app/modules/%.xq
+	@echo '##[ $@ ]##'
+	@mkdir -p $(dir $@)
+	@docker cp $< $(XQ):/tmp
+	@$(DEX) ls -al /tmp/$(notdir $<)
+	@printf %60s | tr ' ' '-' && echo
+	@$(EVAL) 'xqerl:compile("/tmp/$(notdir $<)").'
+	@$(DEX) ls -al ./code/ebin
+	@cp -v $(<) $(@)
+	@echo;printf %60s | tr ' ' '-' && echo
+	@$(EVAL) 'io:fwrite("~1p~n",[xqerl_code_server:library_namespaces()]).'
+	@echo;printf %60s | tr ' ' '-' && echo
+
+PHONY: clean-code
+clean-code: 
+	@echo "## $(@) ##"
+	@
+	@echo ' - remove the code volume '
+	@pushd ../../ && \
+ $(if $(xqStatus),docker-compose down, echo 'down') && \
+ docker volume rm xqerl-compiled-code && \
+ popd
 
 PHONY: clean
 clean: 
@@ -52,56 +87,89 @@ clean:
 
 .PHONY: assets
 assets: icons styles
-	echo '## $@ ##'
-	# create a dummy container and mounted onto 'static-assets' volume
-	@docker run --rm --name dummy --detach \
+	@docker run --rm \
  --mount type=volume,target=$(OPENRESTY_HOME)/nginx/html,source=static-assets \
- -v $(CURDIR)/$(T):/tmp \
- --entrypoint "/usr/bin/tail" $(PROXY_DOCKER_IMAGE)  -f /dev/null
-	@#docker exec dummy  rm -r $(OPENRESTY_HOME)/$(STATIC_ASSETS)
-	# copy built assets into 'static-assets' volume
-	@docker exec dummy mkdir -p $(OPENRESTY_HOME)/$(STATIC_ASSETS)
-	@# $(DEO) mkdir -p $(STATIC_ASSETS)/resources
-	@docker cp $(B)/resources dummy:$(OPENRESTY_HOME)/$(STATIC_ASSETS)
-	@# docker exec dummy tar cvf /tmp/static-assets.tar $(OPENRESTY_HOME)/nginx/html
-	@docker exec dummy  ls -al $(OPENRESTY_HOME)/$(STATIC_ASSETS)/resources/styles
-	@docker stop dummy
-	@# cd $(T) && tar xvf static-assets.tar
-	@#docker cp $(B)/resources/. or:$(OPENRESTY_HOME)/$(STATIC_ASSETS)/resources
+ --mount type=bind,target=/tmp,source=$(CURDIR)/$(B) \
+ --entrypoint "sh" $(PROXY_DOCKER_IMAGE) -c 'cp -rv /tmp/$(DOMAIN) ./nginx/html/$(DOMAIN)'
+
+.PHONY: remove-assets
+remove-assets:
+	echo '## $@ ##'
+	@docker run --rm \
+ --mount type=volume,target=$(OPENRESTY_HOME)/nginx/html,source=static-assets \
+ --entrypoint "rm" $(PROXY_DOCKER_IMAGE) -rf ./nginx/html/$(DOMAIN)
+
+####################################################################
+# ICONS
+####################################################################
 
 .PHONY: icons
-icons: $(patsubst  %.svg,$(B)/%.svgz,$(wildcard resources/icons/*.svg))
+icons: $(patsubst  %.svg,$(B)/$(DOMAIN)/%.svgz,$(wildcard resources/icons/*.svg))
 
 .PHONY: clean-icons
 clean-icons:
-	@rm -f $(patsubst  %.svg,$(B)/%.svgz,$(wildcard resources/icons/*.svg))
+	@rm -f $(patsubst  %.svg,$(B)/$(DOMAIN)/%.svgz,$(wildcard resources/icons/*.svg))
 	@rm -fr $(T)/*
 
-# STYLES: CASCADING STYLESHEETS
+$(T)/$(DOMAIN)/resources/icons/%.svg: resources/icons/%.svg
+	@echo "##[ $* ]##"
+	@[ -d $(dir $@) ] || mkdir -p $(dir $@)
+	@echo  ' - use scour to clean and optimize SVG'
+	@cat $< | docker run \
+  --rm \
+  --name scour \
+  --interactive \
+docker.pkg.github.com/grantmacken/alpine-scour/scour:0.0.2 >  $@
+
+$(B)/$(DOMAIN)/resources/icons/%.svgz: $(T)/$(DOMAIN)/resources/icons/%.svg
+	@echo "##[ $* ]##"
+	@[ -d $(dir $@) ] || mkdir -p $(dir $@)
+	@echo  ' - use zopfli to compress image'
+	@cat $< | docker run \
+  --rm \
+  --name zopfli \
+  --interactive \
+  docker.pkg.github.com/grantmacken/alpine-zopfli/zopfli:0.0.1 > $@
+	@echo " orginal size: [ $$(wc -c $< | cut -d' ' -f1) ]"
+	@echo "   scour size: [ $$(wc -c $(T)/resources/icons/$*.svg | cut -d' ' -f1) ]"
+	@echo "   gzip size: [ $$(wc -c  $@ | cut -d' ' -f1) ]"
+
+####################################################################
+# STYLES: CASCADING STYLE SHEETS
+####################################################################
 
 .PHONY: styles
-styles: $(patsubst %.css,$(B)/%.css.gz,$(wildcard resources/styles/*.css))
+styles: $(patsubst %.css,$(B)/$(DOMAIN)/%.css.gz,$(wildcard resources/styles/*.css))
 
 .PHONY: clean-styles
 clean-styles:
 	echo '## $@ ##'
-	@rm -f $(patsubst %.css,$(B)/%.css.gz,$(wildcard resources/styles/*.css))
+	@rm -f $(patsubst %.css,$(B)/$(DOMAIN)/%.css.gz,$(wildcard resources/styles/*.css))
 	@rm -fr $(T)/*
 
-.PHONY: res
-res:
-	@rm -fr $(T)/*
-	tar cvf $(T)/resources.tar resources
-	# docker run -v /backup --name resources  alpine:3.11 /bin/ash
-	# docker run --rm --volumes-from resources -v $(CURDIR):/backup alpine:3.11 /bin/ash -c "cd /dbdata && tar xvf /backup/backup.tar --strip 1"
+$(T)/$(DOMAIN)/resources/styles/%.css: resources/styles/%.css
+	@echo "##[ $(notdir $@) ]##"
+	@[ -d $(dir $@) ] || mkdir -p $(dir $@)
+	@echo  ' - use cssnano to reduce css file size'
+	@cat $< | docker run \
+  --rm \
+  --init \
+  --name cssnano \
+  --interactive \
+   docker.pkg.github.com/grantmacken/alpine-cssnano/cssnano:0.0.3 > $@
 
-
-
-
-#Creating a post using x-www-form-urlencoded syntax with one or more properties
-
-
-
+$(B)/$(DOMAIN)/resources/styles/%.css.gz: $(T)/$(DOMAIN)/resources/styles/%.css
+	@echo "##[ $(notdir $@) ]##"
+	@[ -d $(dir $@) ] || mkdir -p $(dir $@)
+	@echo  ' - use zopfli to gzip file'
+	@cat $< | docker run \
+  --rm \
+  --name zopfli \
+  --interactive \
+  docker.pkg.github.com/grantmacken/alpine-zopfli/zopfli:0.0.1 > $@
+	@echo " orginal size: [ $$(wc -c $< | cut -d' ' -f1) ]"
+	@echo "   cssnano size: [ $$(wc -c $(T)/resources/styles/$*.css | cut -d' ' -f1) ]"
+	@echo "   gzip size: [ $$(wc -c  $@ | cut -d' ' -f1) ]"
 
 
 
