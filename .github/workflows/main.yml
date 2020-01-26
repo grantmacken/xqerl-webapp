@@ -28,15 +28,18 @@ jobs:
       - name: Set Environment Variables
         run: | 
           echo '::set-env name=TERM::xterm'
-      - name: Create Static Assets For Website
+      - name: Pull In Docker Images
         run: |
           source .env
+          docker pull ${XQERL_DOCKER_IMAGE}
           echo ' - pull in my docker images as helpers'
           echo ${{ secrets.GITHUB_TOKEN }} | docker login docker.pkg.github.com --username ${REPO_OWNER} --password-stdin
           docker pull ${PROXY_DOCKER_IMAGE}
           docker pull docker.pkg.github.com/grantmacken/alpine-scour/scour:0.0.2
           docker pull docker.pkg.github.com/grantmacken/alpine-zopfli/zopfli:0.0.1
           docker pull docker.pkg.github.com/grantmacken/alpine-cssnano/cssnano:0.0.3
+      - name: Create Static Assets For Website
+        run: |
           echo -n ' - create volume: '
           docker volume create --driver local --name static-assets
           echo " - build static assets for ${DOMAIN} website " 
@@ -81,7 +84,6 @@ jobs:
           # gcloud info
       - name: Use Certs From Existing Project
         run: |
-          source .env
           pushd proxy
           make certsToHost
           make hostsFile

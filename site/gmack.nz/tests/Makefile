@@ -26,7 +26,7 @@ tput sgr0
 endef
 
 .PHONY: test
-test: clean static-assets nginx-conf site-routes
+test: clean static-assets nginx-conf
 
 .PHONY: static-assets
 static-assets: styles icons  
@@ -114,20 +114,24 @@ $(T)/icons/mail.txt:
 # proxy nginx configuration
 
 .PHONY: nginx-conf
-nginx-conf: $(T)/nginx/conf/info.txt
+nginx-conf: $(T)/nginx/conf/info
 	@echo '## $@ ##'
 	@# TODO
-	@#cat $< | grep -q 200 
-	@#cat $(dir $<)/doc.txt 
-	@#cat $(dir $<)/doc-headers.txt
+	@cat $< 
+	@echo
+	@cat $(dir $@)/doc-$(notdir $@)
+	@echo
+	@cat  $(dir $@)/headers-$(notdir $@)
+	@echo
 
-$(T)/nginx/conf/info.txt:
+$(T)/nginx/conf/info:
 	@mkdir -p $(dir $@)
 	@curl -s \
- --output '$(dir $@)/doc.txt' \
- --write-out  %{http_code} \
- --dump-header '$(dir $@)/doc-headers.txt' \
- $(URL)/_info > $@
+ --output $(dir $@)/doc-$(notdir $@)\
+ --write-out "response-code: %{http_code}\\ntotal-time: %{time_total}\\ntime_connect: %{time_connect}" \
+ --dump-header $(dir $@)/headers-$(notdir $@) \
+ $(URL) | tee $@ 
+
 
 # RESTXQ ROUTES
 
