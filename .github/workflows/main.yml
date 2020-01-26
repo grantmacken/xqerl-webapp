@@ -30,7 +30,7 @@ jobs:
           echo '::set-env name=TERM::xterm256'
       - name: try tput
         run: | 
-           $(tput setaf 4) color me $(tput sgr 0)
+           echo "$(tput setaf 4) color me $(tput sgr 0)"
       # - name: Create Static Assets For Website
       #   run: |
       #     source .env
