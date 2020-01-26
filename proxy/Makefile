@@ -25,8 +25,6 @@ libs: $(patsubst lualib/%.lua,$(B)/site/lualib/$(REPO_OWNER)/%.lua, $(wildcard l
  --mount type=bind,target=/tmp,source=$(CURDIR)/$(B) \
  --entrypoint "sh" $(PROXY_DOCKER_IMAGE) -c 'cp -rv /tmp/site ./ '
 
-
-
 clean-libs:
 	@echo '## $(@) ##'
 	@rm -rf $(B)/site
@@ -53,22 +51,6 @@ conf: certs confs
 clean-conf:
 	@echo '## $(@) ##'
 	@rm -rf  $(B)/nginx/conf
-
-
-
-
-sdsfgg:
-	@$(if $(GITHUB_ACTIONS),$(call dummyRun),)
-	@docker run --rm --name dummy --detach \
- --mount type=volume,target=$(OPENRESTY_HOME)/nginx/conf,source=nginx-configuration \
- --entrypoint "/usr/bin/tail" $(PROXY_DOCKER_IMAGE)  -f /dev/null
-	@docker cp $(B)/resources dummy:$(OPENRESTY_HOME)/$(STATIC_ASSETS)
-	@$(if $(GITHUB_ACTIONS),docker cp $(B)/resources dummy:$(OPENRESTY_HOME)/$(STATIC_ASSETS),)
-	@$(if $(GITHUB_ACTIONS),,echo "- live cp";$(DEO) ./bin/openresty -c $(OPENRESTY_HOME)/nginx/conf/nginx.conf -t)
-	@$(if $(GITHUB_ACTIONS),,$(DEO) ./bin/openresty -s reload)
-
-
-
 
 .PHONY: dkrLogin
 dkrLogin:

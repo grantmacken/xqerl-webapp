@@ -90,18 +90,16 @@ certsToHost:
 	@gcloud compute scp  $(GCE_NAME):/tmp/letsencrypt.tar ./certs/
 	@#ls -al ./certs
 	@docker volume create --driver local --name letsencrypt
-	@docker run --init --rm --name dummy --detach \
+	@docker run --rm \
  --mount type=volume,target=$(LETSENCRYPT),source=letsencrypt \
  --mount type=bind,target=/tmp,source=$(CURDIR)/certs \
- --entrypoint "/usr/bin/tail" $(PROXY_DOCKER_IMAGE)  -f /dev/null
-	@#docker exec dummy ls -alR $(LETSENCRYPT)
-	@#docker exec dummy ls /tmp
-	@docker exec dummy tar xvf /tmp/letsencrypt.tar -C /
-	@#docker exec dummy ls -alR $(LETSENCRYPT)
-	@printf %60s | tr ' ' '-' && echo
-	@docker stop dummy
+ --entrypoint "tar" $(PROXY_DOCKER_IMAGE) xvf /tmp/letsencrypt.tar -C /
+
+.PHONY: hostsFile
+hostsFile:
 	# adjust hosts file TODO all domains
 	@echo "127.0.0.1  $(TLS_COMMON_NAME)" | sudo tee -a /etc/hosts
+	@cat /etc/hosts
 	@printf %60s | tr ' ' '-' && echo
 
 
