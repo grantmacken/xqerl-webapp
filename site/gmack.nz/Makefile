@@ -10,11 +10,19 @@ ESCRIPT := $(DEX) xqerl escript
 EVAL := $(DEX) xqerl eval
 OR := $(PROXY_CONTAINER_NAME)
 DEO := docker exec $(OR)
-STATIC_ASSETS :=  nginx/html/$(DOMAIN)
 dkrNetworkInUse != docker network list --format '{{.Name}}' | grep -oP "$(NETWORK)"
-mpURL := https://$(DOMAIN)/micropub
-mpJSON := $(mpURL) -H 'Content-Type: application/json' 
+# mpURL := https://$(DOMAIN)/micropub
+# mpJSON := $(mpURL) -H 'Content-Type: application/json' 
+xqIPAddress = $(shell  docker inspect --format='{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' $(XQ))
+xqStatus != docker ps --filter name=$(XQ) --format 'status: {{.Status}}'
+xqPortInUse != docker ps --format '{{.Ports}}' | grep -oP '^(.+)8081->\K(8081)'
+compile =  $(ESCRIPT) bin/scripts/compile.escript ./code/src/$1
+compiledLibs := 'BinList = xqerl_code_server:library_namespaces(),\
+ NormalList = [binary_to_list(X) || X <- BinList],\
+ io:fwrite("~1p~n",[lists:sort(NormalList)]).'
 
+CODE_SRC :=  $(XQERL_HOME)/code/src
+STATIC_ASSETS :=  nginx/html/$(DOMAIN)
 
 ####################################################################
 # xQuery MODULES [ xqm ]
@@ -22,6 +30,13 @@ mpJSON := $(mpURL) -H 'Content-Type: application/json'
 
 .PHONY: site
 site: utilites publishing views routes
+
+.PHONY: clean-site
+clean-site: 
+	@echo '##[ $@ ]##'
+	@rm -f $(B)/modules/*
+
+
 
 .PHONY: utilites
 utilites: $(B)/modules/newBase60.xqm
@@ -41,7 +56,6 @@ clean-routes:
 
 .PHONY: zadean
 zadean: $(B)/modules/zadean-tests.xqm
-
 
 $(B)/modules/%.xqm: modules/%.xqm
 	@echo '##[ $* ]##'
@@ -71,11 +85,11 @@ $(B)/app/modules/%.xq: app/modules/%.xq
 PHONY: clean-code
 clean-code: 
 	@echo "## $(@) ##"
-	@
 	@echo ' - remove the code volume '
 	@pushd ../../ && \
  $(if $(xqStatus),docker-compose down, echo 'down') && \
  docker volume rm xqerl-compiled-code && \
+ $(MAKE) -silent up && \
  popd
 
 PHONY: clean
