@@ -25,6 +25,9 @@ jobs:
           fetch-depth: 1
       # - name: Debug
       #   uses: hmarr/debug-action@master
+      - name: Set Environment Variables
+        run: | 
+          echo '::set-env name=TERM::xterm256'
       - name: Create Static Assets For Website
         run: |
           source .env

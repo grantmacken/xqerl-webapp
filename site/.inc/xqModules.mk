@@ -25,11 +25,6 @@ modules-help: export modulesHelp:=$(modulesHelp)
 modules-help:
 	echo "$${modulesHelp}"
 
-.PHONY: curl
-curl:
-	@echo;printf %60s | tr ' ' '-' && echo
-	@curl -v https://gmack.nz/micropub -d h=entry -d "content=Hello World"
-	@echo;printf %60s | tr ' ' '-' && echo
 
 $(B)/modules/%.xqm: modules/%.xqm
 	@echo '##[ $* ]##'
@@ -59,10 +54,12 @@ $(B)/app/modules/%.xq: app/modules/%.xq
 PHONY: clean-code
 clean-code: 
 	@echo "## $(@) ##"
+	@
 	@echo ' - remove the code volume '
-	@$(if $(dkrStatus),docker-compose down,)
-	@docker volume rm xqerl-compiled-code
-	@pushd ../../ && $(MAKE) -silent up && popd
+	@pushd ../../ && \
+ $(if $(xqStatus),docker-compose down, echo 'down') && \
+ docker volume rm xqerl-compiled-code && \
+ popd
 
 .PHONY: escript
 escript: 

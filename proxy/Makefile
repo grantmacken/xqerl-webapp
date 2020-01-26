@@ -19,13 +19,13 @@ include ./.inc/*
 .PHONY: libs  clean-libs
 
 libs: $(patsubst lualib/%.lua,$(B)/site/lualib/$(REPO_OWNER)/%.lua, $(wildcard lualib/*))
-	@echo '## $(@) ##'
-	@#$(DEO) ls -al site/lualib/$(REPO_OWNER)
-	@docker run --rm --name dummy --detach \
+	@echo '## $(@) $(CURDIR)  ##'
+	@docker run --rm \
  --mount type=volume,target=$(OPENRESTY_HOME)/site/lualib/$(REPO_OWNER),source=repo-owners-lualibs \
- --entrypoint "/usr/bin/tail" $(PROXY_DOCKER_IMAGE)  -f /dev/null
-	@docker cp $(B)/site/lualib/$(REPO_OWNER)/. dummy:$(OPENRESTY_HOME)/site/lualib/$(REPO_OWNER)
-	@docker stop dummy
+ --mount type=bind,target=/tmp,source=$(CURDIR)/$(B) \
+ --entrypoint "sh" $(PROXY_DOCKER_IMAGE) -c 'cp -rv /tmp/site ./ '
+
+
 
 clean-libs:
 	@echo '## $(@) ##'
@@ -42,14 +42,12 @@ certs: $(B)/nginx/conf/certs.conf
 .PHONY: conf
 conf: certs confs
 	@echo '## $(@) ##'
-	@docker run --rm --name dummy --detach \
+	@docker run --rm \
  --mount type=volume,target=$(OPENRESTY_HOME)/nginx/conf,source=nginx-configuration \
- --entrypoint "/usr/bin/tail" $(PROXY_DOCKER_IMAGE)  -f /dev/null
-	@docker cp $(B)/nginx/conf/. dummy:$(OPENRESTY_HOME)/nginx/conf
-	@#docker exec dummy $(OPENRESTY_HOME/bin/openresty -c $(OPENRESTY_HOME)/nginx/conf/nginx.conf -t)
-	@# docker exec dummy bin/openresty -c $(OPENRESTY_HOME)/nginx/conf/nginx.conf -t
-	@docker exec dummy  ls -al nginx/conf
-	@docker stop dummy
+ --mount type=bind,target=/tmp,source=$(CURDIR)/$(B) \
+ --entrypoint "sh" $(PROXY_DOCKER_IMAGE) -c 'cp -rv /tmp/nginx ./ '
+	@$(if $(GITHUB_ACTIONS),,$(DEO) ./bin/openresty -t )
+	@$(if $(GITHUB_ACTIONS),,$(DEO) ./bin/openresty -s reload)
 
 .PHONY: clean-conf
 clean-conf:
@@ -83,12 +81,12 @@ dkrLogin:
 or-restart:
 	@echo "## $@ ##"
 	@echo ' - local test nginx configuration'
-	@docker exec or openresty -t | grep 'syntax is ok'
+	@docker exec or ./bin/openresty -t
 	@echo ' - local restart'
 	@#docker exec or kill -HUP 1
-	@docker exec or openresty -s reload
+	@docker exec or ./bin/openresty -s reload
 	@#docker exec or openresty start
-	@docker ps | grep 'openresty'
+	@#docker ps | grep 'openresty'
 
 .PHONY: or-test
 or-test:

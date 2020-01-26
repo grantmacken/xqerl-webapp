@@ -19,8 +19,8 @@ mpJSON := $(mpURL) -H 'Content-Type: application/json'
 
 # xQuery modules [ xqm ]
 
-.PHONY: xqm
-xqm: utilites publishing views routes
+.PHONY: site
+site: utilites publishing views routes
 
 .PHONY: utilites
 utilites: $(B)/modules/newBase60.xqm
@@ -33,6 +33,15 @@ publishing: $(B)/modules/micropub.xqm
 
 .PHONY: routes
 routes: $(B)/modules/routes.xqm
+
+.PHONY: clean-routes
+clean-routes: 
+	@rm -f $(B)/modules/routes.xqm
+
+
+
+.PHONY: zadean
+zadean: $(B)/modules/zadean-tests.xqm
 
 PHONY: clean
 clean: 

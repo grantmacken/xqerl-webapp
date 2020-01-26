@@ -101,3 +101,50 @@ $(T)/icons/mail.txt:
 	@mkdir -p $(dir $@)
 	@curl -sI $(URL)/icons/mail > $@
 
+
+# proxy nginx configuration
+
+.PHONY: proxy-conf
+proxy-conf: $(T)/proxy/conf/info.txt
+	@echo '## $@ ##'
+	@# TODO
+	@cat $< | grep -q 200
+	@cat $(dir $<)/doc.txt 
+	@cat $(dir $<)/doc-headers.txt
+
+$(T)/proxy/conf/info.txt:
+	@echo '## $@ ##'
+	@mkdir -p $(dir $@)
+	@curl -s \
+ --output '$(dir $@)/doc.txt' \
+ --write-out  %{http_code} \
+ --dump-header '$(dir $@)/doc-headers.txt' \
+ $(URL)/_info > $@
+
+# RESTXQ ROUTES
+
+.PHONY: home-page
+home-page: $(T)/site/home-page
+	@echo '## $@ ##'
+	@echo -n ' - response code should be 200'
+	@grep -q 'response-code: 200' $< && echo ': OK'
+	@# TODO
+	@#cat $<
+	@#cat $(dir $<)/doc-$(notdir $<)
+	@#cat $(dir $<)/headers-$(notdir $<)
+
+#TODO add more
+# https://ec.haxx.se/usingcurl/usingcurl-verbose/usingcurl-writeout
+
+$(T)/site/home-page:
+	@echo '## $@ ##'
+	@mkdir -p $(dir $@)
+	@curl -s \
+ --output $(dir $@)/doc-$(notdir $@)\
+ --write-out "response-code: %{http_code}\\ntotal-time: %{time_total}\\ntime_connect: %{time_connect}" \
+ --dump-header $(dir $@)/headers-$(notdir $@) \
+ $(URL) | tee $@ 
+	@echo
+
+
+
