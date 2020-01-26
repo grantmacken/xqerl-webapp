@@ -27,7 +27,7 @@ jobs:
       #   uses: hmarr/debug-action@master
       - name: Set Environment Variables
         run: | 
-          echo '::set-env name=TERM::xterm256'
+          echo '::set-env name=TERM::xterm'
       - name: try tput
         run: | 
            echo "$(tput setaf 4) color me $(tput sgr 0)"
