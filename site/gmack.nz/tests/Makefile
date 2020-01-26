@@ -6,11 +6,18 @@ OR := $(PROXY_CONTAINER_NAME)
 DOMAIN = gmack.nz
 T = .tmp
 
-IPAddress != docker inspect --format='{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' $(XQ)
-dkrStatus != docker ps --filter name=$(XQ) --format 'status: {{.Status}}'
-dkrPortInUse != docker ps --format '{{.Ports}}' | grep -oP '^(.+)80->\K(80)'
-dkrNetworkInUse != docker network list --format '{{.Name}}' | grep -oP "$(NETWORK)"
+xqAddress != docker inspect --format='{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' $(XQ)
+orAddress != docker inspect --format='{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' $(OR)
+xqStatus != docker ps --filter name=$(XQ) --format 'status: {{.Status}}'
+port80InUse != docker ps --format '{{.Ports}}' | grep -oP '^(.+)80->\K(80)'
+networkInUse != docker network list --format '{{.Name}}' | grep -oP "$(NETWORK)"
 URL := https://$(DOMAIN)
+
+
+urlXQ   := http://$(xqAddress)
+urlOR   := https://$(DOMAIN)
+sniResolve := $(DOMAIN):443:$(orAddress)
+hdrHost := 'Host: $(DOMAIN)'
 
 define OK
 tput setaf 2
@@ -26,7 +33,9 @@ tput sgr0
 endef
 
 .PHONY: test
-test: clean static-assets nginx-conf
+test:  nginx-conf
+
+#clean static-assets
 
 .PHONY: static-assets
 static-assets: styles icons  
@@ -119,18 +128,22 @@ nginx-conf: $(T)/nginx/conf/info
 	@# TODO
 	@cat $< 
 	@echo
-	@cat $(dir $@)/doc-$(notdir $@)
+	@cat $(dir $<)/doc-$(notdir $<)
 	@echo
-	@cat  $(dir $@)/headers-$(notdir $@)
+	@cat  $(dir $<)/headers-$(notdir $<)
 	@echo
 
 $(T)/nginx/conf/info:
 	@mkdir -p $(dir $@)
 	@curl -s \
- --output $(dir $@)/doc-$(notdir $@)\
+ --resolve $(DOMAIN):443:$(orAddress) \
+ --output $(dir $@)/doc-$(notdir $@) \
  --write-out "response-code: %{http_code}\\ntotal-time: %{time_total}\\ntime_connect: %{time_connect}" \
  --dump-header $(dir $@)/headers-$(notdir $@) \
- $(URL) | tee $@ 
+ $(URL)/_info >  $@ 
+	@#openssl s_client -connect $(orAddress):443 -servername $(DOMAIN)
+
+
 
 
 # RESTXQ ROUTES
