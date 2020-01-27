@@ -197,13 +197,13 @@ $(T)/nginx/conf/info:
 .PHONY: home-page
 home-page: $(T)/site/home-page
 	@echo '## $@ ##'
-	@$(call Status,$(dir $<)/headers-$(notdir $<),HTTP/2 200)
-	@$(call HasHeaderKeyShowValue,$(dir $<)/headers-$(notdir $<),strict-transport-security)
-	@$(call HasHeaderKeyShowValue,$(dir $<)/headers-$(notdir $<),content-type)
+	@#$(call Status,$(dir $<)/headers-$(notdir $<),HTTP/2 200)
+	@#$(call HasHeaderKeyShowValue,$(dir $<)/headers-$(notdir $<),strict-transport-security)
+	@#$(call HasHeaderKeyShowValue,$(dir $<)/headers-$(notdir $<),content-type)
 	@# TODO
-	@#cat $<
-	@#cat $(dir $<)/doc-$(notdir $<)
-	@#cat $(dir $<)/headers-$(notdir $<)
+	@cat $<
+	@cat $(dir $<)/doc-$(notdir $<)
+	@cat $(dir $<)/headers-$(notdir $<)
 
 #TODO add more
 # https://ec.haxx.se/usingcurl/usingcurl-verbose/usingcurl-writeout
