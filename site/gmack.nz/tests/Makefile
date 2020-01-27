@@ -8,7 +8,7 @@ T = .tmp
 
 xqAddress != docker inspect --format='{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' $(XQ)
 orAddress != docker inspect --format='{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' $(OR)
-xqStatus != docker ps --filter name=$(XQ) --format 'status: {{.Status}}'
+xqServesHeader != docker ps --filter name=$(XQ) --format 'status: {{.Status}}'
 port80InUse != docker ps --format '{{.Ports}}' | grep -oP '^(.+)80->\K(80)'
 networkInUse != docker network list --format '{{.Name}}' | grep -oP "$(NETWORK)"
 URL := https://$(DOMAIN)
@@ -46,7 +46,7 @@ Cross = echo -n "$$(tput setaf 1) ✘ $$(tput sgr0) " && echo $1
 
 HasHeaderKey = grep -q '^$2' $1 
 HeaderKeyValue =  echo "$$( grep -oP '^$2: \K(.+)$$' $1 )"
-Status = if $(call HasHeaderKey,$1,$2) ; then $(call Tick, '- serves http2 with 200 status [ $2 ] ');echo;fi
+ServesHeader = if $(call HasHeaderKey,$1,$2) ; then $(call Tick, '- serves header [ $2 ] ');echo;fi
 HasHeaderKeyShowValue = \
  if $(call HasHeaderKey,$1,$2);then $(call Tick, "- header $2: " );$(call HeaderKeyValue,$1,$2);\
  else $(call Cross, "- header $2: " );false;fi
@@ -83,18 +83,20 @@ sdsdsff:
 .PHONY: styles-gzip
 styles-gzip: $(T)/styles/gzip
 	@echo '## $@ ##'
-	@$(call Status,$(dir $<)/headers-$(notdir $<),HTTP/2 200)
+	@$(call ServesHeader,$(dir $<)/headers-$(notdir $<),HTTP/2 200)
 	@#echo -n " - with gzip-static on then should serve header 'content-type: text/css'"
-	@#grep -q 'content-type: text/css' $< && $(OK)
+	@$(call ServesHeader,$(dir $<)/headers-$(notdir $<),content-type: text/css)
 	@#echo -n " - with gzip-static on then should serve header 'content-encoding: gzip'"
-	@#grep -q 'content-encoding: gzip' $< && $(OK)
-	@#echo -n ' - should serve *etag* header: '
-	@#grep -q 'etag:'  $< && $(OK!) && grep -oP '^etag:.+$$' $<
+	@$(call ServesHeader,$(dir $<)/headers-$(notdir $<),content-encoding: gzip)
+	@$(call HasHeaderKeyShowValue,$(dir $<)/headers-$(notdir $<),strict-transport-security)
+	@# etag for caching should serve *etag* header
+	@$(call HasHeaderKeyShowValue,$(dir $<)/headers-$(notdir $<),etag)
 	@#echo -n " - should serve *last-modified* header: "
-	@#grep -q 'last-modified:' $<  && $(OK!) && grep -oP '^last-modified:.+$$' $<
+	@$(call HasHeaderKeyShowValue,$(dir $<)/headers-$(notdir $<),last-modified)
 	@#echo -n " - should serve *expires* header: "
-	@#grep -q 'expires:' $<  && $(OK!)  && grep -oP '^expires:.+$$' $<
+	@$(call HasHeaderKeyShowValue,$(dir $<)/headers-$(notdir $<),expires)
 	@#echo -n  " - should serve *cache-control* with long max age: "
+	@$(call HasHeaderKeyShowValue,$(dir $<)/headers-$(notdir $<),cache-control)
 	@#grep -q 'cache-control: max-age' $< && $(OK!) && grep -oP '^cache-control:.+$$' $<
 	@#echo -n " - INFO: gzip-static size: "
 	@#grep -oP '^gzip-size: \K(.+)$$' $<
@@ -102,14 +104,12 @@ styles-gzip: $(T)/styles/gzip
 .PHONY: styles-gunzip
 styles-gunzip: $(T)/styles/gunzip
 	@echo '## $@ ##'
-	@$(call Status,$(dir $<)/headers-$(notdir $<),HTTP/2 200)
-	@#echo -n " - gunzip should serve header 'content-type: text/css'"
-	@#grep -q 'content-type: text/css' $< && $(OK)
+	@$(call ServesHeader,$(dir $<)/headers-$(notdir $<),HTTP/2 200)
+	@$(call ServesHeader,$(dir $<)/headers-$(notdir $<),content-type: text/css)
 	@#echo -n " - gunzip should NOT serve header 'content-encoding: gzip'"
 	@#grep -q 'content-encoding: gzip' $< || $(OK)
 	@#echo -n " - INFO: gunzip size: "
 	@#grep -oP '^gunzip-size: \K(.+)$$' $<
-
 
 $(T)/styles/gzip:
 	@mkdir -p $(dir $@)
@@ -140,9 +140,9 @@ $(T)/styles/gunzip:
 .PHONY: icons
 icons: $(T)/icons/mail
 	@echo '## $@ ##'
-	@$(call Status,$(dir $<)/headers-$(notdir $<),HTTP/2 200)
-	@#echo -n ' - should serve HTTP/2'
-	@#grep -q 'HTTP/2 200' $< && $(OK)
+	@$(call ServesHeader,$(dir $<)/headers-$(notdir $<),HTTP/2 200)
+	@$(call HasHeaderKeyShowValue,$(dir $<)/headers-$(notdir $<),strict-transport-security)
+	@$(call ServesHeader,$(dir $<)/headers-$(notdir $<),content-type: image/svg+xml)
 	@#echo -n " - should serve header [ content-type: image/svg+xml ]"
 	@#grep -q 'content-type: image/svg+xml'  $< && $(OK)
 	@#echo -n " - should serve header [ content-encoding: gzip ]"
@@ -160,20 +160,10 @@ $(T)/icons/mail:
  --output /dev/null \
  $(URL)/icons/mail > $@ 
 
-# proxy nginx configuration
-#
-#tput setaf 2
-# echo -n ' ✓ ' 
-# tput sgr0
-# echo
-
-
-
-# ✗
-.PHONY: nginx-con
+.PHONY: nginx-conf
 nginx-conf: $(T)/nginx/conf/info
 	@echo '## $@ ##'
-	@$(call Status,$(dir $<)/headers-$(notdir $<),HTTP/2 200)
+	@$(call ServesHeader,$(dir $<)/headers-$(notdir $<),HTTP/2 200)
 	@$(call HasHeaderKeyShowValue,$(dir $<)/headers-$(notdir $<),strict-transport-security)
 	@$(call HasHeaderKeyShowValue,$(dir $<)/headers-$(notdir $<),content-type)
 	@# TODO
@@ -197,7 +187,7 @@ $(T)/nginx/conf/info:
 .PHONY: home-page
 home-page: $(T)/site/home-page
 	@echo '## $@ ##'
-	@$(call Status,$(dir $<)/headers-$(notdir $<),HTTP/2 200)
+	@$(call ServesHeader,$(dir $<)/headers-$(notdir $<),HTTP/2 200)
 	@$(call HasHeaderKeyShowValue,$(dir $<)/headers-$(notdir $<),strict-transport-security)
 	@$(call HasHeaderKeyShowValue,$(dir $<)/headers-$(notdir $<),content-type)
 	@# TODO
@@ -208,8 +198,8 @@ home-page: $(T)/site/home-page
 $(T)/site/home-page:
 	@mkdir -p $(dir $@)
 	@$(call GET,/,$@)
-	@docker logs $(OR)
-	@docker logs $(XQ)
+	@#docker logs $(OR)
+	@#docker logs $(XQ)
 
 
 
