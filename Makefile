@@ -91,6 +91,16 @@ watch:
         inotifywait -qre close_write .; \
     done
 
+.PHONY: gcloud-init
+gcloud-init:
+	@echo '## $@ ##'
+	@# set up volumes
+	@gcloud compute ssh $(GCE_NAME) --command 'docker volume list'
+	@#gcloud compute ssh $(GCE_NAME) --command 'docker volume create --driver local --name repo-owners-lualibs'
+	@#gcloud compute ssh $(GCE_NAME) --command 'docker volume create --driver local --name static-assets'
+	@#gcloud compute ssh $(GCE_NAME) --command 'docker volume create --driver local --name nginx-configuration'
+	@#gcloud compute ssh $(GCE_NAME) --command 'docker volume create --driver local --name xqerl-database'
+	@#gcloud compute ssh $(GCE_NAME) --command 'docker volume create --driver local --name xqerl-compiled-code'
 
 
 

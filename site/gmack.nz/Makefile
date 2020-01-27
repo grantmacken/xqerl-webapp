@@ -118,6 +118,8 @@ remove-assets:
 
 .PHONY: tar-assets
 tar-assets: .deploy/static-assets.tar
+	gcloud compute scp .deploy/static-assets.tar $(GCE_NAME):~/
+	@gcloud compute ssh $(GCE_NAME) --command  'docker volume list' | grep -q static-assets 
 
 $(D)/static-assets.tar:
 	@mkdir -p $(dir $@)
