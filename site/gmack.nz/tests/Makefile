@@ -41,6 +41,17 @@ GET = curl --silent --show-error \
  --output $(dir $2)/doc-$(notdir $2) \
  $(URL)$1 > $2 
 
+Tick  = echo -n "$$(tput setaf 2) ✔ $$(tput sgr0) " && echo -n $1
+Cross = echo -n "$$(tput setaf 1) ✘ $$(tput sgr0) " && echo $1
+
+HasHeaderKey = grep -q '^$2' $1 
+HeaderKeyValue =  echo "$$( grep -oP '^$2: \K(.+)$$' $1 )"
+Status = if $(call HasHeaderKey,$1,$2) ; then $(call Tick, '- serves http2 with 200 status [ $2 ] ');echo;fi
+HasHeaderKeyShowValue = \
+ if $(call HasHeaderKey,$1,$2);then $(call Tick, "- header $2: " );$(call HeaderKeyValue,$1,$2);\
+ else $(call Cross, "- header $2: " );false;fi
+
+
 .PHONY: test
 test: clean nginx-conf site-routes
 
@@ -133,15 +144,7 @@ $(T)/icons/mail.txt:
 # echo -n ' ✓ ' 
 # tput sgr0
 # echo
-Tick = echo -n "$$(tput setaf 2) ✔ $$(tput sgr0) " && echo -n $1
-Cross = echo -n "$$(tput setaf 1) ✘ $$(tput sgr0) " && echo $1
 
-HasHeaderKey = grep -q '^$2' $1 
-HeaderKeyValue =  echo "$$( grep -oP '^$2: \K(.+)$$' $1 )"
-Status = if $(call HasHeaderKey,$1,$2) ; then $(call Tick, '- serves http2 with 200 status [ $2 ] ');echo;fi
-HasHeaderKeyShowValue = \
- if $(call HasHeaderKey,$1,$2);then $(call Tick, "- header $2: " );$(call HeaderKeyValue,$1,$2);\
- else $(call Cross, "- header $2: " );false;fi
 
 
 # ✗
@@ -152,12 +155,7 @@ nginx-conf: $(T)/nginx/conf/info
 	@$(call HasHeaderKeyShowValue,$(dir $<)/headers-$(notdir $<),strict-transport-security)
 	@$(call HasHeaderKeyShowValue,$(dir $<)/headers-$(notdir $<),content-type)
 	@# TODO
-	@#cat $< 
-	@echo
-	@#cat $(dir $<)/doc-$(notdir $<)
-	@echo
-	@#cat  $(dir $<)/headers-$(notdir $<)
-	@echo
+
 
 
 
@@ -177,18 +175,13 @@ $(T)/nginx/conf/info:
 .PHONY: home-page
 home-page: $(T)/site/home-page
 	@echo '## $@ ##'
-	@#$(call Status,$(dir $<)/headers-$(notdir $<),HTTP/2 200)
-	@#$(call HasHeaderKeyShowValue,$(dir $<)/headers-$(notdir $<),strict-transport-security)
-	@#$(call HasHeaderKeyShowValue,$(dir $<)/headers-$(notdir $<),content-type)
+	@$(call Status,$(dir $<)/headers-$(notdir $<),HTTP/2 200)
+	@$(call HasHeaderKeyShowValue,$(dir $<)/headers-$(notdir $<),strict-transport-security)
+	@$(call HasHeaderKeyShowValue,$(dir $<)/headers-$(notdir $<),content-type)
 	@# TODO
-	@cat $<
-	@cat $(dir $<)/doc-$(notdir $<)
-	@cat $(dir $<)/headers-$(notdir $<)
-	@docker logs or
-	@docker logs xq
+	@#cat $<
 
-#TODO add more
-# https://ec.haxx.se/usingcurl/usingcurl-verbose/usingcurl-writeout
+
 
 $(T)/site/home-page:
 	@mkdir -p $(dir $@)
