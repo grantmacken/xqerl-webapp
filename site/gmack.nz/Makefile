@@ -29,16 +29,16 @@ STATIC_ASSETS :=  nginx/html/$(DOMAIN)
 ####################################################################
 
 .PHONY: site
-site: utilites publishing views routes
+site: clean-site utilites publishing views routes
+	@echo '##[ $@ ]##'
+	@sleep 2
 
 .PHONY: clean-site
-clean-site: 
+clean-site:
 	@echo '##[ $@ ]##'
 	@rm -f $(B)/modules/*
-	@$(DEX) ls -al $(CODE_SRC)
 	@$(DEX) rm -rf $(CODE_SRC)
 	@$(DEX) mkdir -p $(CODE_SRC)
-	@$(DEX) ls -al $(CODE_SRC)
 
 .PHONY: utilites
 utilites: $(B)/modules/newBase60.xqm
