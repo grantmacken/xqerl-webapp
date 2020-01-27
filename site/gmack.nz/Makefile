@@ -29,9 +29,7 @@ STATIC_ASSETS :=  nginx/html/$(DOMAIN)
 ####################################################################
 
 .PHONY: site
-site: clean-site utilites publishing views routes
-	@echo '##[ $@ ]##'
-	@sleep 2
+site: utilites publishing views routes
 
 .PHONY: clean-site
 clean-site:

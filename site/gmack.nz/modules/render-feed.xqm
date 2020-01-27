@@ -50,54 +50,6 @@ element head {
   }
 };
 
-
-
-declare
-function feed:banner( $map as map(*)) {
- element svg {
-   attribute viewBox { '0 0 1024 60' },
-   attribute id { 'banner' },
-   element defs {
-     element linearGradient {
-       attribute id { 'rainbow' },
-       attribute x1 { '0' },
-       attribute x2 { '0' },
-       attribute y1 { '0' },
-       attribute y2 { '100%' },
-       attribute  gradientUnits{ 'userSpaceOnUse' },
-       element stop {
-         attribute stop-color { '#FF5B99' },
-         attribute offset { '0%' }
-        },
-       element stop {
-         attribute stop-color { '#FF5447' },
-         attribute offset { '20%' }
-        },
-       element stop {
-         attribute stop-color { '#FF7B21' },
-         attribute offset { '40%' }
-        },
-       element stop {
-         attribute stop-color { '#EAFC37' },
-         attribute offset { '60%' }
-        },
-       element stop {
-         attribute stop-color { '#4FCB6B' },
-         attribute offset { '80%' }
-        },
-       element stop {
-         attribute stop-color { '#51F7FE' },
-         attribute offset { '100%' }
-        }
-     }
-   }
- }
-};
-
-    
-
-
-
 declare
 function feed:header( $map as map(*)) {
 element header {
@@ -315,7 +267,8 @@ function feed:render( $map as map(*) ) {
       feed:header( $map('card') ),
       element main {
         attribute class {'h-feed'},
-        feed:recent-entries( $map )
+        element article { 'hello' }
+        (: feed:recent-entries( $map ) :)
       },
       element aside {
         feed:sign-in-form( $map('card') )

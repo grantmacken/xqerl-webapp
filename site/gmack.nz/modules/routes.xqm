@@ -33,7 +33,7 @@ declare
 function routes:home($host){
     let $map := map:merge(($routes:myCard, map { "domain" : $host }))
     return 
-   <html><body><p>hello</p></body></html>
+    feed:render( $map ) 
 };
 
 declare 
