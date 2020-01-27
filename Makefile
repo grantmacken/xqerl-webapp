@@ -99,6 +99,7 @@ watch:
 gcloud-init:
 	@echo '## $@ ##'
 	@# WARN! do only once
+	@#gcloud compute ssh $(GCE_NAME) --command  'mkdir -p deploy'
 	@# set up volumes
 	@#gcloud compute ssh $(GCE_NAME) --command 'docker volume list'
 	@#gcloud compute ssh $(GCE_NAME) --command 'docker volume create --driver local --name repo-owners-lualibs'
@@ -107,8 +108,8 @@ gcloud-init:
 	@#gcloud compute ssh $(GCE_NAME) --command 'docker volume create --driver local --name xqerl-database'
 	@#gcloud compute ssh $(GCE_NAME) --command 'docker volume create --driver local --name xqerl-compiled-code'
 	@#gcloud compute ssh $(GCE_NAME) --command 'docker login docker.io --username $(REPO_OWNER) --password $(dkrLogin)'
-	@gcloud compute ssh $(GCE_NAME) --command 'docker login docker.pkg.github.com --username $(REPO_OWNER) --password $(dkrGHLogin)'
-	@gcloud compute ssh $(GCE_NAME) --command 'cat ~/.docker/config.json'
+	@#gcloud compute ssh $(GCE_NAME) --command 'docker login docker.pkg.github.com --username $(REPO_OWNER) --password $(dkrGHLogin)'
+	@#gcloud compute ssh $(GCE_NAME) --command 'cat ~/.docker/config.json'
 
 
 

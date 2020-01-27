@@ -52,13 +52,6 @@ clean-conf:
 	@echo '## $(@) ##'
 	@rm -rf  $(B)/nginx/conf
 
-.PHONY: dkrLogin
-dkrLogin:
-	@echo '## $(@) ##'
-	@$(if $${GITHUB_WORKSPACE},\
- echo ${{ secrets.GITHUB_TOKEN }} | docker login docker.pkg.github.com --username ${{ secrets.DOCKER_USERNAME }} --password-stdin,\
- echo ${GITHUB_ACCESS_TOKEN} | docker login docker.pkg.github.com --username $(REPO_OWNER) --password-stdin )
-
 .PHONY: or-restart
 or-restart:
 	@echo "## $@ ##"

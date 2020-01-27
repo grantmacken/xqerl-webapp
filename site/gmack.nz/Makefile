@@ -117,18 +117,19 @@ remove-assets:
  --entrypoint "rm" $(PROXY_DOCKER_IMAGE) -rf ./nginx/html/$(DOMAIN)
 
 .PHONY: tar-assets
-tar-assets: .deploy/static-assets.tar
-	@gcloud compute ssh $(GCE_NAME) --command  'mkdir -p deploy'
-	gcloud compute scp .deploy/static-assets.tar $(GCE_NAME):~/deploy
+tar-assets: $(D)/static-assets.tar
+	gcloud compute scp $< $(GCE_NAME):~/deploy
 	@gcloud compute ssh $(GCE_NAME) --command  'ls -al ./deploy'
-	@gcloud compute ssh $(GCE_NAME) --command  'echo $(GCE_NAME)'
-
-ddd:
 	@gcloud compute ssh $(GCE_NAME) --command  \
  'docker run --rm \
  --mount type=volume,target=$(OPENRESTY_HOME)/nginx/html,source=static-assets \
  --mount type=bind,target=/tmp,source=/home/$(GCE_NAME)/deploy \
  --entrypoint "tar" $(PROXY_DOCKER_IMAGE) xvf /tmp/static-assets.tar -C / '
+	@# checkpoint: static assets volume populated
+	@gcloud compute ssh $(GCE_NAME) --command  \
+ 'docker run --rm \
+ --mount type=volume,target=$(OPENRESTY_HOME)/nginx/html,source=static-assets \
+ --entrypoint "ls" $(PROXY_DOCKER_IMAGE) -alR $(OPENRESTY_HOME)/nginx/html'
 
 
 $(D)/static-assets.tar:
