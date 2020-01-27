@@ -91,16 +91,25 @@ watch:
         inotifywait -qre close_write .; \
     done
 
+# dkrLogin  != grep -oP '[a-zA-Z0-9+/]+={2}' ~/.docker/config.json | tail -1 | base64 -d |  cut -d: -f 2
+# dkrGHLogin  != grep -oP '[a-zA-Z0-9+/]+={2}' ~/.docker/config.json | head -1 | base64 -d |  cut -d: -f 2
+# dkrLogins  = jq '.auths' ~/.docker/config.json 
+
 .PHONY: gcloud-init
 gcloud-init:
 	@echo '## $@ ##'
+	@# WARN! do only once
 	@# set up volumes
-	@gcloud compute ssh $(GCE_NAME) --command 'docker volume list'
+	@#gcloud compute ssh $(GCE_NAME) --command 'docker volume list'
 	@#gcloud compute ssh $(GCE_NAME) --command 'docker volume create --driver local --name repo-owners-lualibs'
 	@#gcloud compute ssh $(GCE_NAME) --command 'docker volume create --driver local --name static-assets'
 	@#gcloud compute ssh $(GCE_NAME) --command 'docker volume create --driver local --name nginx-configuration'
 	@#gcloud compute ssh $(GCE_NAME) --command 'docker volume create --driver local --name xqerl-database'
 	@#gcloud compute ssh $(GCE_NAME) --command 'docker volume create --driver local --name xqerl-compiled-code'
+	@#gcloud compute ssh $(GCE_NAME) --command 'docker login docker.io --username $(REPO_OWNER) --password $(dkrLogin)'
+	@gcloud compute ssh $(GCE_NAME) --command 'docker login docker.pkg.github.com --username $(REPO_OWNER) --password $(dkrGHLogin)'
+	@gcloud compute ssh $(GCE_NAME) --command 'cat ~/.docker/config.json'
+
 
 
 
