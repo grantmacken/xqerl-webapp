@@ -1,8 +1,9 @@
 SHELL=/bin/bash
 include ../../.env
 DOMAIN = gmack.nz
-T = .tmp
-B = .build
+T := .tmp
+B := .build
+D := .deploy
 # shortcut aliases
 XQ := $(XQERL_CONTAINER_NAME)
 DEX := docker exec $(XQ)
@@ -114,6 +115,17 @@ remove-assets:
 	@docker run --rm \
  --mount type=volume,target=$(OPENRESTY_HOME)/nginx/html,source=static-assets \
  --entrypoint "rm" $(PROXY_DOCKER_IMAGE) -rf ./nginx/html/$(DOMAIN)
+
+.PHONY: tar-assets
+tar-assets: .deploy/static-assets.tar
+
+$(D)/static-assets.tar:
+	@mkdir -p $(dir $@)
+	echo '## $@ ##'
+	@docker run --rm \
+ --mount type=volume,target=$(OPENRESTY_HOME)/nginx/html,source=static-assets \
+ --entrypoint "tar" $(PROXY_DOCKER_IMAGE) -czf - ./nginx/html > $@
+
 
 ####################################################################
 # ICONS

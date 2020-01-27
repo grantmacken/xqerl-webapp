@@ -75,36 +75,44 @@ jobs:
           gcloud config set compute/zone ${GCE_ZONE}
           # gcloud compute instances list
           gcloud compute config-ssh &>/dev/null
-          # gcloud info
-      - name: Use Certs From Existing Project
-        run: |
-          pushd proxy
-          make certsToHost
-          make hostsFile
-          popd
-      - name: Bring Containers Up
-        run: |
-            make up
-            docker ps
-            docker-compose logs
-      - name: Compile xQuery modules
-        run: |
-            source .env
-            # move to domain
-            pushd site/${DOMAIN}
-            # compile xQuery libs
-            # compile order is defined in the  site/[DOMAIN] Makefile 
-            # NOTE! order in important as some libs depend on others
-            make
-            popd
-      - name: Website Tests
-        run: |
-            source .env
-            pushd site/${DOMAIN}/tests
-            make 
-            popd
-      - name: Take Containers Down
-        run: |
-            make down
+          gcloud info
+      # - name: Use Certs From Existing Project
+      #   run: |
+      #     pushd proxy
+      #     make certsToHost
+      #     make hostsFile
+      #     popd
+      # - name: Bring Containers Up
+      #   run: |
+      #       make up
+      #       docker ps
+      #       docker-compose logs
+      # - name: Compile xQuery modules
+      #   run: |
+      #       source .env
+      #       # move to domain
+      #       pushd site/${DOMAIN}
+      #       # compile xQuery libs
+      #       # compile order is defined in the  site/[DOMAIN] Makefile 
+      #       # NOTE! order in important as some libs depend on others
+      #       make
+      #       popd
+      # - name: Website Tests
+      #   run: |
+      #       source .env
+      #       pushd site/${DOMAIN}/tests
+      #       make 
+      #       popd
+      # - name: Website Deployment
+      #   run: |
+      #     source .env
+      #     echo " - deploy assets for ${DOMAIN} website " 
+      #     pushd site/${DOMAIN}
+      #     make tar-assets
+          
+      #     popd
+      # - name: Take Containers Down
+      #   run: |
+      #       make down
 
 
