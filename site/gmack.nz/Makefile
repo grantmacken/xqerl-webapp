@@ -35,8 +35,10 @@ site: utilites publishing views routes
 clean-site: 
 	@echo '##[ $@ ]##'
 	@rm -f $(B)/modules/*
-
-
+	@$(DEX) ls -al $(CODE_SRC)
+	@$(DEX) rm -rf $(CODE_SRC)
+	@$(DEX) mkdir -p $(CODE_SRC)
+	@$(DEX) ls -al $(CODE_SRC)
 
 .PHONY: utilites
 utilites: $(B)/modules/newBase60.xqm
@@ -64,6 +66,8 @@ $(B)/modules/%.xqm: modules/%.xqm
 	@docker cp $(<) $(XQ):$(CODE_SRC)
 	@$(call compile,$(notdir $<)) | tee $(T)/compile_$(*).txt
 	@cat $(T)/compile_$(*).txt | grep -q ':I:'
+	@$(DEX) rm -f $(CODE_SRC)/$(notdir $<)
+	@#$(DEX) ls $(CODE_SRC)
 	@cp $< $@
 	@echo;printf %60s | tr ' ' '-' && echo
 	@$(EVAL) $(compiledLibs)
