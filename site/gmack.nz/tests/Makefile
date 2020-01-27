@@ -41,24 +41,6 @@ GET = curl --silent --show-error \
  --output $(dir $2)/doc-$(notdir $2) \
  $(URL)$1 > $2 
 
-
-
-define OK
-tput setaf 2
-echo -n ' ✓ ' 
-tput sgr0
-echo
-endef
-
-define OK!
-tput setaf 2
-echo -n ' ✓ # ' 
-tput sgr0
-endef
-
-
-
-
 .PHONY: test
 test: clean nginx-conf site-routes
 
@@ -69,8 +51,6 @@ static-assets: styles icons
 
 .PHONY: site-routes
 site-routes:  home-page
-
-
 
 .PHONY: clean
 clean:

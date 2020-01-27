@@ -1,14 +1,5 @@
 module namespace routes = 'http://gmack.nz/#routes';
-
-declare variable $routes:XML :=  <root><a>text</a></root>;
-
 declare variable $routes:HTML :=  <html><body><p>hello</p></body></html>;
-
-declare variable $routes:CSV := [ ['headA', 'headB', 'headC'],
-                             ['A', 'B', 3], 
-                             ['C', 'D', 6] ];
-
-declare variable $routes:CSV_S := '"headA","headB","headC"&#10;"A","B",3&#10;"C","D",6';
 
 declare variable $routes:JSON :=
   map{
@@ -16,37 +7,9 @@ declare variable $routes:JSON :=
       true(), 123, 'string'
     ]
   };
-  
 declare variable $routes:JSON_S := '{"map":[true, 123, "string"]}';
-  
 declare variable $routes:BIN := 'abc123' cast as xs:hexBinary;
-
 declare variable $routes:BIN_S := 'abc123';
-
-declare 
-  %rest:path("/gmack.nz/get/xml")
-  %rest:GET
-  %rest:produces("application/xml")
-function routes:get_xml_1(){
-  <rest:response>
-    <http:response status="200">
-      <http:header name="Server" value="xqerl"/>
-    </http:response>
-    <output:serialization-parameters>
-      <output:standalone value='1'/>
-    </output:serialization-parameters>
-  </rest:response>,
-  $routes:XML
-};
-
-declare 
-  %rest:path("/gmack.nz/get/csv")
-  %rest:GET
-  %rest:produces("text/plain")
-  %output:method("text")
-function routes:get_csv_2(){
-  csv:serialize($routes:CSV)
-};
 
 declare 
   %rest:path("/gmack.nz")
