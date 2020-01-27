@@ -118,8 +118,17 @@ remove-assets:
 
 .PHONY: tar-assets
 tar-assets: .deploy/static-assets.tar
-	gcloud compute scp .deploy/static-assets.tar $(GCE_NAME):~/
-	@gcloud compute ssh $(GCE_NAME) --command  'ls -al .'
+	@gcloud compute ssh $(GCE_NAME) --command  'mkdir -p deploy'
+	gcloud compute scp .deploy/static-assets.tar $(GCE_NAME):~/deploy
+	@gcloud compute ssh $(GCE_NAME) --command  'ls -al ./deploy'
+	@gcloud compute ssh $(GCE_NAME) --command  'echo $(PWD)'
+
+ddd:
+	@gcloud compute ssh $(GCE_NAME) --command  \
+ 'docker run --rm \
+ --mount type=volume,target=$(OPENRESTY_HOME)/nginx/html,source=static-assets \
+ --mount type=bind,target=/tmp,source=$$PWD/deploy \
+ --entrypoint "tar" $(PROXY_DOCKER_IMAGE) xvf /tmp/static-assets.tar -C / '
 
 
 $(D)/static-assets.tar:
