@@ -204,6 +204,8 @@ home-page: $(T)/site/home-page
 	@cat $<
 	@cat $(dir $<)/doc-$(notdir $<)
 	@cat $(dir $<)/headers-$(notdir $<)
+	@docker logs or
+	@docker logs xq
 
 #TODO add more
 # https://ec.haxx.se/usingcurl/usingcurl-verbose/usingcurl-writeout
