@@ -100,30 +100,40 @@ clean:
 	@echo "## $(@) ##"
 	@rm -rfv $(B)
 
-### resources 
+### RESOURCES static-assets
+##############################
+
+PathAssets := $(OPENRESTY_HOME)/nginx/html
+MountAssets :=  'type=volume,target=$(OPENRESTY_HOME)/nginx/html,source=static-assets'
+MountLocalB      :=  'type=bind,target=/tmp,source=$(CURDIR)/$(B)'
 
 .PHONY: assets
 assets: icons styles
 	@docker run --rm \
- --mount type=volume,target=$(OPENRESTY_HOME)/nginx/html,source=static-assets \
- --mount type=bind,target=/tmp,source=$(CURDIR)/$(B) \
+ --mount $(MountAssets) \
+ --mount $(MountLocalB) \
  --entrypoint "sh" $(PROXY_DOCKER_IMAGE) -c 'cp -rv /tmp/$(DOMAIN) ./nginx/html/$(DOMAIN)'
 
 .PHONY: remove-assets
 remove-assets:
 	echo '## $@ ##'
 	@docker run --rm \
- --mount type=volume,target=$(OPENRESTY_HOME)/nginx/html,source=static-assets \
+ --mount MountAssets \
  --entrypoint "rm" $(PROXY_DOCKER_IMAGE) -rf ./nginx/html/$(DOMAIN)
 
 .PHONY: static-assets-volume
 static-assets-volume: $(D)/static-assets.tar
-	gcloud compute scp $< $(GCE_NAME):~/deploy
-	@gcloud compute ssh $(GCE_NAME) --command  'ls -al ./deploy'
-	@gcloud compute ssh $(GCE_NAME) --command  \
- 'docker run --rm --mount type=volume,target=$(OPENRESTY_HOME)/nginx/html,source=static-assets --mount type=bind,target=/tmp,source=/home/$(GCE_NAME)/deploy --entrypoint "sh" $(PROXY_DOCKER_IMAGE) -c "ls -al ."'
+	@gcloud compute ssh $(GCE_NAME) --command  'mkdir -p $(D)'
+	@gcloud compute scp $< $(GCE_NAME):~/$(D)
+	@#gcloud compute ssh $(GCE_NAME) --command  'ls -al $(D)'
+	@gcloud compute ssh $(GCE_NAME) --command  "docker --version"
+	@gcloud compute ssh $(GCE_NAME) --command \
+ "docker run --rm --mount $(MountAssets) --entrypoint 'sh' $(PROXY_DOCKER_IMAGE) -c 'ls -al .' "
+
 
 ssfssfsf:
+	@gcloud compute ssh $(GCE_NAME) --command  \
+ 'docker run --rm --mount type=volume,target=$(OPENRESTY_HOME)/nginx/html,source=static-assets --mount type=bind,target=/tmp,source=/home/$(GCE_NAME)/deploy --entrypoint "sh" $(PROXY_DOCKER_IMAGE) -c "ls -al ."'
 	@# checkpoint: static assets volume populated
 	@#gcloud compute ssh $(GCE_NAME) --command  \
  'docker run --rm \
@@ -132,12 +142,11 @@ ssfssfsf:
 
 
 $(D)/static-assets.tar:
-	@mkdir -p $(dir $@)
 	echo '## $@ ##'
+	@mkdir -p $(dir $@)
 	@docker run --rm \
- --mount type=volume,target=$(OPENRESTY_HOME)/nginx/html,source=static-assets \
- --entrypoint "tar" $(PROXY_DOCKER_IMAGE) -czf - ./nginx/html > $@
-
+ --mount $(MountAssets) \
+ --entrypoint "tar" $(PROXY_DOCKER_IMAGE) -czf - $(PathAssets) > $@
 
 ####################################################################
 # ICONS
