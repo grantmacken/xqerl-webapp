@@ -107,12 +107,12 @@ jobs:
         run: |
           source .env
           gcloud compute ssh ${GCE_NAME} --command \
-          "echo ${{ secrets.GITHUB_TOKEN }} | docker login docker.pkg.github.com --username ${REPO_OWNER} --password-stdin"
+          "docker login docker.pkg.github.com"
           gcloud compute ssh ${GCE_NAME} --command  "docker pull ${PROXY_DOCKER_IMAGE}"
           # echo " - deploy assets for ${DOMAIN} website " 
           # pushd site/${DOMAIN}
           # make static-assets-volume
-          # popd
+          # popd --username ${REPO_OWNER} --password ${{ secrets.GITHUB_TOKEN }}
           # pushd proxy
           # make nginx-configuration-volume
           # popd
