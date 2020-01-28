@@ -66,6 +66,10 @@ conf: certs confs
 	@$(if $(GITHUB_ACTIONS),,$(DEO) ./bin/openresty -t )
 	@$(if $(GITHUB_ACTIONS),,$(DEO) ./bin/openresty -s reload)
 
+###################################
+# deploy nginx-configuration-volume
+###################################
+
 .PHONY: nginx-configuration-volume
 nginx-configuration-volume: $(D)/nginx-configuration.tar
 	gcloud compute scp $< $(GCE_NAME):~/deploy
@@ -77,7 +81,6 @@ $(D)/nginx-configuration.tar:
 	@docker run --rm \
  --mount type=volume,target=$(OPENRESTY_HOME)/nginx/conf,source=nginx-configuration \
  --entrypoint "tar" $(PROXY_DOCKER_IMAGE) -czf - ./nginx/conf > $@
-
 
 .PHONY: clean-conf
 clean-conf:
@@ -100,5 +103,8 @@ or-test:
 	@echo "## $@ ##"
 	@echo ' - local test nginx configuration'
 	@docker exec -t or openresty -t
+
+
+
 
 
