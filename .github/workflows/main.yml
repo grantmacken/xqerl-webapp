@@ -106,10 +106,13 @@ jobs:
       - name: Website Deployment
         run: |
           source .env
-          gcloud compute ssh ${GCE_NAME} --command  'docker pull $(PROXY_DOCKER_IMAGE)'
+          gcloud compute ssh ${GCE_NAME} --command  'docker pull ${PROXY_DOCKER_IMAGE}'
           echo " - deploy assets for ${DOMAIN} website " 
           pushd site/${DOMAIN}
-          make tar-assets
+          make static-assets-volume
+          popd
+          pushd proxy
+          make nginx-configuration-volume
           popd
       - name: Take Containers Down
         run: |

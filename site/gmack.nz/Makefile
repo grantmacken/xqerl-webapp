@@ -116,8 +116,8 @@ remove-assets:
  --mount type=volume,target=$(OPENRESTY_HOME)/nginx/html,source=static-assets \
  --entrypoint "rm" $(PROXY_DOCKER_IMAGE) -rf ./nginx/html/$(DOMAIN)
 
-.PHONY: tar-assets
-tar-assets: $(D)/static-assets.tar
+.PHONY: static-assets-volume
+static-assets-volume: $(D)/static-assets.tar
 	gcloud compute scp $< $(GCE_NAME):~/deploy
 	@gcloud compute ssh $(GCE_NAME) --command  'ls -al ./deploy'
 	@gcloud compute ssh $(GCE_NAME) --command  \
