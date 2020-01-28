@@ -53,15 +53,15 @@ jobs:
           echo -n ' - create volume: '
           docker volume create --driver local --name nginx-configuration
           pushd proxy 
-          make conf
+          make conf-build
           popd
-      - name: Create Repo Owners Lualibs
-        run: |
-          echo -n ' - create volume: '
-          docker volume create --driver local --name repo-owners-lualibs
-          pushd proxy 
-          make libs
-          popd
+      # - name: Create Repo Owners Lualibs
+      #   run: |
+      #     echo -n ' - create volume: '
+      #     docker volume create --driver local --name repo-owners-lualibs
+      #     pushd proxy 
+      #     make libs
+      #     popd
       - name: Setup Gcloud
         uses: GoogleCloudPlatform/github-actions/setup-gcloud@master
         with:
@@ -113,9 +113,9 @@ jobs:
           pushd site/${DOMAIN}
           make static-assets-volume
           popd
-          # pushd proxy
-          # make nginx-configuration-volume
-          # popd
+          pushd proxy
+          make deploy-conf
+          popd
       - name: Take Containers Down
         run: |
             make down

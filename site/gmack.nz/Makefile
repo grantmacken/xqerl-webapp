@@ -104,14 +104,14 @@ clean:
 ##############################
 
 PathAssets := $(OPENRESTY_HOME)/nginx/html
-MountAssets :=  'type=volume,target=$(OPENRESTY_HOME)/nginx/html,source=static-assets'
-MountLocalB      :=  'type=bind,target=/tmp,source=$(CURDIR)/$(B)'
+MountAssets :=  type=volume,target=$(OPENRESTY_HOME)/nginx/html,source=static-assets
+MountLocalB :=  'type=bind,target=/tmp,source=$(CURDIR)/$(B)'
 
 .PHONY: assets
 assets: icons styles
 	@docker run --rm \
  --mount $(MountAssets) \
- --mount $(MountLocalB) \
+ --mount type=bind,target=/tmp,source=$(CURDIR)/$(B) \
  --entrypoint "sh" $(PROXY_DOCKER_IMAGE) -c 'cp -rv /tmp/$(DOMAIN) ./nginx/html/$(DOMAIN)'
 
 .PHONY: remove-assets
@@ -128,18 +128,14 @@ static-assets-volume: $(D)/static-assets.tar
 	@#gcloud compute ssh $(GCE_NAME) --command  'ls -al $(D)'
 	@gcloud compute ssh $(GCE_NAME) --command  "docker --version"
 	@gcloud compute ssh $(GCE_NAME) --command \
- "docker run --rm --mount $(MountAssets) --entrypoint 'sh' $(PROXY_DOCKER_IMAGE) -c 'ls -al .' "
-
-
-ssfssfsf:
-	@gcloud compute ssh $(GCE_NAME) --command  \
- 'docker run --rm --mount type=volume,target=$(OPENRESTY_HOME)/nginx/html,source=static-assets --mount type=bind,target=/tmp,source=/home/$(GCE_NAME)/deploy --entrypoint "sh" $(PROXY_DOCKER_IMAGE) -c "ls -al ."'
-	@# checkpoint: static assets volume populated
-	@#gcloud compute ssh $(GCE_NAME) --command  \
  'docker run --rm \
  --mount type=volume,target=$(OPENRESTY_HOME)/nginx/html,source=static-assets \
- --entrypoint "ls" $(PROXY_DOCKER_IMAGE) -alR $(OPENRESTY_HOME)/nginx/html'
-
+ --mount type=bind,target=/tmp,source=/home/$(GCE_NAME)/$(D) \
+ --entrypoint "tar" $(PROXY_DOCKER_IMAGE) xvf /tmp/static-assets.tar -C /'
+	@gcloud compute ssh $(GCE_NAME) --command \
+ 'docker run --rm \
+ --mount type=volume,target=$(OPENRESTY_HOME)/nginx/html,source=static-assets \
+ --entrypoint "ls" $(PROXY_DOCKER_IMAGE) -alR ./nginx/html' 
 
 $(D)/static-assets.tar:
 	echo '## $@ ##'
@@ -220,41 +216,4 @@ $(B)/$(DOMAIN)/resources/styles/%.css.gz: $(T)/$(DOMAIN)/resources/styles/%.css
 	@echo "   cssnano size: [ $$(wc -c $(T)/resources/styles/$*.css | cut -d' ' -f1) ]"
 	@echo "   gzip size: [ $$(wc -c  $@ | cut -d' ' -f1) ]"
 
-
-
-.PHONY: mpNote
-mpNote:
-	@echo;printf %60s | tr ' ' '-' && echo
-	@curl -v $(mpURL) -d h=entry -d content="$(CONTENT)"
-	@echo;printf %60s | tr ' ' '-' && echo
-
-
-.PHONY: mpDelete
-mpDelete:
-	@echo;printf %60s | tr ' ' '-' && echo
-	@curl -v  $(mpURL) -d action=delete -d  url="https://gmack.nz/5NX0vZ"
-	@echo;printf %60s | tr ' ' '-' && echo
-
-.PHONY: mpUndelete
-mpUndelete:
-	@echo;printf %60s | tr ' ' '-' && echo
-	@curl -v $(mpURL) -d action=undelete -d  url="https://gmack.nz/5NX0vZ"
-	@echo;printf %60s | tr ' ' '-' && echo
-
-define jsUpdateReplace
-{
-  "action": "update",
-  "url": "https://$(DOMAIN)/5NX0vZ",
-  "replace": {
-    "content": ["hello moon"]
-  }
-}
-endef
-
-mpUpdateReplace: export UpdateReplace=$(jsUpdateReplace)
-mpUpdateReplace:
-	@echo "$${UpdateReplace}" | curl -v $(mpJSON) --data-binary @-
-	@false
-	@echo "$${UpdateReplace}" | 
-	@echo;printf %60s | tr ' ' '-' && echo
 
