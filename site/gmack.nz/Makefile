@@ -121,12 +121,11 @@ static-assets-volume: $(D)/static-assets.tar
 	gcloud compute scp $< $(GCE_NAME):~/deploy
 	@gcloud compute ssh $(GCE_NAME) --command  'ls -al ./deploy'
 	@gcloud compute ssh $(GCE_NAME) --command  \
- 'docker run --rm \
- --mount type=volume,target=$(OPENRESTY_HOME)/nginx/html,source=static-assets \
- --mount type=bind,target=/tmp,source=/home/$(GCE_NAME)/deploy \
- --entrypoint "tar" $(PROXY_DOCKER_IMAGE) xvf /tmp/static-assets.tar -C / '
+ 'docker run --rm --mount type=volume,target=$(OPENRESTY_HOME)/nginx/html,source=static-assets --mount type=bind,target=/tmp,source=/home/$(GCE_NAME)/deploy --entrypoint "sh" $(PROXY_DOCKER_IMAGE) -c "ls -al ."'
+
+ssfssfsf:
 	@# checkpoint: static assets volume populated
-	@gcloud compute ssh $(GCE_NAME) --command  \
+	@#gcloud compute ssh $(GCE_NAME) --command  \
  'docker run --rm \
  --mount type=volume,target=$(OPENRESTY_HOME)/nginx/html,source=static-assets \
  --entrypoint "ls" $(PROXY_DOCKER_IMAGE) -alR $(OPENRESTY_HOME)/nginx/html'
