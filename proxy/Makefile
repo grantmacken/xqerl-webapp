@@ -5,6 +5,7 @@ OR=$(PROXY_CONTAINER_NAME)
 
 T := .tmp
 B := .build
+D := .deploy
 COMMA := ,
 EMPTY :=
 SPACE := $(EMPTY) $(EMPTY)
@@ -24,6 +25,24 @@ libs: $(patsubst lualib/%.lua,$(B)/site/lualib/$(REPO_OWNER)/%.lua, $(wildcard l
  --mount type=volume,target=$(OPENRESTY_HOME)/site/lualib/$(REPO_OWNER),source=repo-owners-lualibs \
  --mount type=bind,target=/tmp,source=$(CURDIR)/$(B) \
  --entrypoint "sh" $(PROXY_DOCKER_IMAGE) -c 'cp -rv /tmp/site ./ '
+
+$(B)/site/lualib/$(REPO_OWNER)/%.lua: lualib/%.lua
+	@echo "##[ $(notdir $@) ]##"
+	@[ -d $(dir $@) ] || mkdir -p $(dir $@)
+	@# docker cp $< $(OR):$(OPENRESTY_HOME)/$(patsubst $(B)/%,%,$@)
+	@cp $<  $@
+
+.PHONY: site-lualib-volume
+site-lualib-volume: $(D)/site-lualib.tar
+	gcloud compute scp $< $(GCE_NAME):~/deploy
+	@gcloud compute ssh $(GCE_NAME) --command  'ls -al ./deploy'
+
+$(D)/site-lualib.tar:
+	@mkdir -p $(dir $@)
+	echo '## $@ ##'
+	@docker run --rm \
+ --mount type=volume,target=,source=$(OPENRESTY_HOME)/site/lualib \
+ --entrypoint "tar" $(PROXY_DOCKER_IMAGE) -czf - ./ > $@
 
 clean-libs:
 	@echo '## $(@) ##'
@@ -51,7 +70,6 @@ conf: certs confs
 nginx-configuration-volume: $(D)/nginx-configuration.tar
 	gcloud compute scp $< $(GCE_NAME):~/deploy
 	@gcloud compute ssh $(GCE_NAME) --command  'ls -al ./deploy'
-	@gcloud compute ssh $(GCE_NAME) --command  'echo $(GCE_NAME)'
 
 $(D)/nginx-configuration.tar:
 	@mkdir -p $(dir $@)
