@@ -114,7 +114,8 @@ jobs:
           make static-assets-volume
           popd
           pushd proxy
-          make deploy-conf
+          # deploy nginx configuration in GCE host as a docker volume
+          make conf-deploy
           popd
       - name: Take Containers Down
         run: |

@@ -23,14 +23,16 @@ compiledLibs := 'BinList = xqerl_code_server:library_namespaces(),\
  io:fwrite("~1p~n",[lists:sort(NormalList)]).'
 
 CODE_SRC :=  $(XQERL_HOME)/code/src
-STATIC_ASSETS :=  nginx/html/$(DOMAIN)
 
 ####################################################################
-# xQuery MODULES [ xqm ]
+# targets
+# make: this targets `make xqerl-compiled-code`, the first target
+# xqerl-compiled-code
+#
 ####################################################################
 
-.PHONY: site
-site: utilites publishing views routes
+.PHONY: xqerl-compiled-code
+xqerl-compiled-code: utilites publishing views routes
 
 .PHONY: clean-site
 clean-site:
@@ -85,6 +87,29 @@ $(B)/app/modules/%.xq: app/modules/%.xq
 	@$(EVAL) 'io:fwrite("~1p~n",[xqerl_code_server:library_namespaces()]).'
 	@echo;printf %60s | tr ' ' '-' && echo
 
+MountCode :=  type=volume,target=$(XQERL_HOME)/code,source=xqerl-compiled-code
+
+.PHONY: code-deploy
+code-deploy: $(D)/xqerl-compiled-code.tar
+	@gcloud compute ssh $(GCE_NAME) --command  'mkdir -p $(D)'
+	@gcloud compute scp $< $(GCE_NAME):~/$(D)
+	@gcloud compute ssh $(GCE_NAME) --command \
+ 'docker run --rm \
+ --mount $(MountCode) \
+ --mount type=bind,target=/tmp,source=/home/$(GCE_NAME)/$(D) \
+ --entrypoint "tar" $(XQERL_DOCKER_IMAGE) xvf /tmp/$(notdir $<) -C /'
+	@gcloud compute ssh $(GCE_NAME) --command \
+ 'docker run --rm \
+ --mount  $(MountCode) \
+ --entrypoint "ls" $(XQERL_DOCKER_IMAGE) -alR ./code' 
+
+$(D)/xqerl-compiled-code.tar:
+	echo '## $@ ##'
+	@mkdir -p $(dir $@)
+	@docker run --rm \
+ --mount $(MountCode) \
+ --entrypoint "tar" $(XQERL_DOCKER_IMAGE) -czf - $(XQERL_HOME)/code > $@
+
 PHONY: clean-code
 clean-code: 
 	@echo "## $(@) ##"
@@ -103,9 +128,7 @@ clean:
 ### RESOURCES static-assets
 ##############################
 
-PathAssets := $(OPENRESTY_HOME)/nginx/html
 MountAssets :=  type=volume,target=$(OPENRESTY_HOME)/nginx/html,source=static-assets
-MountLocalB :=  'type=bind,target=/tmp,source=$(CURDIR)/$(B)'
 
 .PHONY: assets
 assets: icons styles
@@ -121,28 +144,28 @@ remove-assets:
  --mount MountAssets \
  --entrypoint "rm" $(PROXY_DOCKER_IMAGE) -rf ./nginx/html/$(DOMAIN)
 
-.PHONY: static-assets-volume
-static-assets-volume: $(D)/static-assets.tar
+.PHONY: assets-deploy
+assets-deploy: $(D)/static-assets.tar
 	@gcloud compute ssh $(GCE_NAME) --command  'mkdir -p $(D)'
 	@gcloud compute scp $< $(GCE_NAME):~/$(D)
-	@#gcloud compute ssh $(GCE_NAME) --command  'ls -al $(D)'
-	@gcloud compute ssh $(GCE_NAME) --command  "docker --version"
 	@gcloud compute ssh $(GCE_NAME) --command \
  'docker run --rm \
- --mount type=volume,target=$(OPENRESTY_HOME)/nginx/html,source=static-assets \
+ --mount $(MountAssets) \
  --mount type=bind,target=/tmp,source=/home/$(GCE_NAME)/$(D) \
- --entrypoint "tar" $(PROXY_DOCKER_IMAGE) xvf /tmp/static-assets.tar -C /'
+ --entrypoint "tar" $(PROXY_DOCKER_IMAGE) xvf /tmp/$(notdir $<) -C /'
 	@gcloud compute ssh $(GCE_NAME) --command \
  'docker run --rm \
- --mount type=volume,target=$(OPENRESTY_HOME)/nginx/html,source=static-assets \
+ --mount $(MountAssets) \
  --entrypoint "ls" $(PROXY_DOCKER_IMAGE) -alR ./nginx/html' 
+
+
 
 $(D)/static-assets.tar:
 	echo '## $@ ##'
 	@mkdir -p $(dir $@)
 	@docker run --rm \
  --mount $(MountAssets) \
- --entrypoint "tar" $(PROXY_DOCKER_IMAGE) -czf - $(PathAssets) > $@
+ --entrypoint "tar" $(PROXY_DOCKER_IMAGE) -czf - $(OPENRESTY_HOME)/nginx/html > $@
 
 ####################################################################
 # ICONS
