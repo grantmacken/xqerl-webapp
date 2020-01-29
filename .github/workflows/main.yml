@@ -114,10 +114,10 @@ jobs:
         run: |
           source .env
           pushd site/${DOMAIN}
-          gcloud-check-volumes
+          make gcloud-check-volumes
           popd
           pushd proxy
-          gcloud-check-volumes
+          make gcloud-check-volumes
           popd
       - name: Deploy 'static assets' in GCE host as a docker volume named 'static-assets'
         run: |
@@ -125,7 +125,12 @@ jobs:
           pushd site/${DOMAIN}
           make gcloud-assets-volume-deploy
           popd
-
+      - name: Deploy 'nginx configuration' in GCE host as a docker volume named 'nginx configuration'
+        run: |
+          source .env
+          pushd proxy
+          make gcloud-conf-volume-deploy
+          popd
           ## deploy 'static assets' in GCE host as a docker volume named 'static-assets'
           ## deploy 'xqerl compiled code' in GCE host as a docker volume named 'xqerl-compiled-code'
           #make gcloud-code-volume-deploy
