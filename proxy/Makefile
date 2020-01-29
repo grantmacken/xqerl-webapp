@@ -46,13 +46,19 @@ ssl_certificate_key     $(LETSENCRYPT)/live/$(TLS_COMMON_NAME)/privkey.pem;
 ssl_trusted_certificate $(LETSENCRYPT)/live/$(TLS_COMMON_NAME)/chain.pem;
 endef
 
+PROXY_VOLUMES := nginx-configuration static-assets letsencrypt site-lualib
+mountNginxConf   := type=volume,target=$(OPENRESTY_HOME)/nginx/conf,source=nginx-configuration
+mountNginxHtml   := type=volume,target=$(OPENRESTY_HOME)/nginx/html,source=static-assets
+mountLetsencrypt := type=volume,target=$(LETSENCRYPT),source=letsencrypt
+mountSiteLualib  := type=volume,target=$(OPENRESTY_HOME)/site/lualib,source=site-lualib
+
 # build 
 
 .PHONY: conf-build
 conf-build: certs confs
 	@echo '## $(@) ##'
 	@docker run --rm \
- --mount type=volume,target=$(OPENRESTY_HOME)/nginx/conf,source=nginx-configuration \
+ --mount $(mountNginxConf) \
  --mount type=bind,target=/tmp,source=$(CURDIR)/$(B) \
  --entrypoint "sh" $(PROXY_DOCKER_IMAGE) -c 'cp -rv /tmp/nginx ./ '
 	@$(if $(GITHUB_ACTIONS),,$(DEO) ./bin/openresty -t )
@@ -84,19 +90,15 @@ conf-deploy: $(D)/nginx-configuration.tar
 	@gcloud compute ssh $(GCE_NAME) --command  'ls -al ./deploy'
 	@gcloud compute ssh $(GCE_NAME) --command \
  'docker run --rm \
- --mount type=volume,target=$(OPENRESTY_HOME)/nginx/conf,source=nginx-configuration \
+ --mount $(mountNginxConf) \
  --mount type=bind,target=/tmp,source=/home/$(GCE_NAME)/$(D) \
  --entrypoint "tar" $(PROXY_DOCKER_IMAGE) xvf /tmp/$(notdir $<) -C /'
-	@gcloud compute ssh $(GCE_NAME) --command \
- 'docker run --rm \
- --mount type=volume,target=$(OPENRESTY_HOME)/nginx/conf,source=static-assets \
- --entrypoint "ls" $(PROXY_DOCKER_IMAGE) -alR ./nginx/conf' 
 
 $(D)/nginx-configuration.tar:
 	@mkdir -p $(dir $@)
 	echo '## $@ ##'
 	@docker run --rm \
- --mount type=volume,target=$(OPENRESTY_HOME)/nginx/conf,source=nginx-configuration \
+ --mount $(mountNginxConf) \
  --entrypoint "tar" $(PROXY_DOCKER_IMAGE) -czf - $(OPENRESTY_HOME)/nginx/conf > $@
 
 .PHONY: clean-conf
@@ -104,7 +106,32 @@ clean-conf:
 	@echo '## $(@) ##'
 	@rm -rf  $(B)/nginx/conf
 
- ### REPO OWNERS LUALIBS
+NetworkCreate = grep -q $(1) $(2) || gcloud compute ssh $(GCE_NAME) --command 'docker volume create --driver local --name $(1)'
+
+.PHONY: gcloud-check-volumes
+gcloud-check-volumes: $(D)/gcloud-volume-check.txt
+	@$(foreach volume,$(PROXY_VOLUMES),$(call NetworkCreate,$(volume),$(<)))
+	@rm -f $<
+
+$(D)/gcloud-volume-check.txt: 
+	@gcloud compute ssh $(GCE_NAME) --command ' docker volume list  --format "{{.Name}}"' > $@
+
+.PHONY: gcloud-proxy-run
+gcloud-proxy-run: 
+	@gcloud compute ssh $(GCE_NAME) --command \
+ 'docker  run \
+ --mount $(mountNginxConf) \
+ --mount $(mountNginxHtml) \
+ --mount $(mountLetsencrypt) \
+ --mount $(mountSiteLualib) \
+ --name  $(PROXY_CONTAINER_NAME) \
+ --network $(NETWORK) \
+ --publish 80:80 \
+ --publish 443:443 \
+ --detach \
+ $(PROXY_DOCKER_IMAGE)'
+
+### REPO OWNERS LUALIBS
 ##############################
 # TODO mount at site/lualib not site/lualib/$(REPO_OWNER)
 

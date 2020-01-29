@@ -111,13 +111,21 @@ jobs:
           gcloud compute ssh ${GCE_NAME} --command  "docker pull ${PROXY_DOCKER_IMAGE}"
           # echo " - deploy assets for ${DOMAIN} website " 
           pushd site/${DOMAIN}
+          # deploy 'static assets' in GCE host as a docker volume named 'static-assets'
           make assets-deploy
+          # deploy 'xqerl compiled code' in GCE host as a docker volume named 'xqerl-compiled-code'
           make code-deploy
+          # make sure xqerl is running then recompile to register restXQ routes?
           make code-compile
           popd
           pushd proxy
-          # deploy nginx configuration in GCE host as a docker volume
+          # make sure we have required volumes on GCE host
+          make gcloud-volume-check
+          # deploy 'nginx configuration' in GCE host as a docker volume named 'nginx configuration'
+          # note: openresty does not have to be running as we use a temp container to populate volume
           make conf-deploy
+          # make sure nginx is running then test config and restart
+          # TODO
           popd
       - name: Take Containers Down
         run: |

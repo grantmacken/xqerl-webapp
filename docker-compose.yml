@@ -50,7 +50,7 @@ volumes:
     name: nginx-configuration
   lualib:
     driver: local
-    name: repo-owners-lualibs
+    name: site-lualib
   db:
     driver: local
     name: xqerl-database
