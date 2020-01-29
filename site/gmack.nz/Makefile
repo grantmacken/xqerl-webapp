@@ -67,24 +67,11 @@ $(B)/modules/%.xqm: modules/%.xqm
 	@docker cp $(<) $(XQ):$(CODE_SRC)
 	@$(call compile,$(notdir $<)) | tee $(T)/compile_$(*).txt
 	@cat $(T)/compile_$(*).txt | grep -q ':I:'
-	@$(DEX) rm -f $(CODE_SRC)/$(notdir $<)
+	@#$(DEX) rm -f $(CODE_SRC)/$(notdir $<)
 	@#$(DEX) ls $(CODE_SRC)
 	@cp $< $@
 	@echo;printf %60s | tr ' ' '-' && echo
 	@$(EVAL) $(compiledLibs)
-	@echo;printf %60s | tr ' ' '-' && echo
-
-$(B)/app/modules/%.xq: app/modules/%.xq
-	@echo '##[ $@ ]##'
-	@mkdir -p $(dir $@)
-	@docker cp $< $(XQ):/tmp
-	@$(DEX) ls -al /tmp/$(notdir $<)
-	@printf %60s | tr ' ' '-' && echo
-	@$(EVAL) 'xqerl:compile("/tmp/$(notdir $<)").'
-	@$(DEX) ls -al ./code/ebin
-	@cp -v $(<) $(@)
-	@echo;printf %60s | tr ' ' '-' && echo
-	@$(EVAL) 'io:fwrite("~1p~n",[xqerl_code_server:library_namespaces()]).'
 	@echo;printf %60s | tr ' ' '-' && echo
 
 MountCode :=  type=volume,target=$(XQERL_HOME)/code,source=xqerl-compiled-code
@@ -98,10 +85,6 @@ code-deploy: $(D)/xqerl-compiled-code.tar
  --mount $(MountCode) \
  --mount type=bind,target=/tmp,source=/home/$(GCE_NAME)/$(D) \
  --entrypoint "tar" $(XQERL_DOCKER_IMAGE) xvf /tmp/$(notdir $<) -C /'
-	@gcloud compute ssh $(GCE_NAME) --command \
- 'docker run --rm \
- --mount  $(MountCode) \
- --entrypoint "ls" $(XQERL_DOCKER_IMAGE) -alR ./code' 
 
 $(D)/xqerl-compiled-code.tar:
 	echo '## $@ ##'
@@ -153,12 +136,6 @@ assets-deploy: $(D)/static-assets.tar
  --mount $(MountAssets) \
  --mount type=bind,target=/tmp,source=/home/$(GCE_NAME)/$(D) \
  --entrypoint "tar" $(PROXY_DOCKER_IMAGE) xvf /tmp/$(notdir $<) -C /'
-	@gcloud compute ssh $(GCE_NAME) --command \
- 'docker run --rm \
- --mount $(MountAssets) \
- --entrypoint "ls" $(PROXY_DOCKER_IMAGE) -alR ./nginx/html' 
-
-
 
 $(D)/static-assets.tar:
 	echo '## $@ ##'
