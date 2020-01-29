@@ -85,8 +85,8 @@ $(D)/gcloud-volume-check.txt:
 	@gcloud compute ssh $(GCE_NAME) --command ' docker volume list  --format "{{.Name}}"' > $@
 
 # this is call from github action but may be called locally
-.PHONY: gcloud-code-deploy
-gcloud-code-deploy: $(D)/xqerl-compiled-code.tar
+.PHONY: gcloud-code-volume-deploy
+gcloud-code-volume-deploy: $(D)/xqerl-compiled-code.tar
 	@# make sure we have a deploy directory on the host
 	@gcloud compute ssh $(GCE_NAME) --command  'mkdir -p $(D)'
 	@# copy into GCE host
@@ -155,8 +155,8 @@ remove-assets:
  --mount MountAssets \
  --entrypoint "rm" $(PROXY_DOCKER_IMAGE) -rf ./nginx/html/$(DOMAIN)
 
-.PHONY: assets-deploy
-assets-deploy: $(D)/static-assets.tar
+.PHONY: gcloud-assets-volume-deploy
+gcloud-assets-volume-deploy: $(D)/static-assets.tar
 	@gcloud compute ssh $(GCE_NAME) --command  'mkdir -p $(D)'
 	@gcloud compute scp $< $(GCE_NAME):~/$(D)
 	@gcloud compute ssh $(GCE_NAME) --command \

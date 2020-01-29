@@ -110,12 +110,22 @@ jobs:
           "docker login docker.pkg.github.com --username ${REPO_OWNER} --password ${{ secrets.GITHUB_TOKEN }}" 
           gcloud compute ssh ${GCE_NAME} --command \
           "docker pull ${PROXY_DOCKER_IMAGE}"
-      - name: Deploy 'static assets' in GCE Host as a docker volume named 'static-assets'
+      - name: GCE Host Checks
         run: |
           source .env
           pushd site/${DOMAIN}
-          make assets-deploy
+          gcloud-check-volumes
           popd
+          pushd proxy
+          gcloud-check-volumes
+          popd
+      - name: Deploy 'static assets' in GCE host as a docker volume named 'static-assets'
+        run: |
+          source .env
+          pushd site/${DOMAIN}
+          make gcloud-assets-volume-deploy
+          popd
+
           ## deploy 'static assets' in GCE host as a docker volume named 'static-assets'
           ## deploy 'xqerl compiled code' in GCE host as a docker volume named 'xqerl-compiled-code'
           #make gcloud-code-volume-deploy
