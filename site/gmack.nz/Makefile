@@ -121,6 +121,8 @@ $(D)/xqerl-status.txt:
 	@mkdir -p $(dir $@)
 	@gcloud compute ssh $(GCE_NAME) --command 'docker ps --filter name=$(XQ) --format "{{.Status}}"' > $@
 
+
+
 .PHONY: gcloud-code-compile
 gcloud-code-compile: $(DeployList)
 

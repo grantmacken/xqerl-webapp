@@ -136,21 +136,10 @@ jobs:
           source .env
           pushd site/${DOMAIN}
           make gcloud-code-volume-deploy
-          popd
           ## make sure xqerl is running then recompile to register restXQ routes?
-          #make gcloud-xqerl-up
-          #make gcode-code-compile
-          #popd
-          #pushd proxy
-          ## make sure we have required volumes on GCE host
-          #make gcloud-check-volumes
-          ## deploy 'nginx configuration' in GCE host as a docker volume named 'nginx configuration'
-          ## note: openresty does not have to be running as we use a temp container to populate volume
-          #make gcloud-conf-volume-deploy
-          ## make sure nginx is running then test config and restart
-          ## 
-          ## TODO
-          #popd
+          make gcloud-xqerl-up
+          make gcode-code-compile
+          popd
       - name: Take Containers Down
         run: |
             make down
