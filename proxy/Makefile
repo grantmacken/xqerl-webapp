@@ -46,7 +46,7 @@ ssl_certificate_key     $(LETSENCRYPT)/live/$(TLS_COMMON_NAME)/privkey.pem;
 ssl_trusted_certificate $(LETSENCRYPT)/live/$(TLS_COMMON_NAME)/chain.pem;
 endef
 
-PROXY_VOLUMES := nginx-configuration static-assets letsencrypt site-lualib
+ProxyVolumeList  := nginx-configuration static-assets letsencrypt site-lualib
 mountNginxConf   := type=volume,target=$(OPENRESTY_HOME)/nginx/conf,source=nginx-configuration
 mountNginxHtml   := type=volume,target=$(OPENRESTY_HOME)/nginx/html,source=static-assets
 mountLetsencrypt := type=volume,target=$(LETSENCRYPT),source=letsencrypt
@@ -80,14 +80,24 @@ $(B)/nginx/conf/%: conf/%
 	@#$(if $(GITHUB_ACTIONS),,docker cp $@ $(OR):$(OPENRESTY_HOME)/$(patsubst $(B)/%,%,$@))
 	@cp $< $@
 
+
+.PHONY: clean-conf
+clean-conf:
+	@echo '## $(@) ##'
+	@rm -rf  $(B)/nginx/conf
+
+
 # deploy 
 ##########
 
-.PHONY: conf-deploy
-conf-deploy: $(D)/nginx-configuration.tar
+.PHONY: gcloud-conf-volume
+gcloud-conf-volume: $(D)/nginx-configuration.tar
+	@# make sure we have a deploy directory on the host
 	@gcloud compute ssh $(GCE_NAME) --command  'mkdir -p $(D)'
+	@# copy into GCE host
 	@gcloud compute scp $< $(GCE_NAME):~/$(D)
-	@gcloud compute ssh $(GCE_NAME) --command  'ls -al ./deploy'
+	@#gcloud compute ssh $(GCE_NAME) --command  'ls -al ./deploy'
+	@# extract tar into volume
 	@gcloud compute ssh $(GCE_NAME) --command \
  'docker run --rm \
  --mount $(mountNginxConf) \
@@ -101,19 +111,14 @@ $(D)/nginx-configuration.tar:
  --mount $(mountNginxConf) \
  --entrypoint "tar" $(PROXY_DOCKER_IMAGE) -czf - $(OPENRESTY_HOME)/nginx/conf > $@
 
-.PHONY: clean-conf
-clean-conf:
-	@echo '## $(@) ##'
-	@rm -rf  $(B)/nginx/conf
-
-NetworkCreate = grep -q $(1) $(2) || gcloud compute ssh $(GCE_NAME) --command 'docker volume create --driver local --name $(1)'
+GcloudVolumeCreate = grep -q $(1) $(2) || gcloud compute ssh $(GCE_NAME) --command 'docker volume create --driver local --name $(1)'
 
 .PHONY: gcloud-check-volumes
 gcloud-check-volumes: $(D)/gcloud-volume-check.txt
-	@$(foreach volume,$(PROXY_VOLUMES),$(call NetworkCreate,$(volume),$(<)))
-	@rm -f $<
+	@$(foreach volume,$(ProxyVolumeList),$(call GcloudVolumeCreate,$(volume),$(<)))
 
 $(D)/gcloud-volume-check.txt: 
+	@mkdir -p $(dir $@)
 	@gcloud compute ssh $(GCE_NAME) --command ' docker volume list  --format "{{.Name}}"' > $@
 
 .PHONY: gcloud-proxy-run

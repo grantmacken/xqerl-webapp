@@ -32,16 +32,15 @@ compiledLibs := 'BinList = xqerl_code_server:library_namespaces(),\
 ####################################################################
 # NOTE: xquery module list order is important
 ModuleList := newBase60 render-feed render-note micropub routes
-BuildList := $(patsubst %,$(B)/modules/%.xqm,newBase60 render-feed render-note micropub routes)
+BuildList  := $(patsubst %,$(B)/modules/%.xqm,newBase60 render-feed render-note micropub routes)
 DeployList := $(patsubst %,$(D)/modules/%.xqm,newBase60 render-feed render-note micropub routes)
 
-MountCode :=  type=volume,target=$(XQERL_HOME)/code,source=xqerl-compiled-code
-MountData :=  type=volume,target=$(XQERL_HOME)/data,source=xqerl-database
+VolumeList := xqerl-compiled-code xqerl-database
+MountCode  :=  type=volume,target=$(XQERL_HOME)/code,source=xqerl-compiled-code
+MountData  :=  type=volume,target=$(XQERL_HOME)/data,source=xqerl-database
 
 .PHONY: xqerl-compiled-code
-xqerl-compiled-code: $(D)/xqerl-compiled-code.tar 
-
-
+xqerl-compiled-code: $(D)/xqerl-compiled-code.tar
 
 $(D)/xqerl-compiled-code.tar: $(BuildList)
 	echo '## $(notdir $@) ##'
@@ -69,50 +68,44 @@ $(B)/modules/%.xqm: modules/%.xqm
 	@$(EVAL) $(compiledLibs)
 	@echo;printf %60s | tr ' ' '-' && echo
 
+# GCLOUD DEPLOYMENT
+
+#  gcloud volumes
+GcloudVolumeCreate = grep -q $1 $(2) || \
+ gcloud compute ssh $(GCE_NAME) --command 'docker volume create --driver local --name $(1)'; 
+
+
+.PHONY: gcloud-check-volumes
+gcloud-check-volumes: $(D)/gcloud-volume-check.txt
+	@$(foreach volume,$(VolumeList),$(call GcloudVolumeCreate,$(volume),$(<)))
+	@rm -f $<
+
+$(D)/gcloud-volume-check.txt: 
+	@mkdir -p $(dir $@)
+	@gcloud compute ssh $(GCE_NAME) --command ' docker volume list  --format "{{.Name}}"' > $@
+
 # this is call from github action but may be called locally
-.PHONY: code-deploy
-code-deploy: $(D)/xqerl-compiled-code.tar
+.PHONY: gcloud-code-deploy
+gcloud-code-deploy: $(D)/xqerl-compiled-code.tar
+	@# make sure we have a deploy directory on the host
 	@gcloud compute ssh $(GCE_NAME) --command  'mkdir -p $(D)'
+	@# copy into GCE host
 	@gcloud compute scp $< $(GCE_NAME):~/$(D)
+	@# extract tar into volume
 	@gcloud compute ssh $(GCE_NAME) --command \
  'docker run --rm \
  --mount $(MountCode) \
  --mount type=bind,target=/tmp,source=/home/$(GCE_NAME)/$(D) \
  --entrypoint "tar" $(XQERL_DOCKER_IMAGE) xvf /tmp/$(notdir $<) -C /'
 
-# this is called when xqerl is running
-# not sure why I have to do this as code is already compiled
 
-.PHONY: code-compile
-code-compile: $(D)/xq-status.txt $(DeployList)
+# make sure running
 
-$(D)/xq-status.txt:
-	@gcloud compute ssh $(GCE_NAME) --command 'docker ps --filter name=$(XQ) --format "xqerl {{.Status}}"' > $(T)/xq-status.txt
-	@if [ -s $(T)/xq-status.txt ] ; then cat $(T)/xq-status.txt; else $(MAKE) xqerl-run ; fi
-
-$(D)/modules/%.xqm: $(B)/modules/%.xqm
-	@echo '##[ $* ]##'
-	@mkdir -p $@
-	@gcloud compute ssh $(GCE_NAME) \
- --container '$(XQ)' \
- --command \
- 'xqerl eval "xqerl:compile(\"code/src/$(notdir $@)\")"'
-	@cp $< $@
-
-PHONY: clean-code
-clean-code: 
-	@echo "## $(@) ##"
-	@rm -fv $(wildcard $(B)/modules/*)
-
-
-PHONY: clean
-clean: 
-	@echo "## $(@) ##"
-	@rm -rfv $(B)
-
-.PHONY: xqerl-run
-xqerl-run: 
-	@gcloud compute ssh $(GCE_NAME) --command \
+.PHONY: gcloud-xqerl-up
+gcloud-xqerl-up: $(D)/xqerl-status.txt
+	@echo '##[ $@ ]##'
+	@if [ -s $(T)/xq-status.txt ] ; then cat $(T)/xq-status.txt; else \
+ gcloud compute ssh $(GCE_NAME) --command \
  'docker  run \
  --mount $(MountCode) \
  --mount $(MountData) \
@@ -120,8 +113,28 @@ xqerl-run:
  --network $(NETWORK) \
  --publish $(XQERL_PORT):$(XQERL_PORT) \
  --detach \
- $(XQERL_DOCKER_IMAGE)'
-	@sleep 3
+ $(XQERL_DOCKER_IMAGE)' ; fi
+	@sleep 2
+	@rm -f $<
+
+$(D)/xqerl-status.txt:
+	@mkdir -p $(dir $@)
+	@gcloud compute ssh $(GCE_NAME) --command 'docker ps --filter name=$(XQ) --format "{{.Status}}"' > $@
+
+.PHONY: gcloud-code-compile
+gcloud-code-compile: $(DeployList)
+
+# this is called when xqerl is running
+# not sure why I have to do this as code is already compiled
+
+$(D)/modules/%.xqm: $(B)/modules/%.xqm
+	@echo '##[ $* ]##'
+	@mkdir -p $(dir $@)
+	@gcloud compute ssh $(GCE_NAME) \
+ --container '$(XQ)' \
+ --command \
+ 'xqerl eval "xqerl:compile(\"code/src/$(notdir $@)\")"'
+	@cp $< $@
 
 ### RESOURCES static-assets
 ##############################

@@ -114,17 +114,19 @@ jobs:
           # deploy 'static assets' in GCE host as a docker volume named 'static-assets'
           make assets-deploy
           # deploy 'xqerl compiled code' in GCE host as a docker volume named 'xqerl-compiled-code'
-          make code-deploy
+          make gcloud-code-volume-deploy
           # make sure xqerl is running then recompile to register restXQ routes?
-          make code-compile
+          make gcloud-xqerl-up
+          make gcode-code-compile
           popd
           pushd proxy
           # make sure we have required volumes on GCE host
-          make gcloud-volume-check
+          make gcloud-check-volumes
           # deploy 'nginx configuration' in GCE host as a docker volume named 'nginx configuration'
           # note: openresty does not have to be running as we use a temp container to populate volume
-          make conf-deploy
+          make gcloud-conf-volume-deploy
           # make sure nginx is running then test config and restart
+          # 
           # TODO
           popd
       - name: Take Containers Down
