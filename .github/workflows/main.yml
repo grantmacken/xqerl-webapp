@@ -103,32 +103,36 @@ jobs:
             pushd site/${DOMAIN}/tests
             make 
             popd
-      - name: Website Deployment
+      - name: GCE Host Pull In Docker Images
         run: |
           source .env
           gcloud compute ssh ${GCE_NAME} --command \
           "docker login docker.pkg.github.com --username ${REPO_OWNER} --password ${{ secrets.GITHUB_TOKEN }}" 
-          gcloud compute ssh ${GCE_NAME} --command  "docker pull ${PROXY_DOCKER_IMAGE}"
-          # echo " - deploy assets for ${DOMAIN} website " 
+          gcloud compute ssh ${GCE_NAME} --command \
+          "docker pull ${PROXY_DOCKER_IMAGE}"
+      - name: Deploy 'static assets' in GCE Host as a docker volume named 'static-assets'
+        run: |
+          source .env
           pushd site/${DOMAIN}
-          # deploy 'static assets' in GCE host as a docker volume named 'static-assets'
           make assets-deploy
-          # deploy 'xqerl compiled code' in GCE host as a docker volume named 'xqerl-compiled-code'
-          make gcloud-code-volume-deploy
-          # make sure xqerl is running then recompile to register restXQ routes?
-          make gcloud-xqerl-up
-          make gcode-code-compile
           popd
-          pushd proxy
-          # make sure we have required volumes on GCE host
-          make gcloud-check-volumes
-          # deploy 'nginx configuration' in GCE host as a docker volume named 'nginx configuration'
-          # note: openresty does not have to be running as we use a temp container to populate volume
-          make gcloud-conf-volume-deploy
-          # make sure nginx is running then test config and restart
-          # 
-          # TODO
-          popd
+          ## deploy 'static assets' in GCE host as a docker volume named 'static-assets'
+          ## deploy 'xqerl compiled code' in GCE host as a docker volume named 'xqerl-compiled-code'
+          #make gcloud-code-volume-deploy
+          ## make sure xqerl is running then recompile to register restXQ routes?
+          #make gcloud-xqerl-up
+          #make gcode-code-compile
+          #popd
+          #pushd proxy
+          ## make sure we have required volumes on GCE host
+          #make gcloud-check-volumes
+          ## deploy 'nginx configuration' in GCE host as a docker volume named 'nginx configuration'
+          ## note: openresty does not have to be running as we use a temp container to populate volume
+          #make gcloud-conf-volume-deploy
+          ## make sure nginx is running then test config and restart
+          ## 
+          ## TODO
+          #popd
       - name: Take Containers Down
         run: |
             make down
