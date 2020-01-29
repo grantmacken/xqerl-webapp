@@ -90,8 +90,8 @@ clean-conf:
 # deploy 
 ##########
 
-.PHONY: gcloud-conf-volume
-gcloud-conf-volume: $(D)/nginx-configuration.tar
+.PHONY: gcloud-conf-volume-deploy
+gcloud-conf-volume-deploy: $(D)/nginx-configuration.tar
 	@# make sure we have a deploy directory on the host
 	@gcloud compute ssh $(GCE_NAME) --command  'mkdir -p $(D)'
 	@# copy into GCE host
