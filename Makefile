@@ -111,12 +111,26 @@ gcloud-init:
 	@#gcloud compute ssh $(GCE_NAME) --command 'docker login docker.pkg.github.com --username $(REPO_OWNER) --password $(dkrGHLogin)'
 	@#gcloud compute ssh $(GCE_NAME) --command 'cat ~/.docker/config.json'
 
+MountCode :=  type=volume,target=$(XQERL_HOME)/code,source=xqerl-compiled-code
+MountData :=  type=volume,target=$(XQERL_HOME)/data,source=xqerl-database
+.PHONY: xqerl-run
+xqerl-run: 
+	@gcloud compute ssh $(GCE_NAME) --command \
+ 'docker  run \
+ --mount $(MountCode) \
+ --mount $(MountData) \
+ --name  $(XQERL_CONTAINER_NAME) \
+ --network $(NETWORK) \
+ --publish $(XQERL_PORT):$(XQERL_PORT) \
+ --detach \
+ $(XQERL_DOCKER_IMAGE)'
 
-
-
-
-
-
+.PHONY: xqerl-info
+xqerl-info: 
+	@gcloud compute ssh $(GCE_NAME) \
+ --container '$(XQ)' \
+ --command \
+ 'ls -al ./code/src'
 
 
 

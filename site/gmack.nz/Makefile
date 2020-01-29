@@ -15,67 +15,61 @@ dkrNetworkInUse != docker network list --format '{{.Name}}' | grep -oP "$(NETWOR
 # mpURL := https://$(DOMAIN)/micropub
 # mpJSON := $(mpURL) -H 'Content-Type: application/json' 
 xqIPAddress = $(shell  docker inspect --format='{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' $(XQ))
-xqStatus != docker ps --filter name=$(XQ) --format 'status: {{.Status}}'
+xqStatus != docker ps --filter name=$(XQ) --format '{{.Status}}'
 xqPortInUse != docker ps --format '{{.Ports}}' | grep -oP '^(.+)8081->\K(8081)'
 compile =  $(ESCRIPT) bin/scripts/compile.escript ./code/src/$1
 compiledLibs := 'BinList = xqerl_code_server:library_namespaces(),\
  NormalList = [binary_to_list(X) || X <- BinList],\
  io:fwrite("~1p~n",[lists:sort(NormalList)]).'
 
-CODE_SRC :=  $(XQERL_HOME)/code/src
-
 ####################################################################
 # targets
 # make: this targets `make xqerl-compiled-code`, the first target
 # xqerl-compiled-code
-#
+# the tar should be an updated when local files change
+# the tar comes from the xqerl-compiled-code volume
+# and not the build dir
 ####################################################################
+# NOTE: xquery module list order is important
+ModuleList := newBase60 render-feed render-note micropub routes
+BuildList := $(patsubst %,$(B)/modules/%.xqm,newBase60 render-feed render-note micropub routes)
+DeployList := $(patsubst %,$(D)/modules/%.xqm,newBase60 render-feed render-note micropub routes)
+
+MountCode :=  type=volume,target=$(XQERL_HOME)/code,source=xqerl-compiled-code
+MountData :=  type=volume,target=$(XQERL_HOME)/data,source=xqerl-database
 
 .PHONY: xqerl-compiled-code
-xqerl-compiled-code: utilites publishing views routes
+xqerl-compiled-code: $(D)/xqerl-compiled-code.tar 
+
+
+
+$(D)/xqerl-compiled-code.tar: $(BuildList)
+	echo '## $(notdir $@) ##'
+	@mkdir -p $(dir $@)
+	@docker run --rm \
+ --mount $(MountCode) \
+ --entrypoint "tar" $(XQERL_DOCKER_IMAGE) -czf - $(XQERL_HOME)/code &>/dev/null > $@
 
 .PHONY: clean-site
 clean-site:
 	@echo '##[ $@ ]##'
 	@rm -f $(B)/modules/*
-	@$(DEX) rm -rf $(CODE_SRC)
-	@$(DEX) mkdir -p $(CODE_SRC)
-
-.PHONY: utilites
-utilites: $(B)/modules/newBase60.xqm
-
-.PHONY: views
-views: $(B)/modules/render-feed.xqm $(B)/modules/render-note.xqm 
-
-.PHONY: publishing
-publishing: $(B)/modules/micropub.xqm
-
-.PHONY: routes
-routes: $(B)/modules/routes.xqm
-
-.PHONY: clean-routes
-clean-routes: 
-	@rm -f $(B)/modules/routes.xqm
-
-.PHONY: zadean
-zadean: $(B)/modules/zadean-tests.xqm
 
 $(B)/modules/%.xqm: modules/%.xqm
 	@echo '##[ $* ]##'
 	@mkdir -p $(dir $@)
 	@rm -fr $(T)/*
-	@docker cp $(<) $(XQ):$(CODE_SRC)
+	@docker cp $(<) $(XQ):$(XQERL_HOME)/code/src
 	@$(call compile,$(notdir $<)) | tee $(T)/compile_$(*).txt
 	@cat $(T)/compile_$(*).txt | grep -q ':I:'
 	@#$(DEX) rm -f $(CODE_SRC)/$(notdir $<)
-	@#$(DEX) ls $(CODE_SRC)
+	@$(DEX) ls $(XQERL_HOME)/code/src
 	@cp $< $@
 	@echo;printf %60s | tr ' ' '-' && echo
 	@$(EVAL) $(compiledLibs)
 	@echo;printf %60s | tr ' ' '-' && echo
 
-MountCode :=  type=volume,target=$(XQERL_HOME)/code,source=xqerl-compiled-code
-
+# this is call from github action but may be called locally
 .PHONY: code-deploy
 code-deploy: $(D)/xqerl-compiled-code.tar
 	@gcloud compute ssh $(GCE_NAME) --command  'mkdir -p $(D)'
@@ -86,27 +80,48 @@ code-deploy: $(D)/xqerl-compiled-code.tar
  --mount type=bind,target=/tmp,source=/home/$(GCE_NAME)/$(D) \
  --entrypoint "tar" $(XQERL_DOCKER_IMAGE) xvf /tmp/$(notdir $<) -C /'
 
-$(D)/xqerl-compiled-code.tar:
-	echo '## $@ ##'
-	@mkdir -p $(dir $@)
-	@docker run --rm \
- --mount $(MountCode) \
- --entrypoint "tar" $(XQERL_DOCKER_IMAGE) -czf - $(XQERL_HOME)/code > $@
+# this is called when xqerl is running
+# not sure why I have to do this as code is already compiled
+
+.PHONY: code-compile
+code-compile: $(D)/xq-status.txt $(DeployList)
+
+$(D)/xq-status.txt:
+	@gcloud compute ssh $(GCE_NAME) --command 'docker ps --filter name=$(XQ) --format "xqerl {{.Status}}"' > $(T)/xq-status.txt
+	@if [ -s $(T)/xq-status.txt ] ; then cat $(T)/xq-status.txt; else $(MAKE) xqerl-run ; fi
+
+$(D)/modules/%.xqm: $(B)/modules/%.xqm
+	@echo '##[ $* ]##'
+	@mkdir -p $@
+	@gcloud compute ssh $(GCE_NAME) \
+ --container '$(XQ)' \
+ --command \
+ 'xqerl eval "xqerl:compile(\"code/src/$(notdir $@)\")"'
+	@cp $< $@
 
 PHONY: clean-code
 clean-code: 
 	@echo "## $(@) ##"
-	@echo ' - remove the code volume '
-	@pushd ../../ && \
- $(if $(xqStatus),docker-compose down, echo 'down') && \
- docker volume rm xqerl-compiled-code && \
- $(MAKE) -silent up && \
- popd
+	@rm -fv $(wildcard $(B)/modules/*)
+
 
 PHONY: clean
 clean: 
 	@echo "## $(@) ##"
 	@rm -rfv $(B)
+
+.PHONY: xqerl-run
+xqerl-run: 
+	@gcloud compute ssh $(GCE_NAME) --command \
+ 'docker  run \
+ --mount $(MountCode) \
+ --mount $(MountData) \
+ --name  $(XQERL_CONTAINER_NAME) \
+ --network $(NETWORK) \
+ --publish $(XQERL_PORT):$(XQERL_PORT) \
+ --detach \
+ $(XQERL_DOCKER_IMAGE)'
+	@sleep 3
 
 ### RESOURCES static-assets
 ##############################
@@ -215,5 +230,8 @@ $(B)/$(DOMAIN)/resources/styles/%.css.gz: $(T)/$(DOMAIN)/resources/styles/%.css
 	@echo " orginal size: [ $$(wc -c $< | cut -d' ' -f1) ]"
 	@echo "   cssnano size: [ $$(wc -c $(T)/resources/styles/$*.css | cut -d' ' -f1) ]"
 	@echo "   gzip size: [ $$(wc -c  $@ | cut -d' ' -f1) ]"
+
+
+
 
 
