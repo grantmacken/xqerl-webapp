@@ -113,8 +113,8 @@ clean:
 
 MountAssets :=  type=volume,target=$(OPENRESTY_HOME)/nginx/html,source=static-assets
 
-.PHONY: assets
-assets: icons styles
+.PHONY: assets-build
+assets-build: icons styles
 	@docker run --rm \
  --mount $(MountAssets) \
  --mount type=bind,target=/tmp,source=$(CURDIR)/$(B) \
