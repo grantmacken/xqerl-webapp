@@ -131,14 +131,17 @@ jobs:
           pushd proxy
           make gcloud-conf-volume-deploy
           popd
-      - name: Deploy xqerl code
+      - name: Deploy 'xqerl compiled code' in GCE host as a docker volume named 'xqerl-compiled-code'
         run: |
           source .env
           pushd site/${DOMAIN}
           make gcloud-code-volume-deploy
-          ## make sure xqerl is running then recompile to register restXQ routes?
-          make gcloud-xqerl-up
-          make gcode-code-compile
+          popd
+      - name: Enable restXQ routing by recompiling code on running xqerl container
+        run: |
+          source .env
+          pushd site/${DOMAIN}
+          make gcloud-code-volume-deploy
           popd
       - name: Take Containers Down
         run: |

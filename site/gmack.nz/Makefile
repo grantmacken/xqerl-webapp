@@ -102,9 +102,10 @@ gcloud-code-volume-deploy: $(D)/xqerl-compiled-code.tar
 # make sure running
 
 .PHONY: gcloud-xqerl-up
-gcloud-xqerl-up: $(D)/xqerl-status.txt
+gcloud-xqerl-up:
 	@echo '##[ $@ ]##'
-	@if [ -s $(T)/xq-status.txt ] ; then cat $(T)/xq-status.txt; else \
+	@gcloud compute ssh $(GCE_NAME) --command 'docker ps --filter name=$(XQ) --format "{{.Status}}"' | \
+ grep -q Up || \
  gcloud compute ssh $(GCE_NAME) --command \
  'docker  run \
  --mount $(MountCode) \
@@ -113,13 +114,10 @@ gcloud-xqerl-up: $(D)/xqerl-status.txt
  --network $(NETWORK) \
  --publish $(XQERL_PORT):$(XQERL_PORT) \
  --detach \
- $(XQERL_DOCKER_IMAGE)' ; fi
+ $(XQERL_DOCKER_IMAGE)' 
 	@sleep 2
-	@rm -f $<
+	@gcloud compute ssh $(GCE_NAME) --command 'docker ps --filter name=$(XQ) --format "{{.Status}}"'
 
-$(D)/xqerl-status.txt:
-	@mkdir -p $(dir $@)
-	@gcloud compute ssh $(GCE_NAME) --command 'docker ps --filter name=$(XQ) --format "{{.Status}}"' > $@
 
 
 
