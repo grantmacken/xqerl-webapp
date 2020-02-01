@@ -81,11 +81,11 @@ GCmd := gcloud compute ssh $(GCE_NAME) --container $(XQ) --command
 GcloudVolumeCreate = grep -q $1 $(2) || $(Gcmd) 'docker volume create --driver local --name $(1)'; 
 
 .PHONY: gcloud-check-volumes
-gcloud-check-volumes: $(D)/gcloud-volume-check.txt
+gcloud-check-volumes: $(T)/gcloud-volume-check.txt
 	@$(foreach volume,$(VolumeList),$(call GcloudVolumeCreate,$(volume),$(<)))
 	@rm -f $<
 
-$(D)/gcloud-volume-check.txt: 
+$(T)/gcloud-volume-check.txt: 
 	@mkdir -p $(dir $@)
 	@gcloud compute ssh $(GCE_NAME) --command ' docker volume list  --format "{{.Name}}"' > $@
 
@@ -149,8 +149,9 @@ gcloud-show-lib-namespaces:
 	@$(GCmd) \
  "xqerl eval 'xqerl_code_server:library_namespaces()'"
 
-### RESOURCES static-assets
-##############################
+###############################
+### RESOURCES static-assets ###
+###############################
 
 MountAssets :=  type=volume,target=$(OPENRESTY_HOME)/nginx/html,source=static-assets
 
@@ -185,9 +186,9 @@ $(D)/static-assets.tar:
  --mount $(MountAssets) \
  --entrypoint "tar" $(PROXY_DOCKER_IMAGE) -czf - $(OPENRESTY_HOME)/nginx/html > $@
 
-####################################################################
-# ICONS
-####################################################################
+#############
+### ICONS ###
+#############
 
 .PHONY: icons
 icons: $(patsubst  %.svg,$(B)/$(DOMAIN)/%.svgz,$(wildcard resources/icons/*.svg))
@@ -266,11 +267,11 @@ $(B)/$(DOMAIN)/resources/styles/%.css.gz: $(T)/$(DOMAIN)/resources/styles/%.css
 VolumeCreate = grep -q $1 $(2) || docker volume create --driver local --name $(1)
 
 .PHONY: check-volumes
-check-volumes: $(B)/volume-check.txt
+check-volumes: $(T)/volume-check.txt
 	@echo '##[ $@ ]##'
 	@$(foreach volume,$(VolumeList),$(call VolumeCreate,$(volume),$(<)))
 
-$(B)/volume-check.txt: 
+$(T)/volume-check.txt: 
 	@mkdir -p $(dir $@)
 	@docker volume list  --format "{{.Name}}" > $@
 
@@ -287,9 +288,6 @@ check-port:
 .PHONY: up
 up: check-volumes check-network check-port
 	@echo '##[ $@ ]##'
-	@echo $(CURDIR)
-	@echo $(CURDIR)
-	@echo $(MountBin)
 	@$(if $(xqStatusUp), echo '- already running';false, docker run \
  --mount $(MountCode) \
  --mount $(MountData) \
