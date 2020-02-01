@@ -31,6 +31,8 @@ jobs:
       - name: Pull In Docker Images
         run: |
           source .env
+          echo ' - pull in my docker images as helpers'
+          echo ${{ secrets.GITHUB_TOKEN }} | docker login docker.pkg.github.com --username ${REPO_OWNER} --password-stdin &> /dev/null
           docker pull ${XQERL_DOCKER_IMAGE}
           docker pull ${PROXY_DOCKER_IMAGE}
           docker pull docker.pkg.github.com/grantmacken/alpine-scour/scour:0.0.2
@@ -41,12 +43,11 @@ jobs:
             source .env
             # move to domain
             pushd site/${DOMAIN}
-            make up
             # compile xQuery libs
             # compile order is defined in the  site/[DOMAIN] Makefile 
             # NOTE! order in important as some libs depend on others
+            make up
             make
-            make down
             popd
       #- name: Create Static Assets For Website
       #  run: |
@@ -97,16 +98,7 @@ jobs:
       #      make up
       #      docker ps
       #      docker-compose logs
-      #- name: Compile xQuery modules
-      #  run: |
-      #      source .env
-      #      # move to domain
-      #      pushd site/${DOMAIN}
-      #      # compile xQuery libs
-      #      # compile order is defined in the  site/[DOMAIN] Makefile 
-      #      # NOTE! order in important as some libs depend on others
-      #      make
-      #      popd
+
       #- name: Website Tests
       #  run: |
       #      source .env
