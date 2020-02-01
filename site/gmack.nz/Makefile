@@ -1,6 +1,6 @@
 SHELL=/bin/bash
 include ../../.env
-DOMAIN = gmack.nz
+DOMAIN = $(notdir $(CURDIR))
 T := .tmp
 B := .build
 D := .deploy
@@ -40,89 +40,23 @@ DeployList := $(patsubst %,$(D)/modules/%.xqm,newBase60 render-feed render-note 
 VolumeList := xqerl-compiled-code xqerl-database
 MountCode  := type=volume,target=$(XQERL_HOME)/code,source=xqerl-compiled-code
 MountData  := type=volume,target=$(XQERL_HOME)/data,source=xqerl-database
-MountBin  := type=volume,target=$(XQERL_HOME)/bin/scripts,source=./bin
+MountBin   := type=bind,target=$(XQERL_HOME)/bin/scripts,source=$(CURDIR)/bin
 
 .PHONY: xqerl-compiled-code
 xqerl-compiled-code: $(D)/xqerl-compiled-code.tar
 
-$(D)/xqerl-compiled-code.tar: $(BuildList)
-	echo '## $(notdir $@) ##'
+$(D)/xqerl-compiled-code.tar: $(BuildList) 
+	@echo '## $(notdir $@) ##'
 	@mkdir -p $(dir $@)
 	@docker run --rm \
  --mount $(MountCode) \
- --entrypoint "tar" $(XQERL_DOCKER_IMAGE) -czf - $(XQERL_HOME)/code > $@
+ --entrypoint "tar" $(XQERL_DOCKER_IMAGE) -czf - $(XQERL_HOME)/code &>/dev/null > $@
 
-#  gcloud volumes
-VolumeCreate = grep -q $1 $(2) || docker volume create --driver local --name $(1)
-
-.PHONY: check-volumes
-check-volumes: $(D)/volume-check.txt
-	@echo '##[ $@ ]##'
-	@$(foreach volume,$(VolumeList),$(call VolumeCreate,$(volume),$(<)))
-
-$(D)/volume-check.txt: 
-	@mkdir -p $(dir $@)
-	@docker volume list  --format "{{.Name}}" > $@
-
-.PHONY: check-network
-check-network:
-	@echo '##[ $@ ]##'
-	$(if $(dkrNetworkInUse),echo  '- NETWORK [ $(NETWORK) ] is available',docker network create $(NETWORK))
-
-.PHONY: check-port
-check-port:
-	@echo '##[ $@ ]##'
-	@$(if $(  xqPortInUse), echo '- PORT [ $(XQERL_PORT) ] is already taken';false , echo  '- PORT [ $(XQERL_PORT) ] is available')
-
-.PHONY: up
-up: check-volumes check-network check-port
-	@echo '##[ $@ ]##'
-	@$(if $(xqStatusUp), echo '- already running';false, docker run \
- --mount $(MountCode) \
- --mount $(MountData) \
- --mount $(MountBin) \
- --name  $(XQ) \
- --hostname xqerl \
- --network $(NETWORK) \
- --publish $(XQERL_PORT):$(XQERL_PORT) \
- --detach \
- $(XQERL_DOCKER_IMAGE))
-	@sleep 3
-	@$(MAKE) -slient info
-
-.PHONY: down
-down: 
-	@echo '##[ $@ ]##'
-	@$(if $(xqStatusUp),echo -n ' - stopping: ' && docker stop $(XQ) , echo '- already stopped')
-	@sleep 2
-	@docker container list --all --filter name=$(XQ) | grep -q Exited  && echo -n ' - removing: ';docker rm $(XQ)
-
-PHONY: info
-info:
-	@echo '## $@ ##'
-	@docker ps --filter name=$(XQ) --format ' -    name: {{.Names}}'
-	@docker ps --filter name=$(XQ) --format ' -  status: {{.Status}}'
-	@echo -n '-    port: '
-	@docker ps --format '{{.Ports}}' | grep -oP '^(.+):\K(\d{4})'
-	@echo -n '- IP address: $(xqIPAddress)'
-	@echo;printf %60s | tr ' ' '-' && echo
-	@echo -n '- working dir: '
-	@$(EVAL) '{ok,CWD}=file:get_cwd(),list_to_atom(CWD).'
-	@echo -n '-        node: '
-	@$(EVAL) 'erlang:node().'
-	@#$(EVAL) 'erlang:nodes().' 
-	@echo -n '-      cookie: '
-	@$(EVAL) 'erlang:get_cookie().'
-	@echo -n '-        host: '
-	@$(EVAL) '{ok, HOSTNAME } = net:gethostname(),list_to_atom(HOSTNAME).'
-	@echo;printf %60s | tr ' ' '-' && echo
-	@$(EVAL) $(compiledLibs)
-
-
-.PHONY: clean-site
-clean-site:
+.PHONY: clean
+clean:
 	@echo '##[ $@ ]##'
 	@rm -f $(B)/modules/*
+	@rm -f $(D)/xqerl-compiled-code.tar
 
 $(B)/modules/%.xqm: modules/%.xqm
 	@echo '##[ $* ]##'
@@ -168,7 +102,6 @@ gcloud-code-volume-deploy: $(D)/xqerl-compiled-code.tar
  --mount $(MountCode) \
  --mount type=bind,target=/tmp,source=/home/$(GCE_NAME)/$(D) \
  --entrypoint "tar" $(XQERL_DOCKER_IMAGE) xvf /tmp/$(notdir $<) -C /'
-
 
 # make sure running
 
@@ -325,6 +258,75 @@ $(B)/$(DOMAIN)/resources/styles/%.css.gz: $(T)/$(DOMAIN)/resources/styles/%.css
 	@echo "   gzip size: [ $$(wc -c  $@ | cut -d' ' -f1) ]"
 
 
+#######################
+### UTILITY TARGETS ###
+#######################
 
+#  gcloud volumes
+VolumeCreate = grep -q $1 $(2) || docker volume create --driver local --name $(1)
 
+.PHONY: check-volumes
+check-volumes: $(B)/volume-check.txt
+	@echo '##[ $@ ]##'
+	@$(foreach volume,$(VolumeList),$(call VolumeCreate,$(volume),$(<)))
 
+$(B)/volume-check.txt: 
+	@mkdir -p $(dir $@)
+	@docker volume list  --format "{{.Name}}" > $@
+
+.PHONY: check-network
+check-network:
+	@echo '##[ $@ ]##'
+	$(if $(dkrNetworkInUse),echo  '- NETWORK [ $(NETWORK) ] is available',docker network create $(NETWORK))
+
+.PHONY: check-port
+check-port:
+	@echo '##[ $@ ]##'
+	@$(if $(xqPortInUse), echo '- PORT [ $(XQERL_PORT) ] is already taken';false , echo  '- PORT [ $(XQERL_PORT) ] is available')
+
+.PHONY: up
+up: check-volumes check-network check-port
+	@echo '##[ $@ ]##'
+	@echo $(CURDIR)
+	@echo $(CURDIR)
+	@echo $(MountBin)
+	@$(if $(xqStatusUp), echo '- already running';false, docker run \
+ --mount $(MountCode) \
+ --mount $(MountData) \
+ --mount $(MountBin) \
+ --name  $(XQ) \
+ --hostname xqerl \
+ --network $(NETWORK) \
+ --publish $(XQERL_PORT):$(XQERL_PORT) \
+ --detach \
+ $(XQERL_DOCKER_IMAGE))
+	@sleep 3
+	@$(MAKE) -slient info
+
+.PHONY: down
+down: 
+	@echo '##[ $@ ]##'
+	@$(if $(xqStatusUp),echo -n ' - stopping: ' && docker stop $(XQ) , echo '- already stopped')
+	@sleep 2
+	@docker container list --all --filter name=$(XQ) | grep -q Exited  && echo -n ' - removing: ';docker rm $(XQ)
+
+PHONY: info
+info:
+	@echo '## $@ ##'
+	@docker ps --filter name=$(XQ) --format ' -    name: {{.Names}}'
+	@docker ps --filter name=$(XQ) --format ' -  status: {{.Status}}'
+	@echo -n '-    port: '
+	@docker ps --format '{{.Ports}}' | grep -oP '^(.+):\K(\d{4})'
+	@echo -n '- IP address: $(xqIPAddress)'
+	@echo;printf %60s | tr ' ' '-' && echo
+	@echo -n '- working dir: '
+	@$(EVAL) '{ok,CWD}=file:get_cwd(),list_to_atom(CWD).'
+	@echo -n '-        node: '
+	@$(EVAL) 'erlang:node().'
+	@#$(EVAL) 'erlang:nodes().' 
+	@echo -n '-      cookie: '
+	@$(EVAL) 'erlang:get_cookie().'
+	@echo -n '-        host: '
+	@$(EVAL) '{ok, HOSTNAME } = net:gethostname(),list_to_atom(HOSTNAME).'
+	@echo;printf %60s | tr ' ' '-' && echo
+	@$(EVAL) $(compiledLibs)
