@@ -11,33 +11,10 @@ EMPTY :=
 SPACE := $(EMPTY) $(EMPTY)
 DELIMIT := $(COMMA)$(EMPTY)
 DEO  = docker exec $(OR)
-include ./.inc/*
 
- ### NGINX CONFIGURATION
-##############################
-
-define help-nginx-configuration
-
-produces: a docker volume containing my nginx configuration
-used by:  running openresty container
------------------------------------------------------------
-Make targets
-conf-build - build nginx conf files a copies them into a 
-             docker volume named `nginx-configuration`
-
-
-conf-deploy
- 1. create 'tar' of the built `nginx-configuration` volume
- 2. use 'gcloud' to secure copy 'tar' into GCE host
- 3. use 'gcloud` to extract tar into GCE host docker volume named 'nginx-configuration'
-
- nginx configuration is now on GCE host as a *docker volume*,
- however it will not be live until we *restart* nginx
-
-NOTE these actions should be able to be performed locally and by 
-     github actions
-
-endef
+###########################
+### NGINX CONFIGURATION ###
+###########################
 
 define mkCertsConf
 # My LETSENCRYPT certs
@@ -52,17 +29,17 @@ mountNginxHtml   := type=volume,target=$(OPENRESTY_HOME)/nginx/html,source=stati
 mountLetsencrypt := type=volume,target=$(LETSENCRYPT),source=letsencrypt
 mountSiteLualib  := type=volume,target=$(OPENRESTY_HOME)/site/lualib,source=site-lualib
 
+mountBindBuild   := type=bind,target=/tmp,source=$(CURDIR)/$(B)
+
+dkrRun := docker run --rm --mount $(mountNginxConf) --mount $(mountBindBuild) 
+
 # build 
 
 .PHONY: conf-build
 conf-build: certs confs
 	@echo '## $(@) ##'
-	@docker run --rm \
- --mount $(mountNginxConf) \
- --mount type=bind,target=/tmp,source=$(CURDIR)/$(B) \
- --entrypoint "sh" $(PROXY_DOCKER_IMAGE) -c 'cp -rv /tmp/nginx ./ '
-	@$(if $(GITHUB_ACTIONS),,$(DEO) ./bin/openresty -t )
-	@$(if $(GITHUB_ACTIONS),,$(DEO) ./bin/openresty -s reload)
+	$(if $(LOCAL_RELOAD),echo ' - local reload: $(LOCAL_RELOAD)',)
+	@$(dkrRun) --entrypoint "sh" $(PROXY_DOCKER_IMAGE) -c 'cp -r /tmp/nginx ./ '
 
 .PHONY: confs
 confs: $(patsubst %,$(B)/nginx/%, $(wildcard conf/*))
@@ -72,21 +49,37 @@ $(B)/nginx/conf/certs.conf:
 	@echo '## $(patsubst $(B)/%,%,$@) ##'
 	@mkdir -p $(dir $@)
 	@echo "$${mkCertsConf}" > $@
-	@#$(if $(GITHUB_ACTIONS),docker cp $@ $(OR):$(OPENRESTY_HOME)/$(patsubst $(B)/%,%,$@) )
 
 $(B)/nginx/conf/%: conf/%
 	@echo '## $(patsubst $(B)/%,%,$@) ##'
 	@mkdir -p $(dir $@)
-	@#$(if $(GITHUB_ACTIONS),,docker cp $@ $(OR):$(OPENRESTY_HOME)/$(patsubst $(B)/%,%,$@))
+	$(if $(LOCAL_RELOAD),echo ' - local reload: $(LOCAL_RELOAD)',)
 	@cp $< $@
-
+	$(if $(LOCAL_RELOAD),$(dkrRun) --entrypoint "sh" $(PROXY_DOCKER_IMAGE) -c 'cp  /tmp/nginx/conf/$(*) ./nginx/conf/',)
+	@$(if $(LOCAL_RELOAD),$(DEO) ./bin/openresty -t,) 
+	@$(if $(LOCAL_RELOAD),$(DEO) ./bin/openresty -s reload,) 
 
 .PHONY: clean-conf
 clean-conf:
 	@echo '## $(@) ##'
 	@rm -rf  $(B)/nginx/conf
 
+.PHONY: watch-confs
+watch-confs:
+	@while true; do \
+        $(MAKE) --silent confs LOCAL_RELOAD=yep ; \
+        inotifywait -qre close_write . ; \
+    done
 
+#$(if $(LOCAL_RELOAD),echo ' - local reload ',)
+
+#$(if $(LOCAL_RELOAD),\
+ # docker run --rm \
+ # --mount $(mountNginxConf) \
+ # --mount type=bind,target=/tmp,source=$(CURDIR)/$(B) \
+ # --entrypoint "sh" $(PROXY_DOCKER_IMAGE) -cv 'cp /tmp/nginx/conf/$* ./nginx/conf/ ',)
+	# @$(if $(LOCAL_RELOAD),$(DEO) ./bin/openresty -t,)
+	# @$(if $(LOCAL_RELOAD),$(DEO) ./bin/openresty -t,)
 # deploy 
 ##########
 
@@ -121,9 +114,12 @@ $(D)/gcloud-volume-check.txt:
 	@mkdir -p $(dir $@)
 	@gcloud compute ssh $(GCE_NAME) --command ' docker volume list  --format "{{.Name}}"' > $@
 
-.PHONY: gcloud-proxy-run
-gcloud-proxy-run: 
-	@gcloud compute ssh $(GCE_NAME) --command \
+.PHONY: gcloud-proxy-up
+gcloud-proxy-up: 
+	@echo '##[ $@ ]##'
+	@gcloud compute ssh $(GCE_NAME) --command 'docker ps --filter name=$(OR) --format "{{.Status}}"' | \
+ grep -q Up || \
+ gcloud compute ssh $(GCE_NAME) --command \
  'docker  run \
  --mount $(mountNginxConf) \
  --mount $(mountNginxHtml) \
@@ -135,6 +131,37 @@ gcloud-proxy-run:
  --publish 443:443 \
  --detach \
  $(PROXY_DOCKER_IMAGE)'
+	@sleep 2
+	@gcloud compute ssh $(GCE_NAME) --command 'docker ps --filter name=$(OR) --format "{{.Status}}"'
+	@gcloud compute ssh $(GCE_NAME) --command 'docker logs $(OR)'
+
+#########################
+### letsencrypt certs ###
+#########################
+
+.PHONY: certsToHost
+certsToHost:
+	@echo '## $@ ##'
+	@mkdir -p ./certs
+	@gcloud compute ssh $(GCE_NAME) --command \
+ 'docker run --rm --volumes-from or -v /tmp:/tmp alpine:3.11 tar cvf /tmp/letsencrypt.tar $(LETSENCRYPT)'
+	@#gcloud compute ssh $(GCE_NAME) --command 'ls /tmp'
+	@gcloud compute scp  $(GCE_NAME):/tmp/letsencrypt.tar ./certs/
+	@#ls -al ./certs
+	@docker volume create --driver local --name letsencrypt
+	@docker run --rm \
+ --mount type=volume,target=$(LETSENCRYPT),source=letsencrypt \
+ --mount type=bind,target=/tmp,source=$(CURDIR)/certs \
+ --entrypoint "tar" $(PROXY_DOCKER_IMAGE) xvf /tmp/letsencrypt.tar -C /
+
+.PHONY: hostsFile
+hostsFile:
+	@echo '## $@ ##'
+	# adjust hosts file TODO all domains
+	@echo "127.0.0.1  $(TLS_COMMON_NAME)" | sudo tee -a /etc/hosts
+	@cat /etc/hosts
+	@printf %60s | tr ' ' '-' && echo
+
 
 ### REPO OWNERS LUALIBS
 ##############################
@@ -196,7 +223,34 @@ or-test:
 	@echo ' - local test nginx configuration'
 	@docker exec -t or openresty -t
 
+define help-nginx-configuration
 
+produces: a docker volume containing my nginx configuration
+used by:  running openresty container
+-----------------------------------------------------------
+Make targets
+conf-build - build nginx conf files a copies them into a 
+             docker volume named `nginx-configuration`
+
+
+conf-deploy
+ 1. create 'tar' of the built `nginx-configuration` volume
+ 2. use 'gcloud' to secure copy 'tar' into GCE host
+ 3. use 'gcloud` to extract tar into GCE host docker volume named 'nginx-configuration'
+
+ nginx configuration is now on GCE host as a *docker volume*,
+ however it will not be live until we *restart* nginx
+
+NOTE these actions should be able to be performed locally and by 
+     github actions
+
+endef
+
+
+
+#############
+### watch ###
+#############
 
 
 

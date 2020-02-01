@@ -9,14 +9,16 @@ XQ := $(XQERL_CONTAINER_NAME)
 DEX := docker exec $(XQ)
 ESCRIPT := $(DEX) xqerl escript
 EVAL := $(DEX) xqerl eval
+
 OR := $(PROXY_CONTAINER_NAME)
 DEO := docker exec $(OR)
-dkrNetworkInUse != docker network list --format '{{.Name}}' | grep -oP "$(NETWORK)"
-# mpURL := https://$(DOMAIN)/micropub
-# mpJSON := $(mpURL) -H 'Content-Type: application/json' 
-xqIPAddress = $(shell  docker inspect --format='{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' $(XQ))
-xqStatus != docker ps --filter name=$(XQ) --format '{{.Status}}'
-xqPortInUse != docker ps --format '{{.Ports}}' | grep -oP '^(.+)8081->\K(8081)'
+
+xqIPAddress     := docker inspect --format='{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' $(XQ)
+dkrNetworkInUse != docker network list --format '{{.Name}}' | grep -oP '$(NETWORK)'
+xqStatusUp      != docker ps --filter name=$(XQ) --format '{{.Status}}' | grep -oP '^Up.+$$'
+xqStatusExited  != 
+xqPortInUse     != docker ps --format '{{.Ports}}' | grep -oP '^(.+)8081->\K(8081)'
+
 compile =  $(ESCRIPT) bin/scripts/compile.escript ./code/src/$1
 compiledLibs := 'BinList = xqerl_code_server:library_namespaces(),\
  NormalList = [binary_to_list(X) || X <- BinList],\
@@ -36,8 +38,8 @@ BuildList  := $(patsubst %,$(B)/modules/%.xqm,newBase60 render-feed render-note 
 DeployList := $(patsubst %,$(D)/modules/%.xqm,newBase60 render-feed render-note micropub routes)
 
 VolumeList := xqerl-compiled-code xqerl-database
-MountCode  :=  type=volume,target=$(XQERL_HOME)/code,source=xqerl-compiled-code
-MountData  :=  type=volume,target=$(XQERL_HOME)/data,source=xqerl-database
+MountCode  := type=volume,target=$(XQERL_HOME)/code,source=xqerl-compiled-code
+MountData  := type=volume,target=$(XQERL_HOME)/data,source=xqerl-database
 
 .PHONY: xqerl-compiled-code
 xqerl-compiled-code: $(D)/xqerl-compiled-code.tar
@@ -47,7 +49,73 @@ $(D)/xqerl-compiled-code.tar: $(BuildList)
 	@mkdir -p $(dir $@)
 	@docker run --rm \
  --mount $(MountCode) \
- --entrypoint "tar" $(XQERL_DOCKER_IMAGE) -czf - $(XQERL_HOME)/code &>/dev/null > $@
+ --entrypoint "tar" $(XQERL_DOCKER_IMAGE) -czf - $(XQERL_HOME)/code > $@
+
+#  gcloud volumes
+VolumeCreate = grep -q $1 $(2) || docker volume create --driver local --name $(1)
+
+.PHONY: check-volumes
+check-volumes: $(D)/volume-check.txt
+	@echo '##[ $@ ]##'
+	@$(foreach volume,$(VolumeList),$(call VolumeCreate,$(volume),$(<)))
+
+$(D)/volume-check.txt: 
+	@mkdir -p $(dir $@)
+	@docker volume list  --format "{{.Name}}" > $@
+
+.PHONY: check-network
+check-network:
+	@echo '##[ $@ ]##'
+	$(if $(dkrNetworkInUse),echo  '- NETWORK [ $(NETWORK) ] is available',docker network create $(NETWORK))
+
+.PHONY: check-port
+check-port:
+	@echo '##[ $@ ]##'
+	@$(if $(  xqPortInUse), echo '- PORT [ $(XQERL_PORT) ] is already taken';false , echo  '- PORT [ $(XQERL_PORT) ] is available')
+
+.PHONY: up
+up: check-volumes check-network check-port
+	@echo '##[ $@ ]##'
+	@$(if $(xqStatusUp), echo '- already running';false, docker run \
+ --mount $(MountCode) \
+ --mount $(MountData) \
+ --name  $(XQ) \
+ --hostname xqerl \
+ --network $(NETWORK) \
+ --publish $(XQERL_PORT):$(XQERL_PORT) \
+ --detach \
+ $(XQERL_DOCKER_IMAGE))
+	@sleep 3
+	@$(MAKE) -slient info
+
+.PHONY: down
+down: 
+	@echo '##[ $@ ]##'
+	@$(if $(xqStatusUp),echo -n ' - stopping: ' && docker stop $(XQ) , echo '- already stopped')
+	@sleep 2
+	@docker container list --all --filter name=$(XQ) | grep -q Exited  && echo -n ' - removing: ';docker rm $(XQ)
+
+PHONY: info
+info:
+	@echo '## $@ ##'
+	@docker ps --filter name=$(XQ) --format ' -    name: {{.Names}}'
+	@docker ps --filter name=$(XQ) --format ' -  status: {{.Status}}'
+	@echo -n '-    port: '
+	@docker ps --format '{{.Ports}}' | grep -oP '^(.+):\K(\d{4})'
+	@echo -n '- IP address: $(xqIPAddress)'
+	@echo;printf %60s | tr ' ' '-' && echo
+	@echo -n '- working dir: '
+	@$(EVAL) '{ok,CWD}=file:get_cwd(),list_to_atom(CWD).'
+	@echo -n '-        node: '
+	@$(EVAL) 'erlang:node().'
+	@#$(EVAL) 'erlang:nodes().' 
+	@echo -n '-      cookie: '
+	@$(EVAL) 'erlang:get_cookie().'
+	@echo -n '-        host: '
+	@$(EVAL) '{ok, HOSTNAME } = net:gethostname(),list_to_atom(HOSTNAME).'
+	@echo;printf %60s | tr ' ' '-' && echo
+	@$(EVAL) $(compiledLibs)
+
 
 .PHONY: clean-site
 clean-site:
@@ -69,11 +137,12 @@ $(B)/modules/%.xqm: modules/%.xqm
 	@echo;printf %60s | tr ' ' '-' && echo
 
 # GCLOUD DEPLOYMENT
+#
+Gcmd := gcloud compute ssh $(GCE_NAME) --command
+GCmd := gcloud compute ssh $(GCE_NAME) --container $(XQ) --command 
 
 #  gcloud volumes
-GcloudVolumeCreate = grep -q $1 $(2) || \
- gcloud compute ssh $(GCE_NAME) --command 'docker volume create --driver local --name $(1)'; 
-
+GcloudVolumeCreate = grep -q $1 $(2) || $(Gcmd) 'docker volume create --driver local --name $(1)'; 
 
 .PHONY: gcloud-check-volumes
 gcloud-check-volumes: $(D)/gcloud-volume-check.txt
@@ -104,22 +173,20 @@ gcloud-code-volume-deploy: $(D)/xqerl-compiled-code.tar
 .PHONY: gcloud-xqerl-up
 gcloud-xqerl-up:
 	@echo '##[ $@ ]##'
-	@gcloud compute ssh $(GCE_NAME) --command 'docker ps --filter name=$(XQ) --format "{{.Status}}"' | \
+	@gcloud compute ssh $(GCE_NAME) --command 'docker ps --filter name=$(OR) --format "{{.Status}}"' | \
  grep -q Up || \
  gcloud compute ssh $(GCE_NAME) --command \
  'docker  run \
  --mount $(MountCode) \
  --mount $(MountData) \
  --name  $(XQERL_CONTAINER_NAME) \
+ --hostname xqerl \
  --network $(NETWORK) \
  --publish $(XQERL_PORT):$(XQERL_PORT) \
  --detach \
  $(XQERL_DOCKER_IMAGE)' 
 	@sleep 2
-	@gcloud compute ssh $(GCE_NAME) --command 'docker ps --filter name=$(XQ) --format "{{.Status}}"'
-
-
-
+	@gcloud compute ssh $(GCE_NAME) --command 'docker ps --filter name=$(OR)'
 
 .PHONY: gcloud-code-compile
 gcloud-code-compile: $(DeployList)
@@ -135,6 +202,17 @@ $(D)/modules/%.xqm: $(B)/modules/%.xqm
  --command \
  'xqerl eval "xqerl:compile(\"code/src/$(notdir $@)\")"'
 	@cp $< $@
+
+PHONY: gcloud-xqerl-info
+gcloud-xqerl-info:
+	@echo '## $@ ##'
+	@$(Gcmd) \
+ "docker ps --filter name=$(XQ) --format ' -    name: {{.Names}}' && docker ps --filter name=$(XQ) --format ' -  status: {{.Status}}'"
+
+PHONY:gcloud-show-lib-namespaces
+gcloud-show-lib-namespaces:
+	@$(GCmd) \
+ "xqerl eval 'xqerl_code_server:library_namespaces()'"
 
 ### RESOURCES static-assets
 ##############################

@@ -206,12 +206,12 @@ function feed:footer( $map as map(*)) {
     element a {
       attribute href {'/'},
       attribute title {'home page'},
-      (:$map('url'):) '𝔾ℝ𝔸ℕ𝕋 𝕄𝔸ℂ𝕂𝔼ℕℤ𝕀𝔼'
+      $map('url') => substring-after('//')
     },
     ' is the website',
     'owned, authored and operated by ' ,
     element a {
-      attribute href {'.'},
+      attribute href { $map('url')},
       attribute title {'author'},
       $map('name')
     }

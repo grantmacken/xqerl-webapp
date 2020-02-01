@@ -2,5 +2,6 @@ tmp
 .build
 .tmp
 .deploy
+proxy/certs
 notes
 site/markup.nz

@@ -104,7 +104,8 @@ hostsFile:
 	@printf %60s | tr ' ' '-' && echo
 
 
-x-certsToHost:
+alt-certsToHost:
+	@# or just cat use the following certs
 	@gcloud compute ssh $(GCE_NAME) --command 'mkdir -p ./live/$(TLS_COMMON_NAME)'
 	@gcloud compute ssh $(GCE_NAME) --command \
  'docker cp or:$(LETSENCRYPT)/live/$(TLS_COMMON_NAME)/cert.pem ./live/$(TLS_COMMON_NAME) -L'
@@ -116,63 +117,5 @@ x-certsToHost:
 	@gcloud compute ssh $(GCE_NAME) --command  'docker cp or:$(LETSENCRYPT)/dh-param.pem ./live/$(TLS_COMMON_NAME) -L'
 	@gcloud compute ssh $(GCE_NAME) --command 'ls -al ./live/$(TLS_COMMON_NAME)'
 	@echo '---------------------------------------------------------------------'
-	@mkdir -p $(B)
-	@#sudo chown ${USER} $(B)/certs
-	@gcloud compute scp  $(GCE_NAME):~/live $(B) --recurse
-	# clean up on GCE Host
-	@gcloud compute ssh $(GCE_NAME) --command 'rm -r ./live'
-	# relocate dh param
-	@# mv $(LETSENCRYPT)/live/$(TLS_COMMON_NAME)/dh-param.pem $(LETSENCRYPT)/dh-param.pem
-	@ls -alR $(B)
-	@echo '---------------------------------------------------------------------'
-	@#ls -al $(LETSENCRYPT)/live/$(TLS_COMMON_NAME)
-	# create letsencrypt volume
-	@docker volume create --driver local --name letsencrypt
-	# create a dummy container and attach to letsencypt volume
-	@docker run --rm --name dummy --detach \
- --mount type=volume,target=$(LETSENCRYPT),source=letsencrypt \
- --entrypoint "/usr/bin/tail" $(PROXY_DOCKER_IMAGE)  -f /dev/null
-	# copy retrieved certs into letsencrypt volume
-	@docker exec dummy mkdir -p $(LETSENCRYPT)/live
-	@docker cp $(B)/live/$(TLS_COMMON_NAME) dummy:$(LETSENCRYPT)/live/$(TLS_COMMON_NAME)
-	@docker exec dummy mv $(LETSENCRYPT)/live/$(TLS_COMMON_NAME)/dh-param.pem ../../
-	# view created items
-	@echo '---------------------------------------------------------------------'
-	@docker exec dummy ls -al $(LETSENCRYPT) | grep 'dh-param.pem'
-	@docker exec dummy ls -al $(LETSENCRYPT)/live/$(TLS_COMMON_NAME)
-	@echo '---------------------------------------------------------------------'
-	@docker stop dummy
-	# adjust hosts file TODO all domains
-	@echo "127.0.0.1  $(TLS_COMMON_NAME)" | sudo tee -a /etc/hosts
-	@printf %60s | tr ' ' '-' && echo
 
-.PHONY: certsToLocal
-certsToLocal:
-	# $(@) #
-	@gcloud compute ssh gmack --container or --command \
- 'ls -al /etc/letsencrypt/live/$(TLS_COMMON_NAME)'
-	@echo ' - copy from remote container into remote host file system'
-	@gcloud compute ssh gmack --command 'mkdir -p ./certs'
-	@gcloud compute ssh gmack --command  'docker cp or:$(LETSENCRYPT)/dh-param.pem ~/certs -L'
-	@gcloud compute ssh gmack --command  'docker cp or:$(LETSENCRYPT)/live/$(TLS_COMMON_NAME)/chain.pem ~/certs -L'
-	@gcloud compute ssh gmack --command 'docker cp or:$(LETSENCRYPT)/live/$(TLS_COMMON_NAME)/fullchain.pem ~/certs -L'
-	@gcloud compute ssh gmack --command 'docker cp or:$(LETSENCRYPT)/live/$(TLS_COMMON_NAME)/privkey.pem ~/certs -L'
-	@gcloud compute ssh gmack --command 'docker cp or:$(LETSENCRYPT)/live/$(TLS_COMMON_NAME)/cert.pem ~/certs -L'
-	@gcloud compute scp  gmack:~/certs ./$(T) --recurse
-	@docker exec or mkdir -p $(LETSENCRYPT)/live/$(TLS_COMMON_NAME)
-	@docker exec or ls -al $(LETSENCRYPT)/live/$(TLS_COMMON_NAME)
-	@docker cp ./$(T)/certs/dh-param.pem  or:$(LETSENCRYPT)
-	@docker cp ./$(T)/certs/chain.pem  or:$(LETSENCRYPT)/live/$(TLS_COMMON_NAME)
-	@docker cp ./$(T)/certs/fullchain.pem  or:$(LETSENCRYPT)/live/$(TLS_COMMON_NAME)
-	@docker cp ./$(T)/certs/privkey.pem  or:$(LETSENCRYPT)/live/$(TLS_COMMON_NAME)
-	@docker cp ./$(T)/certs/cert.pem  or:$(LETSENCRYPT)/live/$(TLS_COMMON_NAME)
-	@docker exec or ls -al $(LETSENCRYPT)/live/$(TLS_COMMON_NAME)
 
-xxxxxx:
-	@$(SSH) 'docker exec or cat /etc/letsencrypt/live/$(TLS_COMMON_NAME)/README'
-	@echo ' - copy from remote container into remote host file system'
-	@$(SSH) 'docker cp or:/etc/letsencrypt ~/'
-	@echo ' - copy from remote host file system into local file system'
-	@gcloud compute scp  gmack:~/letsencrypt /etc/ --recurse
-	@echo ' - copy from local file system into local container'
-	@docker cp /etc/letsencrypt or:/etc/
