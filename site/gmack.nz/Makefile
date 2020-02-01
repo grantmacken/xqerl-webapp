@@ -149,22 +149,38 @@ gcloud-show-lib-namespaces:
 	@$(GCmd) \
  "xqerl eval 'xqerl_code_server:library_namespaces()'"
 
-###############################
-### RESOURCES static-assets ###
-###############################
+######################
+###  STATIC ASSETS ###
+######################
+# 
 
-MountAssets :=  type=volume,target=$(OPENRESTY_HOME)/nginx/html,source=static-assets
+MountAssets   := type=volume,target=$(OPENRESTY_HOME)/nginx/html,source=static-assets
+MountBinBuild := type=bind,target=/tmp,source=$(CURDIR)/$(B)
 
-.PHONY: assets-build
-assets-build: icons styles
+.PHONY: assets
+assets: $(D)/static-assets.tar
+
+.PHONY: clean-assets
+clean-assets: clean-icons clean-styles
+	@echo '## $@ ##'
+	@rm -f $(D)/static-assets.tar
+
+$(D)/static-assets.tar: icons styles
+	echo '## $@ ##'
+	@mkdir -p $(dir $@)
+	@# after all assets built copy into the static-assets volume
 	@docker run --rm \
  --mount $(MountAssets) \
- --mount type=bind,target=/tmp,source=$(CURDIR)/$(B) \
+ --mount $(MountBinBuild) \
  --entrypoint "sh" $(PROXY_DOCKER_IMAGE) -c 'cp -rv /tmp/$(DOMAIN) ./nginx/html/$(DOMAIN)'
+	@# tar the static-assets volume to ready for deployment
+	@docker run --rm \
+ --mount $(MountAssets) \
+ --entrypoint "tar" $(PROXY_DOCKER_IMAGE) -czf - $(OPENRESTY_HOME)/nginx/html > $@
 
 .PHONY: remove-assets
 remove-assets:
-	echo '## $@ ##'
+	@echo '## $@ ##'
 	@docker run --rm \
  --mount MountAssets \
  --entrypoint "rm" $(PROXY_DOCKER_IMAGE) -rf ./nginx/html/$(DOMAIN)
@@ -179,23 +195,20 @@ gcloud-assets-volume-deploy: $(D)/static-assets.tar
  --mount type=bind,target=/tmp,source=/home/$(GCE_NAME)/$(D) \
  --entrypoint "tar" $(PROXY_DOCKER_IMAGE) xvf /tmp/$(notdir $<) -C /'
 
-$(D)/static-assets.tar:
-	echo '## $@ ##'
-	@mkdir -p $(dir $@)
-	@docker run --rm \
- --mount $(MountAssets) \
- --entrypoint "tar" $(PROXY_DOCKER_IMAGE) -czf - $(OPENRESTY_HOME)/nginx/html > $@
 
 #############
 ### ICONS ###
 #############
 
-.PHONY: icons
-icons: $(patsubst  %.svg,$(B)/$(DOMAIN)/%.svgz,$(wildcard resources/icons/*.svg))
+BuildIconsList := $(patsubst  %.svg,$(B)/$(DOMAIN)/%.svgz,$(wildcard resources/icons/*.svg))
 
-.PHONY: clean-icons
+.PHONY: icons
+icons: $(BuildIconsList)
+
+.PHONY: clean-icons 
 clean-icons:
-	@rm -f $(patsubst  %.svg,$(B)/$(DOMAIN)/%.svgz,$(wildcard resources/icons/*.svg))
+	@echo '## $@ ##'
+	@rm -f $(BuildIconsList)
 	@rm -fr $(T)/*
 
 $(T)/$(DOMAIN)/resources/icons/%.svg: resources/icons/%.svg
@@ -218,20 +231,21 @@ $(B)/$(DOMAIN)/resources/icons/%.svgz: $(T)/$(DOMAIN)/resources/icons/%.svg
   --interactive \
   docker.pkg.github.com/grantmacken/alpine-zopfli/zopfli:0.0.1 > $@
 	@echo " orginal size: [ $$(wc -c $< | cut -d' ' -f1) ]"
-	@echo "   scour size: [ $$(wc -c $(T)/resources/icons/$*.svg | cut -d' ' -f1) ]"
 	@echo "   gzip size: [ $$(wc -c  $@ | cut -d' ' -f1) ]"
 
-####################################################################
-# STYLES: CASCADING STYLE SHEETS
-####################################################################
+######################################
+### STYLES: CASCADING STYLE SHEETS ###
+######################################
+
+BuildStylesList := $(patsubst %.css,$(B)/$(DOMAIN)/%.css.gz,$(wildcard resources/styles/*.css))
 
 .PHONY: styles
-styles: $(patsubst %.css,$(B)/$(DOMAIN)/%.css.gz,$(wildcard resources/styles/*.css))
+styles: $(BuildStylesList)
 
 .PHONY: clean-styles
 clean-styles:
-	echo '## $@ ##'
-	@rm -f $(patsubst %.css,$(B)/$(DOMAIN)/%.css.gz,$(wildcard resources/styles/*.css))
+	@echo '## $@ ##'
+	@rm -f $(BuildStylesList)
 	@rm -fr $(T)/*
 
 $(T)/$(DOMAIN)/resources/styles/%.css: resources/styles/%.css

@@ -49,15 +49,15 @@ jobs:
             make up
             make
             popd
-      #- name: Create Static Assets For Website
-      #  run: |
-      #    source .env   
-      #    echo -n ' - create volume: '
-      #    docker volume create --driver local --name static-assets
-      #    echo " - build static assets for ${DOMAIN} website " 
-      #    pushd site/${DOMAIN}
-      #    make assets-build
-      #    popd
+      - name: Create Static Assets For Website
+        run: |
+          source .env   
+          echo -n ' - create volume: '
+          docker volume create --driver local --name static-assets
+          echo " - build static assets for ${DOMAIN} website" 
+          pushd site/${DOMAIN}
+          make assets
+          popd
       #- name: Create Generic Nginx Configuration
       #  run: |
       #    source .env   
