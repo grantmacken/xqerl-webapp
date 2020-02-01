@@ -6,6 +6,7 @@ OR=$(PROXY_CONTAINER_NAME)
 T := .tmp
 B := .build
 D := .deploy
+
 COMMA := ,
 EMPTY :=
 SPACE := $(EMPTY) $(EMPTY)
@@ -28,25 +29,39 @@ mountNginxConf   := type=volume,target=$(OPENRESTY_HOME)/nginx/conf,source=nginx
 mountNginxHtml   := type=volume,target=$(OPENRESTY_HOME)/nginx/html,source=static-assets
 mountLetsencrypt := type=volume,target=$(LETSENCRYPT),source=letsencrypt
 mountSiteLualib  := type=volume,target=$(OPENRESTY_HOME)/site/lualib,source=site-lualib
+mountBuild       := type=bind,target=/tmp,source=$(CURDIR)/$(B)
 
-mountBindBuild   := type=bind,target=/tmp,source=$(CURDIR)/$(B)
+dkrTarRun  := docker run --rm --mount $(mountNginxConf)
+dkrCpRun   := docker run --rm --mount $(mountNginxConf) --mount $(mountBuild) 
+buildConfs := $(patsubst %,$(B)/nginx/%, $(wildcard conf/*))
 
-dkrRun := docker run --rm --mount $(mountNginxConf) --mount $(mountBindBuild) 
+.PHONY: conf
+conf: $(D)/nginx-configuration.tar
 
-# build 
-
-.PHONY: conf-build
-conf-build: certs confs
+.PHONY: clean-conf
+clean-conf:
 	@echo '## $(@) ##'
-	$(if $(LOCAL_RELOAD),echo ' - local reload: $(LOCAL_RELOAD)',)
-	@$(dkrRun) --entrypoint "sh" $(PROXY_DOCKER_IMAGE) -c 'cp -r /tmp/nginx ./ '
+	@rm -f $(buildConfs)
+	@rm -f $(D)/nginx-configuration.tar
+
+$(D)/nginx-configuration.tar: build
+	@echo '## $(notdir $@) ##'
+	@echo ' - tar the "nginx-confguration" volume into deploy directory' 
+	@$(dkrTarRun) --entrypoint "tar" $(PROXY_DOCKER_IMAGE) -czf - $(OPENRESTY_HOME)/nginx/conf &>/dev/null > $@
+
+.PHONY: build
+build: certs confs
+	@echo '## $(@) ##'
+	@echo ' - copy build files into "nginx-confguration" volume'
+	@$(dkrCpRun) --entrypoint "sh" $(PROXY_DOCKER_IMAGE) -c 'cp -r /tmp/nginx ./ '
 
 .PHONY: confs
-confs: $(patsubst %,$(B)/nginx/%, $(wildcard conf/*))
+confs: $(buildConfs)
+	@echo '## $(@) ##'
 
 $(B)/nginx/conf/certs.conf: export mkCertsConf:=$(mkCertsConf)
 $(B)/nginx/conf/certs.conf:
-	@echo '## $(patsubst $(B)/%,%,$@) ##'
+	@echo '## $(notdir $@) ##'
 	@mkdir -p $(dir $@)
 	@echo "$${mkCertsConf}" > $@
 
@@ -54,15 +69,10 @@ $(B)/nginx/conf/%: conf/%
 	@echo '## $(patsubst $(B)/%,%,$@) ##'
 	@mkdir -p $(dir $@)
 	$(if $(LOCAL_RELOAD),echo ' - local reload: $(LOCAL_RELOAD)',)
-	@cp $< $@
-	$(if $(LOCAL_RELOAD),$(dkrRun) --entrypoint "sh" $(PROXY_DOCKER_IMAGE) -c 'cp  /tmp/nginx/conf/$(*) ./nginx/conf/',)
+	@$(if $(LOCAL_RELOAD),$(dkrCpRun) --entrypoint "sh" $(PROXY_DOCKER_IMAGE) -c 'cp  /tmp/nginx/conf/$(*) ./nginx/conf/',)
 	@$(if $(LOCAL_RELOAD),$(DEO) ./bin/openresty -t,) 
 	@$(if $(LOCAL_RELOAD),$(DEO) ./bin/openresty -s reload,) 
-
-.PHONY: clean-conf
-clean-conf:
-	@echo '## $(@) ##'
-	@rm -rf  $(B)/nginx/conf
+	@cp $< $@
 
 .PHONY: watch-confs
 watch-confs:
@@ -97,12 +107,7 @@ gcloud-conf-volume-deploy: $(D)/nginx-configuration.tar
  --mount type=bind,target=/tmp,source=/home/$(GCE_NAME)/$(D) \
  --entrypoint "tar" $(PROXY_DOCKER_IMAGE) xvf /tmp/$(notdir $<) -C /'
 
-$(D)/nginx-configuration.tar:
-	@mkdir -p $(dir $@)
-	echo '## $@ ##'
-	@docker run --rm \
- --mount $(mountNginxConf) \
- --entrypoint "tar" $(PROXY_DOCKER_IMAGE) -czf - $(OPENRESTY_HOME)/nginx/conf > $@
+
 
 GcloudVolumeCreate = grep -q $(1) $(2) || gcloud compute ssh $(GCE_NAME) --command 'docker volume create --driver local --name $(1)'
 

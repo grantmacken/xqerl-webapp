@@ -58,14 +58,14 @@ jobs:
           pushd site/${DOMAIN}
           make assets
           popd
-      #- name: Create Generic Nginx Configuration
-      #  run: |
-      #    source .env   
-      #    echo -n ' - create volume: '
-      #    docker volume create --driver local --name nginx-configuration
-      #    pushd proxy 
-      #    make conf-build
-      #    popd
+      - name: Create Generic Nginx Configuration
+        run: |
+          source .env   
+          echo -n ' - create volume: '
+          docker volume create --driver local --name nginx-configuration
+          pushd proxy 
+          make conf
+          popd
       ## - name: Create Repo Owners Lualibs
       ##   run: |
       ##     echo -n ' - create volume: '
