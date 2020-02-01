@@ -40,6 +40,7 @@ DeployList := $(patsubst %,$(D)/modules/%.xqm,newBase60 render-feed render-note 
 VolumeList := xqerl-compiled-code xqerl-database
 MountCode  := type=volume,target=$(XQERL_HOME)/code,source=xqerl-compiled-code
 MountData  := type=volume,target=$(XQERL_HOME)/data,source=xqerl-database
+MountBin  := type=volume,target=$(XQERL_HOME)/bin/scripts,source=./bin
 
 .PHONY: xqerl-compiled-code
 xqerl-compiled-code: $(D)/xqerl-compiled-code.tar
@@ -79,6 +80,7 @@ up: check-volumes check-network check-port
 	@$(if $(xqStatusUp), echo '- already running';false, docker run \
  --mount $(MountCode) \
  --mount $(MountData) \
+ --mount $(MountBin) \
  --name  $(XQ) \
  --hostname xqerl \
  --network $(NETWORK) \
