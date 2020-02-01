@@ -45,19 +45,18 @@ clean-conf:
 	@rm -f $(D)/nginx-configuration.tar
 
 $(D)/nginx-configuration.tar: build
-	@echo '## $(notdir $@) ##'
+	@mkdir -p $(dir $@)
 	@echo ' - tar the "nginx-confguration" volume into deploy directory' 
-	@$(dkrTarRun) --entrypoint "tar" $(PROXY_DOCKER_IMAGE) -czf - $(OPENRESTY_HOME)/nginx/conf &>/dev/null > $@
+	@$(dkrTarRun) --entrypoint "tar" $(PROXY_DOCKER_IMAGE) -czf - $(OPENRESTY_HOME)/nginx/conf > $@
 
 .PHONY: build
 build: certs confs
-	@echo '## $(@) ##'
+	@echo ' - build complete ... '
 	@echo ' - copy build files into "nginx-confguration" volume'
 	@$(dkrCpRun) --entrypoint "sh" $(PROXY_DOCKER_IMAGE) -c 'cp -r /tmp/nginx ./ '
 
 .PHONY: confs
 confs: $(buildConfs)
-	@echo '## $(@) ##'
 
 $(B)/nginx/conf/certs.conf: export mkCertsConf:=$(mkCertsConf)
 $(B)/nginx/conf/certs.conf:
