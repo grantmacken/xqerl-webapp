@@ -3,8 +3,8 @@ declare namespace rest = "http://exquery.org/ns/restxq";
 declare namespace http = "http://expath.org/ns/http-client";
 declare namespace output = "http://www.w3.org/2010/xslt-xquery-serialization";
 (:  test views:  render libs :)
-import module namespace note = "http://gmack.nz/#note";
-import module namespace feed = "http://gmack.nz/#feed";
+import module namespace note = "http://gmack.nz/#render_note";
+import module namespace feed = "http://gmack.nz/#render_feed";
 
 declare variable $routes:myCard := map { 
     'card' : map {
