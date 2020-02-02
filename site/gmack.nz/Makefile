@@ -274,17 +274,15 @@ $(B)/$(DOMAIN)/resources/styles/%.css.gz: $(T)/$(DOMAIN)/resources/styles/%.css
 #######################
 ### UTILITY TARGETS ###
 #######################
-volumeCreate = grep -q $1 $(2) || docker volume create --driver local --name $(1)
+
+MustHaveVolume = docker volume list --format "{{.Name}}" | grep -q $(1) || docker volume create --driver local --name $(1)
 
 .PHONY: check-volumes
 check-volumes: $(T)/volume-check.txt
-	@echo -n ' - $(@)  '
-	@$(foreach volume,$(VolumeList),$(call volumeCreate,$(volume),$(<)))
+	@$(call MustHaveVolume,xqerl-compiled-code)
+	@$(call MustHaveVolume,xxxxqerl-database)
+	@docker volume list  --format "{{.Name}}"
 	@echo "[ $(VolumeList) ] OK! all volumes available"
-
-$(T)/volume-check.txt: 
-	@mkdir -p $(dir $@)
-	@docker volume list  --format "{{.Name}}" > $@
 
 .PHONY: check-network
 check-network:
