@@ -41,6 +41,9 @@ MountCode  := type=volume,target=$(XQERL_HOME)/code,source=xqerl-compiled-code
 MountData  := type=volume,target=$(XQERL_HOME)/data,source=xqerl-database
 MountBin   := type=bind,target=$(XQERL_HOME)/bin/scripts,source=$(CURDIR)/bin
 
+MountAssets   := type=volume,target=$(OPENRESTY_HOME)/nginx/html,source=static-assets
+MountBuild := type=bind,target=/tmp,source=$(CURDIR)/$(B)
+
 .PHONY: xqerl-compiled-code
 xqerl-compiled-code: $(D)/xqerl-compiled-code.tar
 
@@ -152,8 +155,7 @@ gcloud-show-lib-namespaces:
 ######################
 # 
 
-MountAssets   := type=volume,target=$(OPENRESTY_HOME)/nginx/html,source=static-assets
-MountBinBuild := type=bind,target=/tmp,source=$(CURDIR)/$(B)
+
 
 .PHONY: assets
 assets: $(D)/static-assets.tar
@@ -169,7 +171,7 @@ $(D)/static-assets.tar: icons styles
 	@# after all assets built copy into the static-assets volume
 	@docker run --rm \
  --mount $(MountAssets) \
- --mount $(MountBinBuild) \
+ --mount $(MountBuild) \
  --entrypoint "sh" $(PROXY_DOCKER_IMAGE) -c 'cp -rv /tmp/$(DOMAIN) ./nginx/html/$(DOMAIN)'
 	@# tar the static-assets volume to ready for deployment
 	@docker run --rm \
@@ -298,6 +300,7 @@ check-port:
 .PHONY: up
 up: check-volumes check-network check-port
 	@echo '##[ $@ ]##'
+	@mkdir -p {$(T),$(B),$(D)}
 	@$(if $(dkrStatusUp), echo '- already running';false, docker run \
  --mount $(MountCode) \
  --mount $(MountData) \
@@ -325,8 +328,8 @@ info:
 	@docker ps --filter name=$(XQ) --format ' -  status: {{.Status}}'
 	@echo -n '-    port: '
 	@docker ps --format '{{.Ports}}' | grep -oP '^(.+):\K(\d{4})'
-	@# echo -n '- IP address: '
-	@# docker inspect --format='{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}'
+	@echo -n '- IP address: '
+	@docker inspect --format='{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' $(XQ)
 	@echo;printf %60s | tr ' ' '-' && echo
 	@echo -n '- working dir: '
 	@$(EVAL) '{ok,CWD}=file:get_cwd(),list_to_atom(CWD).'
