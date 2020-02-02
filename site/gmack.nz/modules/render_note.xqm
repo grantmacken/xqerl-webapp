@@ -1,5 +1,5 @@
 xquery version "3.1";
-module namespace note="http://gmack.nz/#note";
+module namespace note="http://gmack.nz/#render_note";
 
 (:
 @author Grant MacKenzie

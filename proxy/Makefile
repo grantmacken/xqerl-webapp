@@ -210,22 +210,7 @@ clean-libs:
 .PHONY: certs 
 certs: $(B)/nginx/conf/certs.conf
 
-.PHONY: or-restart
-or-restart:
-	@echo "## $@ ##"
-	@echo ' - local test nginx configuration'
-	@docker exec or ./bin/openresty -t
-	@echo ' - local restart'
-	@#docker exec or kill -HUP 1
-	@docker exec or ./bin/openresty -s reload
-	@#docker exec or openresty start
-	@#docker ps | grep 'openresty'
 
-.PHONY: or-test
-or-test:
-	@echo "## $@ ##"
-	@echo ' - local test nginx configuration'
-	@docker exec -t or openresty -t
 
 define help-nginx-configuration
 
@@ -295,3 +280,20 @@ down:
 	@$(if $(dkrStatusUp),echo -n ' - stopping: ' && docker stop $(OR) , echo '- already stopped')
 	@sleep 2
 	@docker container list --all --filter name=$(OR) | grep -q Exited  && echo -n ' - removing: ';docker rm $(OR)
+
+.PHONY: restart
+restart:
+	@echo "## $@ ##"
+	@echo ' - local test nginx configuration'
+	@docker exec or ./bin/openresty -t
+	@echo ' - local restart'
+	@#docker exec or kill -HUP 1
+	@docker exec or ./bin/openresty -s reload
+	@#docker exec or openresty start
+	@#docker ps | grep 'openresty'
+
+.PHONY: or-test
+or-test:
+	@echo "## $@ ##"
+	@echo ' - local test nginx configuration'
+	@docker exec -t or openresty -t

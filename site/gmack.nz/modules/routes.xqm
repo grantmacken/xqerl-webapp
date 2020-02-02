@@ -22,18 +22,17 @@ declare variable $routes:myCard := map {
     }
 };
 
-declare 
+declare
   %rest:path("/gmack.nz")
   %rest:GET
-  %rest:header-param("Host", "{$host}")
   %output:method("html")
   %output:indent("yes")
   %output:encoding("UTF-8")
   %output:include-content-type("yes")
-function routes:home($host){
-    let $map := map:merge(($routes:myCard, map { "domain" : $host }))
+function routes:home(){
+    let $map := $routes:myCard
     return 
-    feed:render( $map ) 
+    feed:render( $map )
 };
 
 declare 

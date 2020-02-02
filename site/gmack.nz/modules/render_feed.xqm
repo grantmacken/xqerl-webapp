@@ -1,5 +1,5 @@
 xquery version "3.1";
-module namespace feed = "http://gmack.nz/#feed";
+module namespace feed = "http://gmack.nz/#render_feed";
 declare
 function feed:getKindOfPost( $entry ) {
     if ( $entry/category[contains(.,'post:')][1] )

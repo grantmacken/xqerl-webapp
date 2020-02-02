@@ -1,5 +1,5 @@
 xquery version "3.1";
-module namespace mp  = "http://gmack.nz/#mp";
+module namespace mp  = "http://gmack.nz/#micropub";
 import module namespace newBase60 = "http://gmack.nz/#newBase60";
 (:~
 

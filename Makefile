@@ -1,3 +1,18 @@
+SHELL=/bin/bash
+.ONESHELL:
+.SHELLFLAGS := -eu -o pipefail -c
+.DELETE_ON_ERROR:
+MAKEFLAGS += --warn-undefined-variables
+MAKEFLAGS += --no-builtin-rules
+########################################
+# https://tech.davis-hansson.com/p/make/
+# ifeq ($(origin .RECIPEPREFIX), undefined)
+#   $(error This Make does not support .RECIPEPREFIX. Please use GNU Make 4.0 or later)
+# endif
+# .RECIPEPREFIX = >
+
+
+
 include .env
 XQ=$(XQERL_CONTAINER_NAME)
 OR=$(PROXY_CONTAINER_NAME)
@@ -42,6 +57,11 @@ help:
 debug: export mkDebug=$(Debug)
 debug:
 	@echo "$${mkDebug}"
+
+
+
+
+
 
 PHONY: up
 up:

@@ -12,7 +12,8 @@ xqServesHeader != docker ps --filter name=$(XQ) --format 'status: {{.Status}}'
 port80InUse != docker ps --format '{{.Ports}}' | grep -oP '^(.+)80->\K(80)'
 networkInUse != docker network list --format '{{.Name}}' | grep -oP "$(NETWORK)"
 URL := https://$(DOMAIN)
-urlXQ   := http:8080//$(xqAddress)
+
+#curl -v http://172.19.0.2:8081/gmack.nz
 
 WriteOut := '\
  response code [ %{http_code} ]\n\
@@ -42,18 +43,43 @@ GET = curl --silent --show-error \
  $(URL)$1 > $2 
 
 Tick  = echo -n "$$(tput setaf 2) ✔ $$(tput sgr0) " && echo -n $1
-Cross = echo -n "$$(tput setaf 1) ✘ $$(tput sgr0) " && echo $1
+Cross = echo -n "$$(tput setaf 1) ✘ $$(tput sgr0) " && echo -n $1
 
 HasHeaderKey = grep -q '^$2' $1 
 HeaderKeyValue =  echo "$$( grep -oP '^$2: \K(.+)$$' $1 )"
-ServesHeader = if $(call HasHeaderKey,$1,$2) ; then $(call Tick, '- serves header [ $2 ] ');echo;fi
+ServesHeader = if $(call HasHeaderKey,$1,$2); \
+ then $(call Tick, '- serves header [ $2 ] ') && echo; \
+ else $(call Cross,'- failed header [ $2 ] ') && false; fi
+
+
 HasHeaderKeyShowValue = \
  if $(call HasHeaderKey,$1,$2);then $(call Tick, "- header $2: " );$(call HeaderKeyValue,$1,$2);\
  else $(call Cross, "- header $2: " );false;fi
 
-
 .PHONY: test
 test: clean icons styles nginx-conf site-routes 
+
+
+RESTXQ_URL   := http://$(xqAddress):$(XQERL_PORT)/$(DOMAIN)
+RESTXQ_GET = curl --silent --show-error \
+ --write-out $(WriteOut) \
+ --dump-header $(dir $2)/headers-$(notdir $2) \
+ --output $(dir $2)/doc-$(notdir $2) \
+ $(RESTXQ_URL)$1 > $2 
+
+.PHONY: restXQ
+restXQ: restXQ-home
+
+restXQ-home: $(T)/restXQ/home
+	@$(call ServesHeader,$(dir $<)/headers-$(notdir $<),HTTP/1.1 200 OK)
+
+
+$(T)/restXQ/home:
+	@mkdir -p $(dir $@)
+	@$(call RESTXQ_GET,/,$@)
+
+######################################
+
 
 #clean static-assets
 
