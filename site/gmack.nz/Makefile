@@ -15,8 +15,8 @@ DEO := docker exec $(OR)
 
 xqIPAddress     := docker inspect --format='{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' $(XQ)
 dkrNetworkInUse != docker network list --format '{{.Name}}' | grep -oP '$(NETWORK)'
-xqStatusUp      != docker ps --filter name=$(XQ) --format '{{.Status}}' | grep -oP '^Up.+$$'
-xqPortInUse     != docker ps --format '{{.Ports}}' | grep -oP '^(.+)8081->\K(8081)'
+dkrStatusUp      != docker ps --filter name=$(XQ) --format '{{.Status}}' | grep -oP '^Up.+$$'
+dkrPortInUse     != docker ps --format '{{.Ports}}' | grep -oP '^(.+)8081->\K(8081)'
 
 compile =  $(ESCRIPT) bin/scripts/compile.escript ./code/src/$1
 compiledLibs := 'BinList = xqerl_code_server:library_namespaces(),\
@@ -274,13 +274,13 @@ $(B)/$(DOMAIN)/resources/styles/%.css.gz: $(T)/$(DOMAIN)/resources/styles/%.css
 #######################
 ### UTILITY TARGETS ###
 #######################
-
-VolumeCreate = grep -q $1 $(2) || docker volume create --driver local --name $(1)
+volumeCreate = grep -q $1 $(2) || docker volume create --driver local --name $(1)
 
 .PHONY: check-volumes
 check-volumes: $(T)/volume-check.txt
-	@echo '##[ $@ ]##'
-	@$(foreach volume,$(VolumeList),$(call VolumeCreate,$(volume),$(<)))
+	@echo -n ' - $(@)  '
+	@$(foreach volume,$(VolumeList),$(call volumeCreate,$(volume),$(<)))
+	@echo "[ $(VolumeList) ] OK! all volumes available"
 
 $(T)/volume-check.txt: 
 	@mkdir -p $(dir $@)
@@ -288,18 +288,18 @@ $(T)/volume-check.txt:
 
 .PHONY: check-network
 check-network:
-	@echo ' - $@'
-	@$(if $(dkrNetworkInUse),echo  '- NETWORK [ $(NETWORK) ] is available',docker network create $(NETWORK))
+	@echo -n ' - $@  '
+	@$(if $(dkrNetworkInUse),echo  '[ $(NETWORK) ] OK! can use ',docker network create $(NETWORK))
 
 .PHONY: check-port
 check-port:
 	@echo ' - $@ '
-	@$(if $(xqPortInUse), echo '- PORT [ $(XQERL_PORT) ] is already taken';false , echo  '- PORT [ $(XQERL_PORT) ] is available')
+	@$(if $(dkrPortInUse), echo '- PORT [ $(XQERL_PORT) ] is already taken';false , echo  '- PORT [ $(XQERL_PORT) ] is available')
 
 .PHONY: up
 up: check-volumes check-network check-port
 	@echo '##[ $@ ]##'
-	@$(if $(xqStatusUp), echo '- already running';false, docker run \
+	@$(if $(dkrStatusUp), echo '- already running';false, docker run \
  --mount $(MountCode) \
  --mount $(MountData) \
  --mount $(MountBin) \
@@ -315,7 +315,7 @@ up: check-volumes check-network check-port
 .PHONY: down
 down: 
 	@echo '##[ $@ ]##'
-	@$(if $(xqStatusUp),echo -n ' - stopping: ' && docker stop $(XQ) , echo '- already stopped')
+	@$(if $(dkrStatusUp),echo -n ' - stopping: ' && docker stop $(XQ) , echo '- already stopped')
 	@sleep 2
 	@docker container list --all --filter name=$(XQ) | grep -q Exited  && echo -n ' - removing: ';docker rm $(XQ)
 

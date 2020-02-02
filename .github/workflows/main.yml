@@ -38,142 +38,133 @@ jobs:
           docker pull docker.pkg.github.com/grantmacken/alpine-scour/scour:0.0.2
           docker pull docker.pkg.github.com/grantmacken/alpine-zopfli/zopfli:0.0.1
           docker pull docker.pkg.github.com/grantmacken/alpine-cssnano/cssnano:0.0.3
-      - name: Establish Our Container Enviroment
-        run: |
-            source .env
-            pushd site/${DOMAIN}
-            make check-network
-            make check-volumes
-            popd
-            pushd proxy
-            make check-volumes
-            popd
-      - name: Compile xQuery modules
+      - name: Compile Xqerl xQuery Modules in Running Container
         run: |
             source .env
             # move to domain
             pushd site/${DOMAIN}
+            # start xqerl, this will create the netwoek and volumes we require
+            make up
             # compile xQuery libs
             # compile order is defined in the  site/[DOMAIN] Makefile 
             # NOTE! order in important as some libs depend on others
-            make up
             # compile xqerl xquery modules
             make
             popd
-      - name: Create Static Assets For Website
-        run: |
-            source .env   
-            echo " - build static assets for ${DOMAIN} website" 
-            pushd site/${DOMAIN}
-            make assets
-            popd
-      - name: Create Generic Nginx Configuration
-        run: |
-            source .env   
-            pushd proxy 
-            make
-            popd
-            ## TODO - name: Create Repo Owners Lualibs
-            ##   run: |
-            ##     echo -n ' - create volume: '
-            ##     docker volume create --driver local --name repo-owners-lualibs
-            ##     pushd proxy 
-            ##     make libs
-            ##     popd
-      - name: Setup Gcloud
-        uses: GoogleCloudPlatform/github-actions/setup-gcloud@master
-        with:
-            version: "270.0.0"
-            service_account_email: ${{ secrets.CLIENT_EMAIL }}
-            service_account_key: ${{ secrets.GCE_KEY }}
-      - name: Configure GCE Project
-        run: |
-            source .env
-            gcloud config set project ${GCE_PROJECT}
-            gcloud config set compute/zone ${GCE_ZONE}
-            # gcloud compute instances list
-            gcloud compute config-ssh &>/dev/null
-            #gcloud info
-      - name: Fetch Certs And Put Into 'letsencypt' volume
-        run: |
-            source .env
-            pushd proxy
-            make certsToHost
-            make hostsFile
-            popd
-      - name: Bring Proxy Container Up
-        run: |
-            source .env
-            pushd proxy
-            make up
-            popd
-            make up
-            docker ps
-      - name: Website Tests
-        run: |
-            source .env
-            pushd site/${DOMAIN}/tests
-            make 
-            popd
-      - name: Take Containers Down
-        run: |
-            source .env
-            pushd site/${DOMAIN} 
-            make down
-            popd
-            pushd proxy
-            make down
-            popd
-      - name: GCE Host Pull In Docker Images
-        run: |
-            source .env
-            gcloud compute ssh ${GCE_NAME} --command \
-            "docker login docker.pkg.github.com --username ${REPO_OWNER} --password ${{ secrets.GITHUB_TOKEN }}" 
-            gcloud compute ssh ${GCE_NAME} --command \
-            "docker pull ${PROXY_DOCKER_IMAGE}"
-      - name: GCE Host Checks
-        run: |
-            source .env
-            pushd site/${DOMAIN}
-            make gcloud-check-volumes
-            popd
-            pushd proxy
-            make gcloud-check-volumes
-            popd
-      - name: Deploy 'static assets' in GCE host as a docker volume named 'static-assets'
-        run: |
-            source .env
-            pushd site/${DOMAIN}
-            make gcloud-assets-volume-deploy
-            popd
-      - name: Deploy 'nginx configuration' in GCE host as a docker volume named 'nginx configuration'
-        run: |
-            source .env
-            pushd proxy
-            make gcloud-conf-volume-deploy
-            popd
-      - name: Deploy 'xqerl compiled code' in GCE host as a docker volume named 'xqerl-compiled-code'
-        run: |
-            source .env
-            pushd site/${DOMAIN}
-            make gcloud-code-volume-deploy
-            popd
-      - name: Enable restXQ routing by recompiling code on running xqerl container
-        run: |
-            source .env
-            pushd site/${DOMAIN}
-            make gcloud-xqerl-up
-            make gcloud-code-compile
-            make gcloud-show-lib-namespaces
-            # TODO check routes on internal IP
-            popd
-      - name: Enable nginx reverse proxy server 
-        run: |
-            source .env
-            pushd proxy
-            make gcloud-proxy-up
-            # TODO check routes on internal IP
-            popd
+      #- name: Create Static Assets For Website
+      #  run: |
+      #      source .env   
+      #      echo " - build static assets for ${DOMAIN} website" 
+      #      pushd site/${DOMAIN}
+      #      make assets
+      #      popd
+      #- name: Create Generic Nginx Configuration
+      #  run: |
+      #      source .env   
+      #      pushd proxy 
+      #      make
+      #      popd
+      #      ## TODO - name: Create Repo Owners Lualibs
+      #      ##   run: |
+      #      ##     echo -n ' - create volume: '
+      #      ##     docker volume create --driver local --name repo-owners-lualibs
+      #      ##     pushd proxy 
+      #      ##     make libs
+      #      ##     popd
+      #- name: Setup Gcloud
+      #  uses: GoogleCloudPlatform/github-actions/setup-gcloud@master
+      #  with:
+      #      version: "270.0.0"
+      #      service_account_email: ${{ secrets.CLIENT_EMAIL }}
+      #      service_account_key: ${{ secrets.GCE_KEY }}
+      #- name: Configure GCE Project
+      #  run: |
+      #      source .env
+      #      gcloud config set project ${GCE_PROJECT}
+      #      gcloud config set compute/zone ${GCE_ZONE}
+      #      # gcloud compute instances list
+      #      gcloud compute config-ssh &>/dev/null
+      #      #gcloud info
+      #- name: Fetch Certs And Put Into 'letsencypt' volume
+      #  run: |
+      #      source .env
+      #      pushd proxy
+      #      make certsToHost
+      #      make hostsFile
+      #      popd
+      #- name: Bring Proxy Container Up
+      #  run: |
+      #      source .env
+      #      pushd proxy
+      #      make up
+      #      popd
+      #      make up
+      #      docker ps
+      #- name: Website Tests
+      #  run: |
+      #      source .env
+      #      pushd site/${DOMAIN}/tests
+      #      make 
+      #      popd
+      #- name: Take Containers Down
+      #  run: |
+      #      source .env
+      #      pushd site/${DOMAIN} 
+      #      make down
+      #      popd
+      #      pushd proxy
+      #      make down
+      #      popd
+      #- name: GCE Host Pull In Docker Images
+      #  run: |
+      #      source .env
+      #      gcloud compute ssh ${GCE_NAME} --command \
+      #      "docker login docker.pkg.github.com --username ${REPO_OWNER} --password ${{ secrets.GITHUB_TOKEN }}" 
+      #      gcloud compute ssh ${GCE_NAME} --command \
+      #      "docker pull ${PROXY_DOCKER_IMAGE}"
+      #- name: GCE Host Checks
+      #  run: |
+      #      source .env
+      #      pushd site/${DOMAIN}
+      #      make gcloud-check-volumes
+      #      popd
+      #      pushd proxy
+      #      make gcloud-check-volumes
+      #      popd
+      #- name: Deploy 'static assets' in GCE host as a docker volume named 'static-assets'
+      #  run: |
+      #      source .env
+      #      pushd site/${DOMAIN}
+      #      make gcloud-assets-volume-deploy
+      #      popd
+      #- name: Deploy 'nginx configuration' in GCE host as a docker volume named 'nginx configuration'
+      #  run: |
+      #      source .env
+      #      pushd proxy
+      #      make gcloud-conf-volume-deploy
+      #      popd
+      #- name: Deploy 'xqerl compiled code' in GCE host as a docker volume named 'xqerl-compiled-code'
+      #  run: |
+      #      source .env
+      #      pushd site/${DOMAIN}
+      #      make gcloud-code-volume-deploy
+      #      popd
+      #- name: Enable restXQ routing by recompiling code on running xqerl container
+      #  run: |
+      #      source .env
+      #      pushd site/${DOMAIN}
+      #      make gcloud-xqerl-up
+      #      make gcloud-code-compile
+      #      make gcloud-show-lib-namespaces
+      #      # TODO check routes on internal IP
+      #      popd
+      #- name: Enable nginx reverse proxy server 
+      #  run: |
+      #      source .env
+      #      pushd proxy
+      #      make gcloud-proxy-up
+      #      # TODO check routes on internal IP
+      #      popd
 
 
 
