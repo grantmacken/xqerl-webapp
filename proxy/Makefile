@@ -257,7 +257,7 @@ endef
 MustHaveVolume = docker volume list --format "{{.Name}}" | grep -q $(1) || docker volume create --driver local --name $(1)
 
 .PHONY: check-volumes
-check-volumes: $(T)/volume-check.txt
+check-volumes:
 	@$(call MustHaveVolume,nginx-configuration)
 	@$(call MustHaveVolume,static-assets)
 	@$(call MustHaveVolume,letsencrypt)
