@@ -38,32 +38,39 @@ jobs:
           docker pull docker.pkg.github.com/grantmacken/alpine-scour/scour:0.0.2
           docker pull docker.pkg.github.com/grantmacken/alpine-zopfli/zopfli:0.0.1
           docker pull docker.pkg.github.com/grantmacken/alpine-cssnano/cssnano:0.0.3
+      - name: Bring Up the xqerl Container
+        run: |
+            source .env
+            source .env
+            # move to domain
+            pushd site/${DOMAIN}
+            echo ' - starting xqerl will also create the volumes we require'
+            make up
+            popd
       - name: Compile Xqerl xQuery Modules in Running Container
         run: |
             source .env
             # move to domain
             pushd site/${DOMAIN}
-            # start xqerl, this will create the netwoek and volumes we require
-            make up
             # compile xQuery libs
             # compile order is defined in the  site/[DOMAIN] Makefile 
             # NOTE! order in important as some libs depend on others
             # compile xqerl xquery modules
             make
             popd
-      #- name: Create Static Assets For Website
-      #  run: |
-      #      source .env   
-      #      echo " - build static assets for ${DOMAIN} website" 
-      #      pushd site/${DOMAIN}
-      #      make assets
-      #      popd
-      #- name: Create Generic Nginx Configuration
-      #  run: |
-      #      source .env   
-      #      pushd proxy 
-      #      make
-      #      popd
+      - name: Create Static Assets For Website
+        run: |
+            source .env   
+            echo " - build static assets for ${DOMAIN} website" 
+            pushd site/${DOMAIN}
+            make assets
+            popd
+      - name: Create Generic Nginx Configuration
+        run: |
+            source .env   
+            pushd proxy 
+            make
+            popd
       #      ## TODO - name: Create Repo Owners Lualibs
       #      ##   run: |
       #      ##     echo -n ' - create volume: '
