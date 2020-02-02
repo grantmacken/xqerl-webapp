@@ -43,8 +43,7 @@ MountCode  := type=volume,target=$(XQERL_HOME)/code,source=xqerl-compiled-code
 MountData  := type=volume,target=$(XQERL_HOME)/data,source=xqerl-database
 MountBin   := type=bind,target=$(XQERL_HOME)/bin/scripts,source=$(CURDIR)/bin
 
-MountAssets   := type=volume,target=$(OPENRESTY_HOME)/nginx/html,source=static-assets
-MountBuild := type=bind,target=/tmp,source=$(CURDIR)/$(B).PHONY: xqerl-compiled-code
+MountBuild := type=bind,target=/tmp,source=$(CURDIR)/$(B)
 
 .PHONY: build
 build: $(T)/OK
@@ -85,6 +84,5 @@ $(B)/modules/%.xqm: modules/%.xqm
 	@cat $(T)/compile_$(*).txt | grep -q ':I:'
 	@cp $< $@
 
-include ../.inc/up.mk
-
+include ../.inc/*
 

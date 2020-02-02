@@ -3,7 +3,7 @@
 ###  STATIC ASSETS ###
 ######################
 
-MountAssets   := type=volume,target=$(OPENRESTY_HOME)/nginx/html,source=static-assets
+MountAssets        := type=volume,target=$(OPENRESTY_HOME)/nginx/html,source=static-assets
 
 .PHONY: assets
 assets: $(D)/static-assets.tar
@@ -14,7 +14,7 @@ clean-assets: clean-icons clean-styles
 	@rm -f $(D)/static-assets.tar
 
 $(D)/static-assets.tar: icons styles
-	echo '## $@ ##'
+	@echo '## $@ ##'
 	@mkdir -p $(dir $@)
 	@# after all assets built copy into the static-assets volume
 	@docker run --rm \
@@ -32,16 +32,6 @@ remove-assets:
 	@docker run --rm \
  --mount MountAssets \
  --entrypoint "rm" $(PROXY_DOCKER_IMAGE) -rf ./nginx/html/$(DOMAIN)
-
-.PHONY: gcloud-assets-volume-deploy
-gcloud-assets-volume-deploy: $(D)/static-assets.tar
-	@gcloud compute ssh $(GCE_NAME) --command  'mkdir -p $(D)'
-	@gcloud compute scp $< $(GCE_NAME):~/$(D)
-	@gcloud compute ssh $(GCE_NAME) --command \
- 'docker run --rm \
- --mount $(MountAssets) \
- --mount type=bind,target=/tmp,source=/home/$(GCE_NAME)/$(D) \
- --entrypoint "tar" $(PROXY_DOCKER_IMAGE) xvf /tmp/$(notdir $<) -C /'
 
 
 #############
@@ -119,7 +109,5 @@ $(B)/$(DOMAIN)/resources/styles/%.css.gz: $(T)/$(DOMAIN)/resources/styles/%.css
 	@echo " orginal size: [ $$(wc -c $< | cut -d' ' -f1) ]"
 	@echo "   cssnano size: [ $$(wc -c $(T)/resources/styles/$*.css | cut -d' ' -f1) ]"
 	@echo "   gzip size: [ $$(wc -c  $@ | cut -d' ' -f1) ]"
-
-
 
 

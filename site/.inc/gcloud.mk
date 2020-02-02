@@ -71,3 +71,12 @@ gcloud-show-lib-namespaces:
 	@$(GCmd) \
  "xqerl eval 'xqerl_code_server:library_namespaces()'"
 
+.PHONY: gcloud-assets-volume-deploy
+gcloud-assets-volume-deploy: $(D)/static-assets.tar
+	@gcloud compute ssh $(GCE_NAME) --command  'mkdir -p $(D)'
+	@gcloud compute scp $< $(GCE_NAME):~/$(D)
+	@gcloud compute ssh $(GCE_NAME) --command \
+ 'docker run --rm \
+ --mount $(MountAssets) \
+ --mount type=bind,target=/tmp,source=/home/$(GCE_NAME)/$(D) \
+ --entrypoint "tar" $(PROXY_DOCKER_IMAGE) xvf /tmp/$(notdir $<) -C /'

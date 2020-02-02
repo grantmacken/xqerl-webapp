@@ -58,13 +58,13 @@ jobs:
             # compile xqerl xquery modules
             make
             popd
-      # - name: Create Static Assets For Website
-      #   run: |
-      #       source .env   
-      #       echo " - build static assets for ${DOMAIN} website" 
-      #       pushd site/${DOMAIN}
-      #       make assets
-      #       popd
+      - name: Create Static Assets For Website
+        run: |
+            source .env   
+            echo " - build static assets for ${DOMAIN} website" 
+            pushd site/${DOMAIN}
+            make assets
+            popd
       # - name: Create Generic Nginx Configuration
       #   run: |
       #       source .env   
