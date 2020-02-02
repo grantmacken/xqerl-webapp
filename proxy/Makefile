@@ -1,17 +1,19 @@
 SHELL=/bin/bash
 include $(abspath ../.env)
 
-OR=$(PROXY_CONTAINER_NAME)
+OR := $(PROXY_CONTAINER_NAME)
+XQ := $(XQERL_CONTAINER_NAME)
 
 T := .tmp
 B := .build
 D := .deploy
 
-COMMA := ,
-EMPTY :=
-SPACE := $(EMPTY) $(EMPTY)
-DELIMIT := $(COMMA)$(EMPTY)
 DEO  = docker exec $(OR)
+
+dkrNetworkInUse != docker network list --format '{{.Name}}' | grep -oP '$(NETWORK)'
+dkrPortInUse    != docker ps --format '{{.Ports}}' | grep -oP '^(.+)443->\K(443)'
+dkrStatusUp     != docker ps --filter name=$(OR) --format '{{.Status}}' | grep -oP '^Up.+$$'
+xqStatusUp      != docker ps --filter name=$(XQ) --format '{{.Status}}' | grep -oP '^Up.+$$'
 
 ###########################
 ### NGINX CONFIGURATION ###
@@ -24,7 +26,7 @@ ssl_certificate_key     $(LETSENCRYPT)/live/$(TLS_COMMON_NAME)/privkey.pem;
 ssl_trusted_certificate $(LETSENCRYPT)/live/$(TLS_COMMON_NAME)/chain.pem;
 endef
 
-ProxyVolumeList  := nginx-configuration static-assets letsencrypt site-lualib
+VolumeList  := nginx-configuration static-assets letsencrypt site-lualib
 mountNginxConf   := type=volume,target=$(OPENRESTY_HOME)/nginx/conf,source=nginx-configuration
 mountNginxHtml   := type=volume,target=$(OPENRESTY_HOME)/nginx/html,source=static-assets
 mountLetsencrypt := type=volume,target=$(LETSENCRYPT),source=letsencrypt
@@ -33,6 +35,20 @@ mountBuild       := type=bind,target=/tmp,source=$(CURDIR)/$(B)
 
 dkrTarRun  := docker run --rm --mount $(mountNginxConf)
 dkrCpRun   := docker run --rm --mount $(mountNginxConf) --mount $(mountBuild) 
+dkrRun     := docker run  \
+ --mount $(mountNginxConf) \
+ --mount $(mountNginxHtml) \
+ --mount $(mountLetsencrypt) \
+ --mount $(mountSiteLualib) \
+ --name  $(PROXY_CONTAINER_NAME) \
+ --network $(NETWORK) \
+ --publish 80:80 \
+ --publish 443:443 \
+ --detach \
+ $(PROXY_DOCKER_IMAGE)
+
+
+
 buildConfs := $(patsubst %,$(B)/nginx/%, $(wildcard conf/*))
 
 .PHONY: conf
@@ -60,7 +76,7 @@ confs: $(buildConfs)
 
 $(B)/nginx/conf/certs.conf: export mkCertsConf:=$(mkCertsConf)
 $(B)/nginx/conf/certs.conf:
-	@echo '## $(notdir $@) ##'
+	@echo '## $(patsubst $(B)/%,%,$@) ##'
 	@mkdir -p $(dir $@)
 	@echo "$${mkCertsConf}" > $@
 
@@ -80,17 +96,11 @@ watch-confs:
         inotifywait -qre close_write . ; \
     done
 
-#$(if $(LOCAL_RELOAD),echo ' - local reload ',)
-
-#$(if $(LOCAL_RELOAD),\
- # docker run --rm \
- # --mount $(mountNginxConf) \
- # --mount type=bind,target=/tmp,source=$(CURDIR)/$(B) \
- # --entrypoint "sh" $(PROXY_DOCKER_IMAGE) -cv 'cp /tmp/nginx/conf/$* ./nginx/conf/ ',)
-	# @$(if $(LOCAL_RELOAD),$(DEO) ./bin/openresty -t,)
-	# @$(if $(LOCAL_RELOAD),$(DEO) ./bin/openresty -t,)
-# deploy 
-##########
+#######################
+# GCLOUD DEPLOYMENT ###
+#######################
+Gcmd := gcloud compute ssh $(GCE_NAME) --command
+GCmd := gcloud compute ssh $(GCE_NAME) --container $(XQ) --command 
 
 .PHONY: gcloud-conf-volume-deploy
 gcloud-conf-volume-deploy: $(D)/nginx-configuration.tar
@@ -106,57 +116,47 @@ gcloud-conf-volume-deploy: $(D)/nginx-configuration.tar
  --mount type=bind,target=/tmp,source=/home/$(GCE_NAME)/$(D) \
  --entrypoint "tar" $(PROXY_DOCKER_IMAGE) xvf /tmp/$(notdir $<) -C /'
 
-
-
-GcloudVolumeCreate = grep -q $(1) $(2) || gcloud compute ssh $(GCE_NAME) --command 'docker volume create --driver local --name $(1)'
+GcloudVolumeCreate = grep -q $(1) $(2) || $(Gcmd) 'docker volume create --driver local --name $(1)'
 
 .PHONY: gcloud-check-volumes
 gcloud-check-volumes: $(D)/gcloud-volume-check.txt
-	@$(foreach volume,$(ProxyVolumeList),$(call GcloudVolumeCreate,$(volume),$(<)))
+	@$(foreach volume,$(VolumeList),$(call GcloudVolumeCreate,$(volume),$(<)))
 
 $(D)/gcloud-volume-check.txt: 
 	@mkdir -p $(dir $@)
-	@gcloud compute ssh $(GCE_NAME) --command ' docker volume list  --format "{{.Name}}"' > $@
+	@$(Gcmd) 'docker volume list  --format "{{.Name}}"' > $@
 
 .PHONY: gcloud-proxy-up
 gcloud-proxy-up: 
 	@echo '##[ $@ ]##'
-	@gcloud compute ssh $(GCE_NAME) --command 'docker ps --filter name=$(OR) --format "{{.Status}}"' | \
- grep -q Up || \
- gcloud compute ssh $(GCE_NAME) --command \
- 'docker  run \
- --mount $(mountNginxConf) \
- --mount $(mountNginxHtml) \
- --mount $(mountLetsencrypt) \
- --mount $(mountSiteLualib) \
- --name  $(PROXY_CONTAINER_NAME) \
- --network $(NETWORK) \
- --publish 80:80 \
- --publish 443:443 \
- --detach \
- $(PROXY_DOCKER_IMAGE)'
+	@$(Gcmd) 'docker ps --filter name=$(OR) --format "{{.Status}}"' | grep -q Up || $(Gcmd) '$(dkrRun)'
 	@sleep 2
-	@gcloud compute ssh $(GCE_NAME) --command 'docker ps --filter name=$(OR) --format "{{.Status}}"'
-	@gcloud compute ssh $(GCE_NAME) --command 'docker logs $(OR)'
+	@$(Gcmd) 'docker ps --filter name=$(OR) --format "{{.Status}}"'
+	@$(Gcmd) 'docker logs $(OR)'
 
 #########################
-### letsencrypt certs ###
+### LETSENCRYPT CERTS ###
 #########################
+
 
 .PHONY: certsToHost
-certsToHost:
-	@echo '## $@ ##'
-	@mkdir -p ./certs
-	@gcloud compute ssh $(GCE_NAME) --command \
- 'docker run --rm --volumes-from or -v /tmp:/tmp alpine:3.11 tar cvf /tmp/letsencrypt.tar $(LETSENCRYPT)'
-	@#gcloud compute ssh $(GCE_NAME) --command 'ls /tmp'
-	@gcloud compute scp  $(GCE_NAME):/tmp/letsencrypt.tar ./certs/
-	@#ls -al ./certs
-	@docker volume create --driver local --name letsencrypt
+certsToHost: $(B)/certs/letsencrypt.tar
+	@echo ' - on local host extract letsencrypt.tar into "letsencypt" volume' 
 	@docker run --rm \
- --mount type=volume,target=$(LETSENCRYPT),source=letsencrypt \
- --mount type=bind,target=/tmp,source=$(CURDIR)/certs \
- --entrypoint "tar" $(PROXY_DOCKER_IMAGE) xvf /tmp/letsencrypt.tar -C /
+ --mount $(mountLetsencrypt) \
+ --mount type=bind,target=/tmp,source=$(CURDIR)/$(dir $<) \
+ --entrypoint "tar" $(PROXY_DOCKER_IMAGE) xvf /tmp/$(notdir $<) -C /
+	@rm -fr $(dir $<)
+
+$(B)/certs/letsencrypt.tar: check-volumes
+	@echo ' - on GCE host tar "$(OR)" volume into host dir' 
+	@$(Gcmd) 'docker run --rm --volumes-from $(OR) \
+ --mount type=bind,target=/home,source=/home/$(GCE_NAME)/certs \
+ alpine:3.11 tar -czf /home/letsencrypt.tar $(LETSENCRYPT)'
+	@echo -n ' - fetching tar from GCE host to local host: '  
+	@gcloud compute scp $(GCE_NAME):~/certs ./ --recurse
+	@mv certs $(B)/
+
 
 .PHONY: hostsFile
 hostsFile:
@@ -251,10 +251,45 @@ NOTE these actions should be able to be performed locally and by
 endef
 
 
+#######################
+### UTILITY TARGETS ###
+#######################
 
-#############
-### watch ###
-#############
+volumeCreate = grep -q $1 $(2) || docker volume create --driver local --name $(1)
 
+.PHONY: check-volumes
+check-volumes: $(T)/volume-check.txt
+	@echo -n ' - $(@)  '
+	@$(foreach volume,$(VolumeList),$(call volumeCreate,$(volume),$(<)))
+	@echo "[ $(VolumeList) ] OK! all volumes available"
 
+$(T)/volume-check.txt: 
+	@mkdir -p $(dir $@)
+	@docker volume list  --format "{{.Name}}" > $@.PHONY: check-network
 
+.PHONY: check-network
+check-network:
+	@echo -n ' - $@  '
+	@$(if $(dkrNetworkInUse),echo  '[ $(NETWORK) ] OK! can use ',docker network create $(NETWORK))
+
+.PHONY: check-port
+check-port:
+	@echo -n ' - check TLS port '
+	@$(if $(dkrPortInUse), echo '[  $(dkrPortInUse) ] is already taken';false , echo  '[ 443 ] OK! can use.')
+
+.PHONY: up
+up: check-volumes check-network check-port
+	@echo -n ' - start container instance '
+	@$(if $(dkrStatusUp), echo '[ already running ] ',echo '[ $(OR) ]')
+	@$(if $(dkrStatusUp),false,true)
+	@echo ' - check "$(XQ)" status [ $(xqStatusUp) ]'
+	@$(if $(xqStatusUp),true,false)
+	@echo 'TODO - check letsencypt certs in "letsencrypt" volume'
+	@$(dkrRun)
+
+.PHONY: down
+down: 
+	@echo '##[ $@ ]##'
+	@$(if $(dkrStatusUp),echo -n ' - stopping: ' && docker stop $(OR) , echo '- already stopped')
+	@sleep 2
+	@docker container list --all --filter name=$(OR) | grep -q Exited  && echo -n ' - removing: ';docker rm $(OR)

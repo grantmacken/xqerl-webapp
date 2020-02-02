@@ -16,7 +16,6 @@ DEO := docker exec $(OR)
 xqIPAddress     := docker inspect --format='{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' $(XQ)
 dkrNetworkInUse != docker network list --format '{{.Name}}' | grep -oP '$(NETWORK)'
 xqStatusUp      != docker ps --filter name=$(XQ) --format '{{.Status}}' | grep -oP '^Up.+$$'
-xqStatusExited  != 
 xqPortInUse     != docker ps --format '{{.Ports}}' | grep -oP '^(.+)8081->\K(8081)'
 
 compile =  $(ESCRIPT) bin/scripts/compile.escript ./code/src/$1
@@ -50,7 +49,7 @@ $(D)/xqerl-compiled-code.tar: $(BuildList)
 	@mkdir -p $(dir $@)
 	@docker run --rm \
  --mount $(MountCode) \
- --entrypoint "tar" $(XQERL_DOCKER_IMAGE) -czf - $(XQERL_HOME)/code &>/dev/null > $@
+ --entrypoint "tar" $(XQERL_DOCKER_IMAGE) -czf - $(XQERL_HOME)/code > $@
 
 .PHONY: clean
 clean:
@@ -73,7 +72,6 @@ $(B)/modules/%.xqm: modules/%.xqm
 	@echo;printf %60s | tr ' ' '-' && echo
 
 # GCLOUD DEPLOYMENT
-#
 Gcmd := gcloud compute ssh $(GCE_NAME) --command
 GCmd := gcloud compute ssh $(GCE_NAME) --container $(XQ) --command 
 
@@ -277,7 +275,6 @@ $(B)/$(DOMAIN)/resources/styles/%.css.gz: $(T)/$(DOMAIN)/resources/styles/%.css
 ### UTILITY TARGETS ###
 #######################
 
-#  gcloud volumes
 VolumeCreate = grep -q $1 $(2) || docker volume create --driver local --name $(1)
 
 .PHONY: check-volumes
@@ -291,12 +288,12 @@ $(T)/volume-check.txt:
 
 .PHONY: check-network
 check-network:
-	@echo '##[ $@ ]##'
-	$(if $(dkrNetworkInUse),echo  '- NETWORK [ $(NETWORK) ] is available',docker network create $(NETWORK))
+	@echo ' - $@'
+	@$(if $(dkrNetworkInUse),echo  '- NETWORK [ $(NETWORK) ] is available',docker network create $(NETWORK))
 
 .PHONY: check-port
 check-port:
-	@echo '##[ $@ ]##'
+	@echo ' - $@ '
 	@$(if $(xqPortInUse), echo '- PORT [ $(XQERL_PORT) ] is already taken';false , echo  '- PORT [ $(XQERL_PORT) ] is available')
 
 .PHONY: up
