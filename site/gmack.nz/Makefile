@@ -37,6 +37,8 @@ BuildList  := $(patsubst %,$(B)/modules/%.xqm,newBase60 render-feed render-note 
 DeployList := $(patsubst %,$(D)/modules/%.xqm,newBase60 render-feed render-note micropub routes)
 
 VolumeList := xqerl-compiled-code xqerl-database
+MustHaveVolume = docker volume list --format "{{.Name}}" | grep -q $(1) || docker volume create --driver local --name $(1)
+
 MountCode  := type=volume,target=$(XQERL_HOME)/code,source=xqerl-compiled-code
 MountData  := type=volume,target=$(XQERL_HOME)/data,source=xqerl-database
 MountBin   := type=bind,target=$(XQERL_HOME)/bin/scripts,source=$(CURDIR)/bin
@@ -62,7 +64,7 @@ clean:
 
 $(B)/modules/%.xqm: modules/%.xqm
 	@echo '##[ $* ]##'
-	@rm -fr $(T)/*
+	@mkdir -p $(dir $@) && mkdir -p $(T)
 	@docker cp $(<) $(XQ):$(XQERL_HOME)/code/src
 	@$(call compile,$(notdir $<)) | tee $(T)/compile_$(*).txt
 	@cat $(T)/compile_$(*).txt | grep -q ':I:'
@@ -81,13 +83,9 @@ GCmd := gcloud compute ssh $(GCE_NAME) --container $(XQ) --command
 GcloudVolumeCreate = grep -q $1 $(2) || $(Gcmd) 'docker volume create --driver local --name $(1)'; 
 
 .PHONY: gcloud-check-volumes
-gcloud-check-volumes: $(T)/gcloud-volume-check.txt
-	@$(foreach volume,$(VolumeList),$(call GcloudVolumeCreate,$(volume),$(<)))
-	@rm -f $<
-
-$(T)/gcloud-volume-check.txt: 
-	@mkdir -p $(dir $@)
-	@gcloud compute ssh $(GCE_NAME) --command ' docker volume list  --format "{{.Name}}"' > $@
+	@$(Gcmd) '$(call MustHaveVolume,xqerl-compiled-code)'
+	@$(Gcmd) '$(call MustHaveVolume,xqerl-database)'
+	@$(Gcmd) '$(call MustHaveVolume,static-assets)'
 
 # this is call from github action but may be called locally
 .PHONY: gcloud-code-volume-deploy
@@ -276,7 +274,6 @@ $(B)/$(DOMAIN)/resources/styles/%.css.gz: $(T)/$(DOMAIN)/resources/styles/%.css
 ### UTILITY TARGETS ###
 #######################
 
-MustHaveVolume = docker volume list --format "{{.Name}}" | grep -q $(1) || docker volume create --driver local --name $(1)
 
 .PHONY: check-volumes
 check-volumes:
