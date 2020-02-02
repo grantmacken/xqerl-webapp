@@ -280,7 +280,8 @@ MustHaveVolume = docker volume list --format "{{.Name}}" | grep -q $(1) || docke
 .PHONY: check-volumes
 check-volumes: $(T)/volume-check.txt
 	@$(call MustHaveVolume,xqerl-compiled-code)
-	@$(call MustHaveVolume,xxxxqerl-database)
+	@$(call MustHaveVolume,xqerl-database)
+	@$(call MustHaveVolume,static-assets)
 	@docker volume list  --format "{{.Name}}"
 	@echo "[ $(VolumeList) ] OK! all volumes available"
 
