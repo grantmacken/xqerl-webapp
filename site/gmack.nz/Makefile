@@ -62,7 +62,6 @@ clean:
 
 $(B)/modules/%.xqm: modules/%.xqm
 	@echo '##[ $* ]##'
-	@mkdir -p $(dir $@)
 	@rm -fr $(T)/*
 	@docker cp $(<) $(XQ):$(XQERL_HOME)/code/src
 	@$(call compile,$(notdir $<)) | tee $(T)/compile_$(*).txt
