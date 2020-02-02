@@ -65,12 +65,12 @@ jobs:
             pushd site/${DOMAIN}
             make assets
             popd
-      # - name: Create Generic Nginx Configuration
-      #   run: |
-      #       source .env   
-      #       pushd proxy 
-      #       make
-      #       popd
+      - name: Create Generic Nginx Configuration
+        run: |
+            source .env   
+            pushd proxy 
+            make
+            popd
       #      ## TODO - name: Create Repo Owners Lualibs
       #      ##   run: |
       #      ##     echo -n ' - create volume: '
@@ -78,27 +78,27 @@ jobs:
       #      ##     pushd proxy 
       #      ##     make libs
       #      ##     popd
-      #- name: Setup Gcloud
-      #  uses: GoogleCloudPlatform/github-actions/setup-gcloud@master
-      #  with:
-      #      version: "270.0.0"
-      #      service_account_email: ${{ secrets.CLIENT_EMAIL }}
-      #      service_account_key: ${{ secrets.GCE_KEY }}
-      #- name: Configure GCE Project
-      #  run: |
-      #      source .env
-      #      gcloud config set project ${GCE_PROJECT}
-      #      gcloud config set compute/zone ${GCE_ZONE}
-      #      # gcloud compute instances list
-      #      gcloud compute config-ssh &>/dev/null
-      #      #gcloud info
-      #- name: Fetch Certs And Put Into 'letsencypt' volume
-      #  run: |
-      #      source .env
-      #      pushd proxy
-      #      make certsToHost
-      #      make hostsFile
-      #      popd
+      - name: Setup Gcloud
+        uses: GoogleCloudPlatform/github-actions/setup-gcloud@master
+        with:
+            version: "270.0.0"
+            service_account_email: ${{ secrets.CLIENT_EMAIL }}
+            service_account_key: ${{ secrets.GCE_KEY }}
+      - name: Configure GCE Project
+        run: |
+            source .env
+            gcloud config set project ${GCE_PROJECT}
+            gcloud config set compute/zone ${GCE_ZONE}
+            # gcloud compute instances list
+            gcloud compute config-ssh &>/dev/null
+            #gcloud info
+      - name: Fetch Certs And Put Into 'letsencypt' volume
+        run: |
+            source .env
+            pushd proxy
+            make  certs-to-host
+            make modify-hosts-file
+            popd
       #- name: Bring Proxy Container Up
       #  run: |
       #      source .env

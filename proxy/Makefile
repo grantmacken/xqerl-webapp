@@ -139,8 +139,8 @@ gcloud-proxy-up:
 #########################
 
 
-.PHONY: certsToHost
-certsToHost: $(B)/certs/letsencrypt.tar
+.PHONY: certs-to-host
+certs-to-host: $(B)/certs/letsencrypt.tar
 	@echo ' - on local host extract letsencrypt.tar into "letsencypt" volume' 
 	@docker run --rm \
  --mount $(mountLetsencrypt) \
@@ -157,9 +157,8 @@ $(B)/certs/letsencrypt.tar: check-volumes
 	@gcloud compute scp $(GCE_NAME):~/certs ./ --recurse
 	@mv certs $(B)/
 
-
-.PHONY: hostsFile
-hostsFile:
+.PHONY: modify-hosts-file
+modify-hosts-file:
 	@echo '## $@ ##'
 	# adjust hosts file TODO all domains
 	@echo "127.0.0.1  $(TLS_COMMON_NAME)" | sudo tee -a /etc/hosts
