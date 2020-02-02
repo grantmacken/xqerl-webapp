@@ -325,8 +325,8 @@ info:
 	@docker ps --filter name=$(XQ) --format ' -  status: {{.Status}}'
 	@echo -n '-    port: '
 	@docker ps --format '{{.Ports}}' | grep -oP '^(.+):\K(\d{4})'
-	@echo -n '- IP address: '
-	@docker inspect --format='{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}'
+	@# echo -n '- IP address: '
+	@# docker inspect --format='{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}'
 	@echo;printf %60s | tr ' ' '-' && echo
 	@echo -n '- working dir: '
 	@$(EVAL) '{ok,CWD}=file:get_cwd(),list_to_atom(CWD).'
