@@ -81,4 +81,4 @@ watch-confs:
         inotifywait -qre close_write . ; \
     done
 
-include .inc/up.mk
+include .inc/up.mk .inc/certs.mk

@@ -2,24 +2,30 @@
 #########################
 ### LETSENCRYPT CERTS ###
 #########################
+Gcmd := gcloud compute ssh $(GCE_NAME) --command
+GCmd := gcloud compute ssh $(GCE_NAME) --container $(OR) --command 
+mountCerts := type=bind,target=/tmp,source=$(CURDIR)/certs
+mountGCE   := type=bind,target=/home,source=/home/$(GCE_NAME)/certs
 
 .PHONY: certs-to-host
-certs-to-host: $(B)/certs/letsencrypt.tar
+certs-to-host: certs/letsencrypt.tar
 	@echo ' - on local host extract letsencrypt.tar into "letsencypt" volume' 
 	@docker run --rm \
  --mount $(mountLetsencrypt) \
- --mount type=bind,target=/tmp,source=$(CURDIR)/$(dir $<) \
+ --mount $(mountCerts) \
  --entrypoint "tar" $(PROXY_DOCKER_IMAGE) xvf /tmp/$(notdir $<) -C /
 	@rm -fr $(dir $<)
 
-$(B)/certs/letsencrypt.tar: check-volumes
+certs/letsencrypt.tar:
+	@mkdir -p $(dir $@)
 	@echo ' - on GCE host tar "$(OR)" volume into host dir' 
-	@$(Gcmd) 'docker run --rm --volumes-from $(OR) \
- --mount type=bind,target=/home,source=/home/$(GCE_NAME)/certs \
+	@$(Gcmd) 'docker run --rm \
+ --volumes-from $(OR) \
+ --mount $(mountGCE) \
  alpine:3.11 tar -czf /home/letsencrypt.tar $(LETSENCRYPT)'
 	@echo -n ' - fetching tar from GCE host to local host: '  
 	@gcloud compute scp $(GCE_NAME):~/certs ./ --recurse
-	@mv certs $(B)/
+	@#mv certs $(B)/
 
 .PHONY: modify-hosts-file
 modify-hosts-file:
