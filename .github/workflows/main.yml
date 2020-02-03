@@ -83,7 +83,7 @@ jobs:
       - name: Fetch certs and put into 'letsencypt' volume
         run: |
             source .env
-            pushd proxy
+            pushd proxy 
             make certs-into-vol
             #make modify-hosts-file
             popd
@@ -118,24 +118,25 @@ jobs:
       - name: GCE Host Checks
         run: |
             source .env
-            pushd site/${DOMAIN}  &>/dev/null
+            pushd site/${DOMAIN} 
             make gcloud-check-volumes
-            popd &>/dev/null
-            pushd proxy &>/dev/null
+            popd 
+            pushd proxy 
             make gcloud-check-volumes
-            popd &>/dev/null
+            popd
       - name: Deploy 'static assets' in GCE host as a docker volume named 'static-assets'
         run: |
             source .env
-            pushd site/${DOMAIN} &>/dev/null
-            make gcloud-assets-volume-deploy
-            popd &>/dev/null
-      - name: Deploy 'nginx configuration' in GCE host as a docker volume named 'nginx configuration'
-        run: |
-            source .env
-            pushd proxy
-            make gcloud-conf-volume-deploy
+            pushd site/${DOMAIN}
+            gcloud-gh-pkg-login
+            #make gcloud-assets-volume-deploy
             popd
+      # - name: Deploy 'nginx configuration' in GCE host as a docker volume named 'nginx configuration'
+      #   run: |
+      #       source .env
+      #       pushd proxy
+      #       make gcloud-conf-volume-deploy
+      #       popd
       ##- name: Deploy 'xqerl compiled code' in GCE host as a docker volume named 'xqerl-compiled-code'
       ##  run: |
       ##      source .env
