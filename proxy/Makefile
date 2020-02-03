@@ -32,17 +32,7 @@ mountBuild       := type=bind,target=/tmp,source=$(CURDIR)/$(B)
 
 dkrTarRun  := docker run --rm --mount $(mountNginxConf)
 dkrCpRun   := docker run --rm --mount $(mountNginxConf) --mount $(mountBuild) 
-dkrRun     := docker run  \
- --mount $(mountNginxConf) \
- --mount $(mountNginxHtml) \
- --mount $(mountLetsencrypt) \
- --mount $(mountSiteLualib) \
- --name  $(PROXY_CONTAINER_NAME) \
- --network $(NETWORK) \
- --publish 80:80 \
- --publish 443:443 \
- --detach \
- $(PROXY_DOCKER_IMAGE)
+
 
 buildConfs := $(patsubst %,$(B)/nginx/%, $(wildcard conf/*))
 
@@ -65,7 +55,6 @@ build: $(B)/nginx/conf/certs.conf confs
 	@echo ' - build complete ... '
 	@echo ' - copy build files into "nginx-confguration" volume'
 	@$(dkrCpRun) --entrypoint "sh" $(PROXY_DOCKER_IMAGE) -c 'cp -r /tmp/nginx ./ '
-
 
 $(B)/nginx/conf/certs.conf: export mkCertsConf:=$(mkCertsConf)
 $(B)/nginx/conf/certs.conf:
@@ -92,4 +81,4 @@ watch-confs:
         inotifywait -qre close_write . ; \
     done
 
-
+include .inc/up.mk

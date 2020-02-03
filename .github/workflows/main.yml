@@ -99,11 +99,11 @@ jobs:
             make  certs-to-host
             make modify-hosts-file
             popd
-      # - name: Bring Proxy Container Up
-      #   run: |
-      #       pushd proxy
-      #       make up
-      #       popd
+      - name: Bring Proxy Container Up
+        run: |
+            pushd proxy
+            make up
+            popd
       ##- name: Website Tests
       ##  run: |
       ##      source .env
