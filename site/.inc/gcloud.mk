@@ -3,10 +3,21 @@
 Gcmd := gcloud compute ssh $(GCE_NAME) --command
 GCmd := gcloud compute ssh $(GCE_NAME) --container $(XQ) --command 
 
+
+
+
 #  gcloud volumes
 GcloudVolumeCreate = grep -q $1 $(2) || $(Gcmd) 'docker volume create --driver local --name $(1)'; 
 
+.PHONY: gcloud-login-gh-pkgs
+gcloud-login-gh-pkgs: 
+	@$(Gcmd) 'docker login docker.pkg.github.com --username $(REPO_OWNER) --password $${{ secrets.github_token }}'
+
+
+
+
 .PHONY: gcloud-check-volumes
+gcloud-check-volumes
 	@$(Gcmd) '$(call MustHaveVolume,xqerl-compiled-code)'
 	@$(Gcmd) '$(call MustHaveVolume,xqerl-database)'
 	@$(Gcmd) '$(call MustHaveVolume,static-assets)'

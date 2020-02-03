@@ -8,6 +8,7 @@ GCmd := gcloud compute ssh $(GCE_NAME) --container $(OR) --command
 GcloudVolumeCreate = grep -q $1 $(2) || $(Gcmd) 'docker volume create --driver local --name $(1)'; 
 
 .PHONY: gcloud-check-volumes
+gcloud-check-volumes:
 	@$(Gcmd) '$(call MustHaveVolume,xqerl-compiled-code)'
 	@$(Gcmd) '$(call MustHaveVolume,xqerl-database)'
 	@$(Gcmd) '$(call MustHaveVolume,static-assets)'
