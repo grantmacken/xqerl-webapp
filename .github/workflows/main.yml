@@ -25,14 +25,14 @@ jobs:
             fetch-depth: 1
       # - name: debug
       #   uses: hmarr/debug-action@master
-      - name: Set Environment Variables
+      - name: Set environment variables
         run: | 
             echo '::set-env name=term::xterm'
       - name: Pull in docker images
         run: |
             source .env
             echo ' - pull in my docker images as helpers'
-            docker login docker.pkg.github.com --username ${REPO_OWNER} --password ${{ secrets.github_token }} &>/dev/nul
+            docker login docker.pkg.github.com --username ${REPO_OWNER} --password ${{ secrets.github_token }} &>/dev/null
             docker pull ${XQERL_DOCKER_IMAGE}
             docker pull ${PROXY_DOCKER_IMAGE}
             docker pull docker.pkg.github.com/grantmacken/alpine-scour/scour:0.0.2
@@ -53,7 +53,7 @@ jobs:
             echo '  the xqerl container internal IPAddress and published port'
             make up
             popd
-      - name: Static Assets Pipeline Build Into 'static-assets' volume
+      - name: From static assets build pipeline to 'static-assets' volume
         run: |
             source .env   
             echo " - build static assets for ${DOMAIN} website" 
