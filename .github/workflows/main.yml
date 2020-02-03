@@ -19,16 +19,16 @@ jobs:
     runs-on: ubuntu-latest
     # if: github.event.pull_request.merged
     steps:
-      - name: checkout repo
+      - name: Checkout Repo
         uses: actions/checkout@v1
         with:
           fetch-depth: 1
       # - name: debug
       #   uses: hmarr/debug-action@master
-      - name: set environment variables
+      - name: Set Environment Variables
         run: | 
           echo '::set-env name=term::xterm'
-      - name: pull in docker images
+      - name: Pull In Docker Images
         run: |
           source .env
           echo ' - pull in my docker images as helpers'
@@ -38,7 +38,7 @@ jobs:
           docker pull docker.pkg.github.com/grantmacken/alpine-scour/scour:0.0.2
           docker pull docker.pkg.github.com/grantmacken/alpine-zopfli/zopfli:0.0.1
           docker pull docker.pkg.github.com/grantmacken/alpine-cssnano/cssnano:0.0.3
-      - name: bring up the xqerl container
+      - name: Bring Up The Xqerl Container
         run: |
             source .env
             source .env
@@ -54,26 +54,26 @@ jobs:
             echo '  the xqerl container internal IPAddress and published port'
             make up
             popd
-      - name: create static assets for website
+      - name: Create Static Assets For Website
         run: |
             source .env   
             echo " - build static assets for ${domain} website" 
             pushd site/${domain}
             make assets
             popd
-      - name: create generic nginx configuration
+      - name: Create Generic Nginx Configuration
         run: |
             source .env   
             pushd proxy 
             make
             popd
-      - name: setup gcloud
+      - name: Setup Gcloud
         uses: googlecloudplatform/github-actions/setup-gcloud@master
         with:
             version: "270.0.0"
             service_account_email: ${{ secrets.client_email }}
             service_account_key: ${{ secrets.gce_key }}
-      - name: configure gce project
+      - name: Configure GCE Project
         run: |
             source .env
             gcloud config set project ${gce_project}
@@ -81,19 +81,19 @@ jobs:
             # gcloud compute instances list
             gcloud compute config-ssh &>/dev/null
             #gcloud info
-      - name: fetch certs and put into 'letsencypt' volume
+      - name: Fetch Certs and Put Into 'letsencypt' Volume
         run: |
             source .env
             pushd proxy
             make certs-into-vol
             make modify-hosts-file
             popd
-      - name: bring proxy container up
+      - name: Bring Proxy Container Up
         run: |
             pushd proxy
             make up
             popd
-      - name: website tests
+      - name: Website Proxy Tests
         run: |
             source .env
             pushd site/${DOMAIN}/tests
