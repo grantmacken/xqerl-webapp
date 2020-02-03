@@ -28,7 +28,7 @@ jobs:
       - name: Set Environment Variables
         run: | 
             echo '::set-env name=term::xterm'
-      - name: Pull In Docker Images
+      - name: Pull in docker images
         run: |
             source .env
             echo ' - pull in my docker images as helpers'
@@ -38,17 +38,16 @@ jobs:
             docker pull docker.pkg.github.com/grantmacken/alpine-scour/scour:0.0.2
             docker pull docker.pkg.github.com/grantmacken/alpine-zopfli/zopfli:0.0.1
             docker pull docker.pkg.github.com/grantmacken/alpine-cssnano/cssnano:0.0.3
-      - name: Bring Up The Xqerl Container, Compile xQuery Files, Then Test restXQ Routes
+      - name: Bring up the xqerl container, compile xQuery, then test restXQ routes
         run: |
             source .env
             source .env
-            pushd site/${domain}
+            pushd site/${DOMAIN}
             echo ' starting xqerl will also: '
             echo ' - create the volumes we require'
             echo ' - create the network we require'
             echo ' after starting `make` will'
             echo ' - clean the build'
-            echo ' - compile build xQuery files to run on the beam'
             echo ' - compile build xQuery files to run on the beam'
             echo ' - run some curl tests for restXQ routes using the '
             echo '  the xqerl container internal IPAddress and published port'
@@ -57,8 +56,8 @@ jobs:
       - name: Static Assets Pipeline Build Into 'static-assets' volume
         run: |
             source .env   
-            echo " - build static assets for ${domain} website" 
-            pushd site/${domain}
+            echo " - build static assets for ${DOMAIN} website" 
+            pushd site/${DOMAIN}
             make assets
             popd
       - name: Create Generic Nginx Configuration
@@ -76,12 +75,12 @@ jobs:
       - name: Configure GCE Project
         run: |
             source .env
-            gcloud config set project ${gce_project}
-            gcloud config set compute/zone ${gce_zone}
+            gcloud config set project ${GCE_PROJECT}
+            gcloud config set compute/zone ${GCE_ZONE}
             # gcloud compute instances list
             gcloud compute config-ssh &>/dev/null
             #gcloud info
-      - name: Fetch Certs and Put Into 'letsencypt' Volume
+      - name: Fetch certs and put into 'letsencypt' volume
         run: |
             source .env
             pushd proxy
@@ -99,22 +98,22 @@ jobs:
             pushd site/${DOMAIN}/tests
             make 
             popd
-      ##- name: Take Containers Down
-      ##  run: |
-      ##      source .env
-      ##      pushd site/${DOMAIN} 
-      ##      make down
-      ##      popd
-      ##      pushd proxy
-      ##      make down
-      ##      popd
+      - name: Take Containers Down
+        run: |
+            source .env
+            pushd site/${DOMAIN} 
+            make down
+            popd
+            pushd proxy
+            make down
+            popd
       - name: GCE Host Pull In Docker Images
         run: |
             source .env
             gcloud compute ssh ${GCE_NAME} --command \
             "docker login docker.pkg.github.com --username ${REPO_OWNER} --password ${{ secrets.GITHUB_TOKEN }}"
             gcloud compute ssh ${GCE_NAME} --command \
-            "docker pull ${PROXY_DOCKER_IMAGE}"
+            "docker pull ${XQERL_DOCKER_IMAGE}"
       ##- name: GCE Host Checks
       ##  run: |
       ##      source .env
