@@ -5,7 +5,7 @@
 Gcmd := gcloud compute ssh $(GCE_NAME) --command
 GCmd := gcloud compute ssh $(GCE_NAME) --container $(OR) --command 
 mountCerts := type=bind,target=/tmp,source=$(CURDIR)/certs
-mountGCE   := type=bind,target=/home,source=/home/$(GCE_NAME)/certs
+mountGCE   := type=bind,target=/tmp,source=/home/$(GCE_NAME)/certs
 
 .PHONY: certs-to-host
 certs-to-host: certs/letsencrypt.tar
@@ -13,8 +13,12 @@ certs-to-host: certs/letsencrypt.tar
 	@docker run --rm \
  --mount $(mountLetsencrypt) \
  --mount $(mountCerts) \
+ --entrypoint "ls" $(PROXY_DOCKER_IMAGE) -al /tmp
+	@docker run --rm \
+ --mount $(mountLetsencrypt) \
+ --mount $(mountCerts) \
  --entrypoint "tar" $(PROXY_DOCKER_IMAGE) xvf /tmp/$(notdir $<) -C /
-	@rm -fr $(dir $<)
+	@# rm -fr $(dir $<)
 
 certs/letsencrypt.tar:
 	@mkdir -p $(dir $@)
