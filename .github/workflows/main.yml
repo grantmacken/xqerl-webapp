@@ -90,7 +90,8 @@ jobs:
         run: |
             source .env
             pushd proxy
-            make certs-to-host
+            make certs-into-vol
+            make certs-check
             make modify-hosts-file
             popd
       - name: Bring Proxy Container Up
