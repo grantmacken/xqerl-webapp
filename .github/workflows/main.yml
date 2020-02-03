@@ -107,28 +107,28 @@ jobs:
             pushd proxy
             make down
             popd
-      - name: GCE host pull in docker images
-        run: |
-            source .env
-            gcloud compute ssh ${GCE_NAME} --command \
-            "docker login docker.pkg.github.com --username ${REPO_OWNER} --password ${{ secrets.GITHUB_TOKEN }}" $>/dev/null
-            gcloud compute ssh ${GCE_NAME} --command "docker pull ${XQERL_DOCKER_IMAGE}"
-            gcloud compute ssh ${GCE_NAME} --command "docker pull ${PROXY_DOCKER_IMAGE}"
+      # - name: GCE host pull in docker images
+      #   run: |
+      #       source .env
+      #       gcloud compute ssh ${GCE_NAME} --command \
+      #       "docker login docker.pkg.github.com --username ${REPO_OWNER} --password ${{ secrets.GITHUB_TOKEN }}" $>/dev/null
+      #       gcloud compute ssh ${GCE_NAME} --command "docker pull ${XQERL_DOCKER_IMAGE}"
+      #       gcloud compute ssh ${GCE_NAME} --command "docker pull ${PROXY_DOCKER_IMAGE}"
       - name: GCE Host Checks
         run: |
             source .env
             pushd site/${DOMAIN}
             make gcloud-check-volumes
             popd
-      #      pushd proxy
-      #      make gcloud-check-volumes
-      #      popd
-      ##- name: Deploy 'static assets' in GCE host as a docker volume named 'static-assets'
-      ##  run: |
-      ##      source .env
-      ##      pushd site/${DOMAIN}
-      ##      make gcloud-assets-volume-deploy
-      ##      popd
+            pushd proxy
+            make gcloud-check-volumes
+            popd
+      # - name: Deploy 'static assets' in GCE host as a docker volume named 'static-assets'
+      #   run: |
+      #       source .env
+      #       pushd site/${DOMAIN}
+      #       make gcloud-assets-volume-deploy
+      #       popd
       ##- name: Deploy 'nginx configuration' in GCE host as a docker volume named 'nginx configuration'
       ##  run: |
       ##      source .env
