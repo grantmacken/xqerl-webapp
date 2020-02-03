@@ -27,7 +27,7 @@ jobs:
       #   uses: hmarr/debug-action@master
       - name: Set environment variables
         run: | 
-            echo '::set-env name=term::xterm'
+            echo '::set-env name=TERM::xterm'
       - name: Pull in docker images
         run: |
             source .env
@@ -60,7 +60,7 @@ jobs:
             pushd site/${DOMAIN}
             make assets
             popd
-      - name: Create Generic Nginx Configuration
+      - name: Create generic Nginx configuration
         run: |
             source .env   
             pushd proxy 
@@ -72,7 +72,7 @@ jobs:
             version: "270.0.0"
             service_account_email: ${{ secrets.client_email }}
             service_account_key: ${{ secrets.gce_key }}
-      - name: Configure GCE Project
+      - name: Configure GCE project
         run: |
             source .env
             gcloud config set project ${GCE_PROJECT}
@@ -87,18 +87,18 @@ jobs:
             make certs-into-vol
             make modify-hosts-file
             popd
-      - name: Bring Proxy Container Up
+      - name: Bring proxy container up on 'github-actions'  host
         run: |
             pushd proxy
             make up
             popd
-      - name: Website Proxy Tests
+      - name: Use Curl with Grep to run some website tests
         run: |
             source .env
             pushd site/${DOMAIN}/tests
             make 
             popd
-      - name: Take Containers Down
+      - name: Take both containers down
         run: |
             source .env
             pushd site/${DOMAIN} 
