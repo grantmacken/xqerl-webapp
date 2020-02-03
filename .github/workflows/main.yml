@@ -108,7 +108,7 @@ jobs:
             pushd proxy
             make down
             popd
-      # - name: GCE host pull in docker images
+      - name: GCE host pull in docker images
       #   run: |
       #       source .env
       #       gcloud compute ssh ${GCE_NAME} --command \
@@ -128,7 +128,7 @@ jobs:
         run: |
             source .env
             pushd site/${DOMAIN}
-            gcloud-gh-pkg-login
+            make gcloud-gh-pkg-login
             #make gcloud-assets-volume-deploy
             popd
       # - name: Deploy 'nginx configuration' in GCE host as a docker volume named 'nginx configuration'
