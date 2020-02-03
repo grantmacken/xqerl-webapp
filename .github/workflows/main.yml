@@ -10,101 +10,95 @@ on:
 # on:
 #   push:
 #     branches: master
-# Environment variables available to all jobs and steps in this workflow
+# environment variables available to all jobs and steps in this workflow
 env:
-  GITHUB_SHA: ${{ github.sha }}
+  github_sha: ${{ github.sha }}
 
 jobs:
   build:
     runs-on: ubuntu-latest
     # if: github.event.pull_request.merged
     steps:
-      - name: Checkout Repo
+      - name: checkout repo
         uses: actions/checkout@v1
         with:
           fetch-depth: 1
-      # - name: Debug
+      # - name: debug
       #   uses: hmarr/debug-action@master
-      - name: Set Environment Variables
+      - name: set environment variables
         run: | 
-          echo '::set-env name=TERM::xterm'
-      - name: Pull In Docker Images
+          echo '::set-env name=term::xterm'
+      - name: pull in docker images
         run: |
           source .env
           echo ' - pull in my docker images as helpers'
-          echo ${{ secrets.GITHUB_TOKEN }} | docker login docker.pkg.github.com --username ${REPO_OWNER} --password-stdin &> /dev/null
-          docker pull ${XQERL_DOCKER_IMAGE}
-          docker pull ${PROXY_DOCKER_IMAGE}
+          echo ${{ secrets.github_token }} | docker login docker.pkg.github.com --username ${repo_owner} --password-stdin &> /dev/null
+          docker pull ${xqerl_docker_image}
+          docker pull ${proxy_docker_image}
           docker pull docker.pkg.github.com/grantmacken/alpine-scour/scour:0.0.2
           docker pull docker.pkg.github.com/grantmacken/alpine-zopfli/zopfli:0.0.1
           docker pull docker.pkg.github.com/grantmacken/alpine-cssnano/cssnano:0.0.3
-      # - name: Bring Up the xqerl Container
-      #   run: |
-      #       source .env
-      #       source .env
-      #       pushd site/${DOMAIN}
-      #       echo ' - starting xqerl will also create the volumes we require'
-      #       make up
-      #       popd
-      # - name: Compile Xqerl xQuery Modules in Running Container
-      #   run: |
-      #       source .env
-      #       pushd site/${DOMAIN}
-      #       make
-      #       popd
-      # - name: Create Static Assets For Website
-      #   run: |
-      #       source .env   
-      #       echo " - build static assets for ${DOMAIN} website" 
-      #       pushd site/${DOMAIN}
-      #       make assets
-      #       popd
-      # - name: Create Generic Nginx Configuration
-      #   run: |
-      #       source .env   
-      #       pushd proxy 
-      #       make
-      #       popd
-      #      ## TODO - name: Create Repo Owners Lualibs
-      #      ##   run: |
-      #      ##     echo -n ' - create volume: '
-      #      ##     docker volume create --driver local --name repo-owners-lualibs
-      #      ##     pushd proxy 
-      #      ##     make libs
-      #      ##     popd
-      - name: Setup Gcloud
-        uses: GoogleCloudPlatform/github-actions/setup-gcloud@master
-        with:
-            version: "270.0.0"
-            service_account_email: ${{ secrets.CLIENT_EMAIL }}
-            service_account_key: ${{ secrets.GCE_KEY }}
-      - name: Configure GCE Project
+      - name: bring up the xqerl container
         run: |
             source .env
-            gcloud config set project ${GCE_PROJECT}
-            gcloud config set compute/zone ${GCE_ZONE}
+            source .env
+            pushd site/${domain}
+            echo ' starting xqerl will also: '
+            echo ' - create the volumes we require'
+            echo ' - create the network we require'
+            echo ' after starting `make` will'
+            echo ' - clean the build'
+            echo ' - compile build xQuery files to run on the beam'
+            echo ' - compile build xQuery files to run on the beam'
+            echo ' - run some curl tests for restXQ routes using the '
+            echo '  the xqerl container internal IPAddress and published port'
+            make up
+            popd
+      - name: create static assets for website
+        run: |
+            source .env   
+            echo " - build static assets for ${domain} website" 
+            pushd site/${domain}
+            make assets
+            popd
+      - name: create generic nginx configuration
+        run: |
+            source .env   
+            pushd proxy 
+            make
+            popd
+      - name: setup gcloud
+        uses: googlecloudplatform/github-actions/setup-gcloud@master
+        with:
+            version: "270.0.0"
+            service_account_email: ${{ secrets.client_email }}
+            service_account_key: ${{ secrets.gce_key }}
+      - name: configure gce project
+        run: |
+            source .env
+            gcloud config set project ${gce_project}
+            gcloud config set compute/zone ${gce_zone}
             # gcloud compute instances list
             gcloud compute config-ssh &>/dev/null
             #gcloud info
-      - name: Fetch Certs And Put Into 'letsencypt' volume
+      - name: fetch certs and put into 'letsencypt' volume
         run: |
             source .env
             pushd proxy
             make certs-into-vol
-            make certs-check
             make modify-hosts-file
             popd
-      - name: Bring Proxy Container Up
+      - name: bring proxy container up
         run: |
             pushd proxy
             make up
             popd
-      ##- name: Website Tests
-      ##  run: |
-      ##      source .env
-      ##      pushd site/${DOMAIN}/tests
-      ##      make 
-      ##      popd
+      - name: website tests
+        run: |
+            source .env
+            pushd site/${DOMAIN}/tests
+            make 
+            popd
       ##- name: Take Containers Down
       ##  run: |
       ##      source .env
@@ -114,13 +108,13 @@ jobs:
       ##      pushd proxy
       ##      make down
       ##      popd
-      ##- name: GCE Host Pull In Docker Images
-      ##  run: |
-      ##      source .env
-      ##      gcloud compute ssh ${GCE_NAME} --command \
-      ##      "docker login docker.pkg.github.com --username ${REPO_OWNER} --password ${{ secrets.GITHUB_TOKEN }}" 
-      ##      gcloud compute ssh ${GCE_NAME} --command \
-      ##      "docker pull ${PROXY_DOCKER_IMAGE}"
+      - name: GCE Host Pull In Docker Images
+        run: |
+            source .env
+            gcloud compute ssh ${GCE_NAME} --command \
+            "docker login docker.pkg.github.com --username ${REPO_OWNER} --password ${{ secrets.GITHUB_TOKEN }}"
+            gcloud compute ssh ${GCE_NAME} --command \
+            "docker pull ${PROXY_DOCKER_IMAGE}"
       ##- name: GCE Host Checks
       ##  run: |
       ##      source .env

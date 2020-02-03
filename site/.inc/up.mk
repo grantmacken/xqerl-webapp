@@ -25,8 +25,10 @@ check-port:
 
 .PHONY: up
 up: info
+	@$(MAKE) -silent clean
+	@$(MAKE) -silent build
 
-PHONY: info
+.PHONY: info
 info: run
 	@echo '## $@ ##'
 	@docker ps --filter name=$(XQ) --format ' -    name: {{.Names}}'
