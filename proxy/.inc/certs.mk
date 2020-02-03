@@ -7,29 +7,7 @@ GCmd := gcloud compute ssh $(GCE_NAME) --container $(OR) --command
 mountCerts := type=bind,target=/tmp,source=$(CURDIR)/certs
 mountGCE   := type=bind,target=/tmp,source=/home/$(GCE_NAME)/certs
 
-.PHONY: certs-to-host
-certs-to-host: certs/letsencrypt.tar
-	@echo ' - on local host extract letsencrypt.tar into "letsencypt" volume' 
-	@docker run --rm \
- --mount $(mountLetsencrypt) \
- --mount $(mountCerts) \
- --entrypoint "ls" $(PROXY_DOCKER_IMAGE) -al /tmp
-	@docker run --rm \
- --mount $(mountLetsencrypt) \
- --mount $(mountCerts) \
- --entrypoint "tar" $(PROXY_DOCKER_IMAGE) xvf /tmp/$(notdir $<) -C /
-	@# rm -fr $(dir $<)
 
-certs/letsencrypt.tar:
-	@mkdir -p $(dir $@)
-	@echo ' - on GCE host tar "$(OR)" volume into host dir' 
-	@$(Gcmd) 'docker run --rm \
- --volumes-from $(OR) \
- --mount $(mountGCE) \
- alpine:3.11 tar -czf /home/letsencrypt.tar $(LETSENCRYPT)'
-	@echo -n ' - fetching tar from GCE host to local host: '  
-	@gcloud compute scp $(GCE_NAME):~/certs ./ --recurse
-	@#mv certs $(B)/
 
 .PHONY: modify-hosts-file
 modify-hosts-file:
@@ -39,19 +17,40 @@ modify-hosts-file:
 	@cat /etc/hosts
 	@printf %60s | tr ' ' '-' && echo
 
+LEpath  := $(LETSENCRYPT)/live/$(TLS_COMMON_NAME)
+CopyCerts = docker cp or:$(LEpath)/$(1).pem ./certs -L
 
-alt-certsToHost:
+.PHONY: certs-into-vol
+certs-into-vol: certs-to-host
+	@docker run --rm \
+ --mount $(mountLetsencrypt) \
+ --mount  $(mountCerts) \
+ --entrypoint "sh" $(PROXY_DOCKER_IMAGE) -c \
+ 'mkdir -p $(LEpath) \
+ && mv /tmp/dh-param.pem $(LETSENCRYPT)/ \
+ && cp /tmp/* $(LEpath)/ '
+
+.PHONY: certs-to-host
+certs-to-host:
 	@# or just cat use the following certs
-	@gcloud compute ssh $(GCE_NAME) --command 'mkdir -p ./live/$(TLS_COMMON_NAME)'
-	@gcloud compute ssh $(GCE_NAME) --command \
- 'docker cp or:$(LETSENCRYPT)/live/$(TLS_COMMON_NAME)/cert.pem ./live/$(TLS_COMMON_NAME) -L'
-	@gcloud compute ssh $(GCE_NAME) --command \
- 'docker cp or:$(LETSENCRYPT)/live/$(TLS_COMMON_NAME)/fullchain.pem ./live/$(TLS_COMMON_NAME) -L'
-	@gcloud compute ssh $(GCE_NAME) --command \
- 'docker cp or:$(LETSENCRYPT)/live/$(TLS_COMMON_NAME)/privkey.pem ./live/$(TLS_COMMON_NAME) -L'
-	# dh param in different location
-	@gcloud compute ssh $(GCE_NAME) --command  'docker cp or:$(LETSENCRYPT)/dh-param.pem ./live/$(TLS_COMMON_NAME) -L'
-	@gcloud compute ssh $(GCE_NAME) --command 'ls -al ./live/$(TLS_COMMON_NAME)'
-	@echo '---------------------------------------------------------------------'
+	@#$(Gcmd) 'rm -rf certs'
+	@$(Gcmd) 'mkdir -p certs \
+ && $(call CopyCerts,cert)  \
+ && $(call CopyCerts,fullchain)  \
+ && $(call CopyCerts,chain)  \
+ && $(call CopyCerts,privkey)  \
+ && docker cp or:$(LETSENCRYPT)/dh-param.pem ./certs -L \
+ && ls -al ./certs'
+	@gcloud compute scp $(GCE_NAME):~/certs ./ --recurse
+	@printf %60s | tr ' ' '-' && echo
+
+.PHONY: certs-check
+certs-check:
+	@$(GCmd) 'ls -al $(LEpath)'
+	@docker run --rm \
+ --mount $(mountLetsencrypt) \
+ --entrypoint "ls" $(PROXY_DOCKER_IMAGE) -alR  $(LETSENCRYPT)
+
+
 
 

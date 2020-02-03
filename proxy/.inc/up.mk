@@ -31,10 +31,7 @@ check-port:
 	@docker ps --format '{{.Ports}}' | grep -oP '^(.+)443->\K(443)' || echo  '[ 443 ] OK! can use.'
 
 .PHONY: up
-up: run info
-
-.PHONY: run
-run: check-volumes check-network check-port
+up: check-volumes check-network check-port
 	@echo -n ' - start container instance '
 	@echo 'TODO - check letsencypt certs in "letsencrypt" volume'
 	@docker ps --filter name=$(OR) --format '{{.Status}}' | grep -oP '^Up.+$$' || \
@@ -76,8 +73,10 @@ config-test:
 	@echo ' - local test nginx configuration'
 	@docker exec -t or openresty -t
 
+
+
 .PHONY: info
-info: $(T)/or-version
+info: $(T)/versionInfo
 	@echo "## $@ ##"
 	@mkdir -p $(T)
 	@docker exec -t or openresty -t
@@ -86,6 +85,11 @@ info: $(T)/or-version
 	@grep -oP '^..add.module.+$$' $< 
 	@echo 'nginx compiled with'
 	@grep -oP '^..with-[\w+-_]+$$' $< 
+
+
+$(T)/versionInfo:
+	@docker exec -t or openresty -V > $@
+
 
 
 
