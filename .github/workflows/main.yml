@@ -85,7 +85,7 @@ jobs:
             source .env
             pushd proxy
             make certs-into-vol
-            make modify-hosts-file
+            #make modify-hosts-file
             popd
       - name: Bring proxy container up on 'github-actions'  host
         run: |
@@ -93,12 +93,12 @@ jobs:
             make up
             make info
             popd
-      - name: Use Curl with Grep to run some website tests
-        run: |
-            source .env
-            pushd site/${DOMAIN}/tests
-            make 
-            popd
+      # - name: Use Curl with Grep to run some website tests
+      #   run: |
+      #       source .env
+      #       pushd site/${DOMAIN}/tests
+      #       make 
+      #       popd
       - name: Take both containers down
         run: |
             source .env
@@ -120,22 +120,22 @@ jobs:
             source .env
             pushd site/${DOMAIN}  &>/dev/null
             make gcloud-check-volumes
-            popd
+            popd &>/dev/null
             pushd proxy &>/dev/null
             make gcloud-check-volumes
             popd &>/dev/null
       - name: Deploy 'static assets' in GCE host as a docker volume named 'static-assets'
         run: |
             source .env
-            pushd site/${DOMAIN}
+            pushd site/${DOMAIN} &>/dev/null
             make gcloud-assets-volume-deploy
+            popd &>/dev/null
+      - name: Deploy 'nginx configuration' in GCE host as a docker volume named 'nginx configuration'
+        run: |
+            source .env
+            pushd proxy
+            make gcloud-conf-volume-deploy
             popd
-      ##- name: Deploy 'nginx configuration' in GCE host as a docker volume named 'nginx configuration'
-      ##  run: |
-      ##      source .env
-      ##      pushd proxy
-      ##      make gcloud-conf-volume-deploy
-      ##      popd
       ##- name: Deploy 'xqerl compiled code' in GCE host as a docker volume named 'xqerl-compiled-code'
       ##  run: |
       ##      source .env
