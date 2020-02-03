@@ -79,6 +79,7 @@ config-test:
 info: $(T)/versionInfo
 	@echo "## $@ ##"
 	@mkdir -p $(T)
+	docker ps --filter name=$(OR) --format '{{.Status}}'
 	@docker exec -t or openresty -t
 	@docker exec -t or openresty -v
 	@echo 'nginx modules'

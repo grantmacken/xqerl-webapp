@@ -91,6 +91,7 @@ jobs:
         run: |
             pushd proxy
             make up
+            make info
             popd
       - name: Use Curl with Grep to run some website tests
         run: |
@@ -118,17 +119,18 @@ jobs:
         run: |
             source .env
             pushd site/${DOMAIN}
+            make 
             make gcloud-check-volumes
             popd
             pushd proxy
             make gcloud-check-volumes
             popd
-      # - name: Deploy 'static assets' in GCE host as a docker volume named 'static-assets'
-      #   run: |
-      #       source .env
-      #       pushd site/${DOMAIN}
-      #       make gcloud-assets-volume-deploy
-      #       popd
+      - name: Deploy 'static assets' in GCE host as a docker volume named 'static-assets'
+        run: |
+            source .env
+            pushd site/${DOMAIN}
+            make gcloud-assets-volume-deploy
+            popd
       ##- name: Deploy 'nginx configuration' in GCE host as a docker volume named 'nginx configuration'
       ##  run: |
       ##      source .env
