@@ -75,19 +75,21 @@ config-test:
 	@docker exec -t or openresty -t
 
 .PHONY: info
-info:
+info: $(T)/log-status
+
+$(T)/log-status:
 	@echo "## $@ ##"
 	@mkdir -p $(T)
-	@docker ps --filter name=$(OR) --format ' -    name: {{.Names}}'
-	docker ps --filter name=$(OR) --format '{{.Status}}'
-	@echo -n '-    port: '
-	@docker ps --format '{{.Ports}}' | grep -oP '^(.+):\K(\d{4})'
-	@echo -n '- IP address: '
-	@docker inspect --format='{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' $(OR)
+	@docker ps --all 
+	@docker ps --filter name=$(OR) --format '  name: {{.Names}}' > $@
+	@docker ps --filter name=$(OR) --format  'status: {{.Status}}'  >> $@
+	@docker ps --filter name=$(OR) --format '  ports:  {{.Ports}}' >> $@
+	@docker inspect --format='IP addr {{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' $(OR) >> $@
+	@cat $@
 
 
 .PHONY: info2
-info:
+info2: $(T)/versionInfo
 	@docker exec -t or openresty -t
 	@docker exec -t or openresty -v
 	@echo 'nginx modules'
