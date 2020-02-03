@@ -3,7 +3,14 @@
 # GCLOUD DEPLOYMENT ###
 #######################
 Gcmd := gcloud compute ssh $(GCE_NAME) --command
-GCmd := gcloud compute ssh $(GCE_NAME) --container $(XQ) --command 
+GCmd := gcloud compute ssh $(GCE_NAME) --container $(OR) --command 
+#  gcloud volumes
+GcloudVolumeCreate = grep -q $1 $(2) || $(Gcmd) 'docker volume create --driver local --name $(1)'; 
+
+.PHONY: gcloud-check-volumes
+	@$(Gcmd) '$(call MustHaveVolume,xqerl-compiled-code)'
+	@$(Gcmd) '$(call MustHaveVolume,xqerl-database)'
+	@$(Gcmd) '$(call MustHaveVolume,static-assets)'
 
 .PHONY: gcloud-conf-volume-deploy
 gcloud-conf-volume-deploy: $(D)/nginx-configuration.tar
@@ -18,16 +25,6 @@ gcloud-conf-volume-deploy: $(D)/nginx-configuration.tar
  --mount $(mountNginxConf) \
  --mount type=bind,target=/tmp,source=/home/$(GCE_NAME)/$(D) \
  --entrypoint "tar" $(PROXY_DOCKER_IMAGE) xvf /tmp/$(notdir $<) -C /'
-
-GcloudVolumeCreate = grep -q $(1) $(2) || $(Gcmd) 'docker volume create --driver local --name $(1)'
-
-.PHONY: gcloud-check-volumes
-gcloud-check-volumes: $(D)/gcloud-volume-check.txt
-	@$(foreach volume,$(VolumeList),$(call GcloudVolumeCreate,$(volume),$(<)))
-
-$(D)/gcloud-volume-check.txt: 
-	@mkdir -p $(dir $@)
-	@$(Gcmd) 'docker volume list  --format "{{.Name}}"' > $@
 
 .PHONY: gcloud-proxy-up
 gcloud-proxy-up: 
