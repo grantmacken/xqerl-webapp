@@ -1,7 +1,7 @@
+########################################
+# OPENRESTY PROXY GCLOUD DEPLOYMENT  ###
+########################################
 
-#######################
-# GCLOUD DEPLOYMENT ###
-#######################
 Gcmd := gcloud compute ssh $(GCE_NAME) --command
 GCmd := gcloud compute ssh $(GCE_NAME) --container $(OR) --command 
 #  gcloud volumes
