@@ -2,6 +2,7 @@
 #################################################
 ### OPENRESTY UP DOWN RESTART and TEST CONFIG ###
 #################################################
+
 orAddress      := docker inspect --format='{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' $(OR)
 dkrNetworkInUse != docker network list --format '{{.Name}}' | grep -oP '$(NETWORK)'
 
@@ -73,13 +74,16 @@ config-test:
 	@echo ' - local test nginx configuration'
 	@docker exec -t or openresty -t
 
-
-
 .PHONY: info
 info: $(T)/versionInfo
 	@echo "## $@ ##"
 	@mkdir -p $(T)
+	@docker ps --filter name=$(OR) --format ' -    name: {{.Names}}'
 	docker ps --filter name=$(OR) --format '{{.Status}}'
+	@echo -n '-    port: '
+	@docker ps --format '{{.Ports}}' | grep -oP '^(.+):\K(\d{4})'
+	@echo -n '- IP address: '
+	@docker inspect --format='{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' $(OR)
 	@docker exec -t or openresty -t
 	@docker exec -t or openresty -v
 	@echo 'nginx modules'

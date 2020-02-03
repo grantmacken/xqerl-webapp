@@ -7,12 +7,10 @@ GCmd := gcloud compute ssh $(GCE_NAME) --container $(OR) --command
 mountCerts := type=bind,target=/tmp,source=$(CURDIR)/certs
 mountGCE   := type=bind,target=/tmp,source=/home/$(GCE_NAME)/certs
 
-
-
 .PHONY: modify-hosts-file
 modify-hosts-file:
 	@echo '## $@ ##'
-	@sudo echo '127.0.0.1 $(TLS_COMMON_NAME)' | tee -a /etc/hosts
+	@sudo echo '127.0.0.1 $(TLS_COMMON_NAME)' >> /etc/hosts
 	@cat /etc/hosts | grep -oP '^127.0.0.1 $(TLS_COMMON_NAME)$$'
 	@printf %60s | tr ' ' '-' && echo
 
