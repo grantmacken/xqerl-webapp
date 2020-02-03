@@ -32,7 +32,7 @@ jobs:
         run: |
           source .env
           echo ' - pull in my docker images as helpers'
-          echo ${{ secrets.github_token }} | docker login docker.pkg.github.com --username ${repo_owner} --password-stdin
+          echo ${{ secrets.github_token }} | docker login docker.pkg.github.com --username ${repo_owner} --password-stdin -
           docker pull ${xqerl_docker_image}
           docker pull ${proxy_docker_image}
           docker pull docker.pkg.github.com/grantmacken/alpine-scour/scour:0.0.2
