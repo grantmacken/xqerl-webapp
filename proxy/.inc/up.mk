@@ -71,3 +71,19 @@ config-test:
 	@echo "## $@ ##"
 	@echo ' - local test nginx configuration'
 	@docker exec -t or openresty -t
+
+
+.PHONY: info
+info: $(T)/or-version
+	@echo "## $@ ##"
+	@mkdir -p $(T)
+	@docker exec -t or openresty -t
+	@docker exec -t or openresty -v
+	@docker exec -t or openresty -h
+	@grep -oP '^..add.module.+$$' $< 
+	@grep -oP '^..with-[\w+-_]+$$' $< 
+
+$(T)/or-version:
+	@mkdir -p $(T)
+	@docker exec -t or openresty -V | tr " " '\n' > $@
+
