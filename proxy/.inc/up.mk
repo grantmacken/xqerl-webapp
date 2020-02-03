@@ -14,7 +14,7 @@ check-volumes:
 	@$(call MustHaveVolume,static-assets)
 	@$(call MustHaveVolume,letsencrypt)
 	@$(call MustHaveVolume,site-lualib)
-	@docker volume list  --format "{{.Name}}"
+	@#docker volume list  --format "{{.Name}}"
 
 
 $(T)/volume-check.txt: 
@@ -75,7 +75,7 @@ config-test:
 	@docker exec -t or openresty -t
 
 .PHONY: info
-info: $(T)/versionInfo
+info:
 	@echo "## $@ ##"
 	@mkdir -p $(T)
 	@docker ps --filter name=$(OR) --format ' -    name: {{.Names}}'
@@ -84,6 +84,10 @@ info: $(T)/versionInfo
 	@docker ps --format '{{.Ports}}' | grep -oP '^(.+):\K(\d{4})'
 	@echo -n '- IP address: '
 	@docker inspect --format='{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' $(OR)
+
+
+.PHONY: info2
+info:
 	@docker exec -t or openresty -t
 	@docker exec -t or openresty -v
 	@echo 'nginx modules'
@@ -93,6 +97,7 @@ info: $(T)/versionInfo
 
 
 $(T)/versionInfo:
+	@mkdir -p $(dir $@)
 	@docker exec -t or openresty -V > $@
 
 
