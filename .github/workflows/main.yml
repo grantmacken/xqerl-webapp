@@ -118,13 +118,12 @@ jobs:
       - name: GCE Host Checks
         run: |
             source .env
-            pushd site/${DOMAIN}
-            make 
+            pushd site/${DOMAIN}  &>/dev/null
             make gcloud-check-volumes
             popd
-            pushd proxy
+            pushd proxy &>/dev/null
             make gcloud-check-volumes
-            popd
+            popd &>/dev/null
       - name: Deploy 'static assets' in GCE host as a docker volume named 'static-assets'
         run: |
             source .env
