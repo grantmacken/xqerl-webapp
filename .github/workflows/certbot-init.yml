@@ -45,6 +45,6 @@ jobs:
         run: |
             source .env
             pushd gcloud
-            make -f certbot.mk
+            make -f certbot.mk certbot/letsencrypt.volume
             popd
 
