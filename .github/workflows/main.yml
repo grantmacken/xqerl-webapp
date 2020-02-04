@@ -107,7 +107,7 @@ jobs:
             pushd tests/proxy
             make 
             popd
-      - name: Take both containers down
+      - name: Take both containers down on 'github-actions' host
         run: |
             source .env
             pushd site/${DOMAIN} 
@@ -116,56 +116,9 @@ jobs:
             pushd proxy
             make down
             popd
-      #  - name: GCE host pull in docker images
-      #    run: |
-      #        source .env
-      #        gcloud compute ssh ${GCE_NAME} --command \
-      #        "docker login docker.pkg.github.com --username ${REPO_OWNER} --password ${{ secrets.GITHUB_TOKEN }}" $>/dev/null
-      #        gcloud compute ssh ${GCE_NAME} --command "docker pull ${XQERL_DOCKER_IMAGE}"
-      #        gcloud compute ssh ${GCE_NAME} --command "docker pull ${PROXY_DOCKER_IMAGE}"
-      #- name: GCE Host Checks
-      #  run: |
-      #      source .env
-      #      pushd site/${DOMAIN} 
-      #      make gcloud-check-volumes
-      #      popd 
-      #      pushd proxy 
-      #      make gcloud-check-volumes
-      #      popd
-      #- name: Deploy 'static assets' in GCE host as a docker volume named 'static-assets'
-      #  run: |
-      #      source .env
-      #      pushd site/${DOMAIN}
-      #      #make gcloud-assets-volume-deploy
-      #      popd
-      ## - name: Deploy 'nginx configuration' in GCE host as a docker volume named 'nginx configuration'
-      ##   run: |
-      ##       source .env
-      ##       pushd proxy
-      ##       make gcloud-conf-volume-deploy
-      ##       popd
-      ###- name: Deploy 'xqerl compiled code' in GCE host as a docker volume named 'xqerl-compiled-code'
-      ###  run: |
-      ###      source .env
-      ###      pushd site/${DOMAIN}
-      ###      make gcloud-code-volume-deploy
-      ###      popd
-      ###- name: Enable restXQ routing by recompiling code on running xqerl container
-      ###  run: |
-      ###      source .env
-      ###      pushd site/${DOMAIN}
-      ###      make gcloud-xqerl-up
-      ###      make gcloud-code-compile
-      ###      make gcloud-show-lib-namespaces
-      ###      # TODO check routes on internal IP
-      ###      popd
-      ###- name: Enable nginx reverse proxy server 
-      ###  run: |
-      ###      source .env
-      ###      pushd proxy
-      ###      make gcloud-proxy-up
-      ###      # TODO check routes on internal IP
-      ###      popd
-
-
-
+      - name: Upload tars to GCE host and deploy using gcloud client
+        run: |
+            source .env
+            pushd gcloud
+            make
+            popd

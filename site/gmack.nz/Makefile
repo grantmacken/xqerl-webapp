@@ -42,7 +42,7 @@ MountCode  := type=volume,target=$(XQERL_HOME)/code,source=xqerl-compiled-code
 MountData  := type=volume,target=$(XQERL_HOME)/data,source=xqerl-database
 MountBin   := type=bind,target=$(XQERL_HOME)/bin/scripts,source=$(CURDIR)/bin
 
-MountAssets        := type=volume,target=$(OPENRESTY_HOME)/nginx/html,source=static-assets
+MountAssets  := type=volume,target=$(OPENRESTY_HOME)/nginx/html,source=static-assets
 
 MountBuild := type=bind,target=/tmp,source=$(CURDIR)/$(B)
 
