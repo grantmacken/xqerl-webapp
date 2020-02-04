@@ -93,14 +93,14 @@ jobs:
             pushd proxy 
             make certs-into-vol
             # modify hosts file
-            sudo echo "127.0.0.1 ${TLS_COMMON_NAME}" >> /etc/hosts
+            sudo echo "127.0.0.1 ${TLS_COMMON_NAME}" | tee -a /etc/hosts
             popd
-      #- name: Bring proxy container up on 'github-actions'  host
-      #  run: |
-      #      pushd proxy
-      #      make up
-      #      make info
-      #      popd
+      - name: Bring proxy container up on 'github-actions'  host
+        run: |
+            pushd proxy
+            make up
+            make info
+            popd
       ## - name: Use Curl with Grep to run some website tests
       ##   run: |
       ##       source .env
