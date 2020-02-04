@@ -63,37 +63,38 @@ jobs:
       #       pushd site/${DOMAIN}
       #       make assets
       #       popd
-      # - name: Create generic Nginx configuration
-      #   run: |
-      #       source .env   
-      #       pushd proxy 
-      #       make
-      #       popd
-      # - name: Setup Gcloud
-      #   uses: googlecloudplatform/github-actions/setup-gcloud@master
-      #   with:
-      #       version: "270.0.0"
-      #       service_account_email: ${{ secrets.client_email }}
-      #       service_account_key: ${{ secrets.gce_key }}
-      # - name: Configure GCE project
-      #   run: |
-      #       source .env
-      #       gcloud config set project ${GCE_PROJECT}
-      #       gcloud config set compute/zone ${GCE_ZONE}
-      #       # gcloud compute instances list
-      #       gcloud compute config-ssh &>/dev/null
-      #       gcloud compute ssh ${GCE_NAME} --command \
-      #       "docker login docker.pkg.github.com --username ${REPO_OWNER} --password ${{ secrets.github_token }}"
-      #       gcloud compute ssh ${GCE_NAME} --command \
-      #       "docker pull ${XQERL_DOCKER_IMAGE} && docker pull ${PROXY_DOCKER_IMAGE}"
+      - name: Create generic Nginx configuration
+        run: |
+            source .env   
+            pushd proxy 
+            make
+            popd
+      - name: Setup Gcloud
+        uses: googlecloudplatform/github-actions/setup-gcloud@master
+        with:
+            version: "270.0.0"
+            service_account_email: ${{ secrets.client_email }}
+            service_account_key: ${{ secrets.gce_key }}
+      - name: Configure GCE project
+        run: |
+            source .env
+            gcloud config set project ${GCE_PROJECT}
+            gcloud config set compute/zone ${GCE_ZONE}
+            # gcloud compute instances list
+            gcloud compute config-ssh &>/dev/null
+            gcloud compute ssh ${GCE_NAME} --command \
+            "docker login docker.pkg.github.com --username ${REPO_OWNER} --password ${{ secrets.github_token }}"
+            gcloud compute ssh ${GCE_NAME} --command \
+            "docker pull ${XQERL_DOCKER_IMAGE} && docker pull ${PROXY_DOCKER_IMAGE}"
             #gcloud info
-      #- name: Fetch certs and put into 'letsencypt' volume
-      #  run: |
-      #      source .env
-      #      pushd proxy 
-      #      make certs-into-vol
-      #      #make modify-hosts-file
-      #      popd
+      - name: Fetch certs and put into 'letsencypt' volume
+        run: |
+            source .env
+            pushd proxy 
+            make certs-into-vol
+            # modify hosts file
+            sudo echo '127.0.0.1 ${TLS_COMMON_NAME}' >> /etc/hosts
+            popd
       #- name: Bring proxy container up on 'github-actions'  host
       #  run: |
       #      pushd proxy
