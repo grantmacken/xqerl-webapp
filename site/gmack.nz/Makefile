@@ -9,7 +9,7 @@ MAKEFLAGS += --no-builtin-rules
 #####################
 include $(abspath ../../.env)
 T := .tmp
-B := build
+B := .build
 D := ../../deploy
 # shortcut aliases
 XQ := $(XQERL_CONTAINER_NAME)

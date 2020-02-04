@@ -4,13 +4,15 @@ SHELL=/bin/bash
 .DELETE_ON_ERROR:
 MAKEFLAGS += --warn-undefined-variables
 MAKEFLAGS += --no-builtin-rules
+LOCAL_RELOAD := 
 include ../.env
 OR := $(PROXY_CONTAINER_NAME)
 T := .tmp
 B := .build
-D := .deploy
+D :=  ../deploy
 
 DEO  = docker exec $(OR)
+
 
 ###########################
 ### NGINX CONFIGURATION ###
@@ -38,9 +40,11 @@ buildConfs := $(patsubst %,$(B)/nginx/%, $(wildcard conf/*))
 
 .PHONY: conf
 conf: $(D)/nginx-configuration.tar
+	@#$(DEO) bin/openresty -t
+	@#$(DEO) bin/openresty -s reload
 
-.PHONY: clean-conf
-clean-conf:
+.PHONY: clean
+clean:
 	@echo '## $(@) ##'
 	@rm -f $(buildConfs)
 	@rm -f $(D)/nginx-configuration.tar
@@ -81,5 +85,5 @@ watch-confs:
         inotifywait -qre close_write . ; \
     done
 
-include .inc/up.mk .inc/certs.mk .inc/gcloud.mk
+include .inc/up.mk .inc/certs.mk 
 
