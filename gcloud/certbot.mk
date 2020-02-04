@@ -21,10 +21,17 @@ Gcmd := gcloud compute ssh $(GCE_NAME) --command
 
 define certsHelp
 ```
-make [target] INC=certbot
+runs on gihub actions
+```
+name: certbot-init
+on:
+  push:
+    branches:
+      - certbot/init
 ```
 
-## To renew certs
+git checkout -b certbot/init
+
 
 ```
 make certsRenew INC=certs
@@ -64,12 +71,10 @@ endef
 $(T)/into-letsenypt.vol: $(T)/ini-into-host.uploaded
 	$(Gcmd) 'docker cp ~/cli.ini  or:/etc/letsencrypt/'
 
-
 $(T)/ini-into-host.uploaded: $(T)/cli.ini
 	@gcloud compute scp ./$< $(GCE_NAME):~/cli.ini 
 	@$(Gcmd) 'ls -al cli.ini' | tee $@
 	@gcloud compute ssh gmack --command 'docker cp ~/cli.ini  $(OR):$(LETSENCRYPT)/' | tee $@
-
 
 $(T)/cli.ini: export certbotConfig:=$(certbotConfig)
 $(T)/cli.ini:

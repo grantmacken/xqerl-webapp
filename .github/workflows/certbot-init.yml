@@ -1,0 +1,27 @@
+name: certbot-init
+on:
+  push:
+    branches:
+      - certbot/init
+env:
+  github_sha: ${{ github.sha }}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    # if: github.event.pull_request.merged
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v1
+        with:
+            fetch-depth: 1
+      - name: Set environment variables
+        run: | 
+            echo '::set-env name=TERM::xterm'
+      - name: Pull in docker images
+        run: |
+            source .env
+            echo ' - pull in my docker images as helpers'
+            docker login docker.pkg.github.com --username ${REPO_OWNER} --password ${{ secrets.github_token }} &>/dev/null
+            docker pull ${PROXY_DOCKER_IMAGE}
+
