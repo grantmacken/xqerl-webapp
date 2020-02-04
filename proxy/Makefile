@@ -38,28 +38,24 @@ dkrCpRun   := docker run --rm --mount $(mountNginxConf) --mount $(mountBuild)
 
 buildConfs := $(patsubst %,$(B)/nginx/%, $(wildcard conf/*))
 
-.PHONY: conf
-conf: $(D)/nginx-configuration.tar
+.PHONY: build
+build: $(D)/nginx-configuration.tar
 	@#$(DEO) bin/openresty -t
 	@#$(DEO) bin/openresty -s reload
 
 .PHONY: clean
 clean:
 	@echo '## $(@) ##'
-	@rm -f $(buildConfs)
+	@rm -f $(buildConfs) $(B)/nginx/conf/certs.conf
 	@rm -f $(D)/nginx-configuration.tar
 	@rm -fr $(T)/*
 
-$(D)/nginx-configuration.tar: build
+$(D)/nginx-configuration.tar: $(B)/nginx/conf/certs.conf confs
 	@mkdir -p $(dir $@)
-	@echo ' - tar the "nginx-confguration" volume into deploy directory' 
-	@$(dkrTarRun) --entrypoint "tar" $(PROXY_DOCKER_IMAGE) -czf - $(OPENRESTY_HOME)/nginx/conf > $@
-
-.PHONY: build
-build: $(B)/nginx/conf/certs.conf confs
-	@echo ' - build complete ... '
 	@echo ' - copy build files into "nginx-confguration" volume'
 	@$(dkrCpRun) --entrypoint "sh" $(PROXY_DOCKER_IMAGE) -c 'cp -r /tmp/nginx ./ '
+	@echo ' - tar the "nginx-confguration" volume into deploy directory' 
+	@$(dkrTarRun) --entrypoint "tar" $(PROXY_DOCKER_IMAGE) -czf - $(OPENRESTY_HOME)/nginx/conf > $@
 
 $(B)/nginx/conf/certs.conf: export mkCertsConf:=$(mkCertsConf)
 $(B)/nginx/conf/certs.conf:

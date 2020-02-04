@@ -56,13 +56,13 @@ jobs:
             echo '  the xqerl container internal IPAddress and published port'
             make
             popd
-      # - name: From static assets build pipeline to 'static-assets' volume
-      #   run: |
-      #       source .env   
-      #       echo " - build static assets for ${DOMAIN} website" 
-      #       pushd site/${DOMAIN}
-      #       make assets
-      #       popd
+      - name: From static assets build pipeline to 'static-assets' volume
+        run: |
+            source .env   
+            echo " - build static assets for ${DOMAIN} website" 
+            pushd site/${DOMAIN}
+            make assets
+            popd
       - name: Create generic Nginx configuration
         run: |
             source .env   
@@ -93,7 +93,6 @@ jobs:
             pushd proxy 
             make certs-into-vol
             # modify hosts file
-            ls -al /etc/hosts
             sudo echo "127.0.0.1 ${TLS_COMMON_NAME}" | sudo tee -a /etc/hosts
             popd
       - name: Bring proxy container up on 'github-actions'  host
