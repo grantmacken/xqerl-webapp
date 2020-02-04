@@ -5,7 +5,7 @@ SHELL=/bin/bash
 MAKEFLAGS += --warn-undefined-variables
 MAKEFLAGS += --no-builtin-rules
 ########################################
-include ../../../.env
+include ../../.env
 XQ := $(XQERL_CONTAINER_NAME)
 DOMAIN = gmack.nz
 T = response

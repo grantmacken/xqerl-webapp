@@ -44,7 +44,7 @@ MountBin   := type=bind,target=$(XQERL_HOME)/bin/scripts,source=$(CURDIR)/bin
 MountBuild := type=bind,target=/tmp,source=$(B)
 
 .PHONY: build
-build: $(T)/OK
+build: $(D)/xqerl-compiled-code.tar
 
 .PHONY: clean
 clean:
@@ -52,16 +52,6 @@ clean:
 	@rm -f $(BuildList)
 	@rm -f $(D)/xqerl-compiled-code.tar
 	@rm -f $(T)/*
-
-$(T)/OK: $(D)/xqerl-compiled-code.tar
-	@mkdir -p $(T)
-	@pushd tests &>/dev/null
-	@echo 'test restXQ routes with docker IP and port'
-	@$(MAKE) -silent --file restXQerl.mk clean
-	@$(MAKE) -silent --file restXQerl.mk 
-	@popd &>/dev/null
-	@$(EVAL) $(compiledLibs) > $@
-	@echo;printf %60s | tr ' ' '-' && echo
 
 $(D)/xqerl-compiled-code.tar: $(BuildList) 
 	@echo '## $(notdir $@) ##'
