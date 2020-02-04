@@ -19,30 +19,6 @@ AUTHENTICATOR = webroot
 OR := $(PROXY_CONTAINER_NAME)
 Gcmd := gcloud compute ssh $(GCE_NAME) --command
 
-define certsHelp
-```
-runs on gihub actions
-```
-name: certbot-init
-on:
-  push:
-    branches:
-      - certbot/init
-```
-
-git checkout -b certbot/init
-
-
-```
-make certsRenew INC=certs
-make certsToLocal
-```
-
-endef
-
-mkCertsHelp: export mkCertsHelp=$(certsHelp)
-mkCertsHelp:
-	@echo "$${mkCertsHelp}"
 
 
 define certbotConfig
@@ -69,7 +45,7 @@ logs-dir = /home
 endef
 
 $(T)/letsencrypt.volume: $(T)/gce-host.uploaded
-	$(Gcmd) 'docker cp ~/cli.ini  $(OR):$(LETSENCRYPT)/' | tee $@
+	@$(Gcmd) 'docker cp ~/cli.ini  $(OR):$(LETSENCRYPT)/' | tee $@
 
 $(T)/gce-host.uploaded: $(T)/cli.ini
 	@gcloud compute scp ./$< $(GCE_NAME):~/cli.ini 
@@ -77,7 +53,7 @@ $(T)/gce-host.uploaded: $(T)/cli.ini
 
 $(T)/cli.ini: export certbotConfig:=$(certbotConfig)
 $(T)/cli.ini:
-	@[ -d  $(dir $@) ] || mkdir $(dir $@)
+	@mkdir -p $(dir $@)
 	@echo "create cli config file"
 	@echo "$${certbotConfig}" | tee $@
 
@@ -92,9 +68,35 @@ certbotCertOnly:
 
 .PHONY: certsRenew
 certsRenew:
-	# $(@) #
-	@gcloud compute ssh gmack  --command \
- 'docker run -t --rm --name certbot \
+	@$(Gcmd) 'docker run -t --rm --name certbot \
  -v "letsencrypt:/etc/letsencrypt" \
  -v "html:/home" \
  certbot/certbot renew'
+
+
+
+define certsHelp
+```
+runs on gihub actions
+```
+name: certbot-init
+on:
+  push:
+    branches:
+      - certbot/init
+```
+
+git checkout -b certbot/init
+
+
+```
+make certsRenew INC=certs
+make certsToLocal
+```
+
+endef
+
+mkCertsHelp: export mkCertsHelp=$(certsHelp)
+mkCertsHelp:
+	@echo "$${mkCertsHelp}"
+
