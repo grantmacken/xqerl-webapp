@@ -76,21 +76,18 @@ config-test:
 
 .PHONY: info
 info: $(T)/log-status
+	@cat $<
 
 $(T)/log-status:
 	@echo "## $@ ##"
 	@mkdir -p $(T)
-	@docker ps --all 
 	@docker ps --filter name=$(OR) --format '  name: {{.Names}}' > $@
 	@docker ps --filter name=$(OR) --format  'status: {{.Status}}'  >> $@
 	@docker ps --filter name=$(OR) --format '  ports:  {{.Ports}}' >> $@
-	@docker inspect --format='IP addr {{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' $(OR) >> $@
-	@cat $@
+	@docker inspect --format='IP addr: {{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' $(OR) >> $@
 
 
-.PHONY: info2
-info2: $(T)/versionInfo
-	@docker exec -t or openresty -t
+$(T)/version-info:
 	@docker exec -t or openresty -v
 	@echo 'nginx modules'
 	@grep -oP '^..add.module.+$$' $< 

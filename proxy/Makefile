@@ -48,6 +48,7 @@ clean:
 	@echo '## $(@) ##'
 	@rm -f $(buildConfs)
 	@rm -f $(D)/nginx-configuration.tar
+	@rm -fr $(T)/*
 
 $(D)/nginx-configuration.tar: build
 	@mkdir -p $(dir $@)

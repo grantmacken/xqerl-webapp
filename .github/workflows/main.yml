@@ -102,12 +102,12 @@ jobs:
             make up
             make info
             popd
-      ## - name: Use Curl with Grep to run some website tests
-      ##   run: |
-      ##       source .env
-      ##       pushd site/${DOMAIN}/tests
-      ##       make 
-      ##       popd
+      - name: Use Curl with Grep to run some website tests
+        run: |
+            source .env
+            pushd tests/proxy
+            make 
+            popd
       # - name: Take both containers down
       #   run: |
       #       source .env
