@@ -107,15 +107,15 @@ jobs:
             pushd tests/proxy
             make 
             popd
-      # - name: Take both containers down
-      #   run: |
-      #       source .env
-      #       pushd site/${DOMAIN} 
-      #       make down
-      #       popd
-      #       pushd proxy
-      #       make down
-      #       popd
+      - name: Take both containers down
+        run: |
+            source .env
+            pushd site/${DOMAIN} 
+            make down
+            popd
+            pushd proxy
+            make down
+            popd
       #  - name: GCE host pull in docker images
       #    run: |
       #        source .env
