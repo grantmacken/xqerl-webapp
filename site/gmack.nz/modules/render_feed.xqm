@@ -271,7 +271,8 @@ function feed:render( $map as map(*) ) {
         (: feed:recent-entries( $map ) :)
       },
       element aside {
-        feed:sign-in-form( $map('card') )
+        "TODO"
+        (:feed:sign-in-form( $map('card') ) :)
         },
       feed:footer( $map('card') )
       }

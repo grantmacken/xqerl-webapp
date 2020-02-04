@@ -2,6 +2,7 @@ tmp
 .build
 .tmp
 .deploy
+deploy
 proxy/certs
 notes
 site/markup.nz

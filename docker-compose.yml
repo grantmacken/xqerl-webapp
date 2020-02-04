@@ -19,7 +19,7 @@ services:
         target: ${OPENRESTY_HOME}/nginx/conf
       - type: volume
         source: lualib
-        target: ${OPENRESTY_HOME}/site/lualib/${REPO_OWNER}
+        target: ${OPENRESTY_HOME}/site/lualib
     depends_on:
       - "${XQERL_CONTAINER_NAME}"
   xq:
