@@ -18,10 +18,32 @@ jobs:
       - name: Set environment variables
         run: | 
             echo '::set-env name=TERM::xterm'
-      - name: Pull in docker images
+      - name: Pull in docker image
         run: |
             source .env
             echo ' - pull in my docker images as helpers'
             docker login docker.pkg.github.com --username ${REPO_OWNER} --password ${{ secrets.github_token }} &>/dev/null
             docker pull ${PROXY_DOCKER_IMAGE}
+      - name: Setup Gcloud
+        uses: googlecloudplatform/github-actions/setup-gcloud@master
+        with:
+            version: "270.0.0"
+            service_account_email: ${{ secrets.client_email }}
+            service_account_key: ${{ secrets.gce_key }}
+      - name: Configure GCE project
+        run: |
+            source .env
+            gcloud config set project ${GCE_PROJECT}
+            gcloud config set compute/zone ${GCE_ZONE}
+            # gcloud compute instances list
+            gcloud compute config-ssh &>/dev/null
+            gcloud compute ssh ${GCE_NAME} --command \
+            "docker pull ${XQERL_DOCKER_IMAGE} && docker pull ${PROXY_DOCKER_IMAGE}"
+            #gcloud info
+      - name: Create certbot ini and place in letsenypt volume
+        run: |
+            source .env
+            pushd gcloud
+            make -f certbot.mk
+            popd
 

@@ -68,26 +68,18 @@ eff-email = true
 logs-dir = /home
 endef
 
-$(T)/into-letsenypt.vol: $(T)/ini-into-host.uploaded
-	$(Gcmd) 'docker cp ~/cli.ini  or:/etc/letsencrypt/'
+$(T)/letsencrypt.volume: $(T)/gce-host.uploaded
+	$(Gcmd) 'docker cp ~/cli.ini  $(OR):$(LETSENCRYPT)/' | tee $@
 
-$(T)/ini-into-host.uploaded: $(T)/cli.ini
+$(T)/gce-host.uploaded: $(T)/cli.ini
 	@gcloud compute scp ./$< $(GCE_NAME):~/cli.ini 
 	@$(Gcmd) 'ls -al cli.ini' | tee $@
-	@gcloud compute ssh gmack --command 'docker cp ~/cli.ini  $(OR):$(LETSENCRYPT)/' | tee $@
 
 $(T)/cli.ini: export certbotConfig:=$(certbotConfig)
 $(T)/cli.ini:
 	@[ -d  $(dir $@) ] || mkdir $(dir $@)
 	@echo "create cli config file"
 	@echo "$${certbotConfig}" | tee $@
-
-cbConfig: $(T)/cli.ini
-
-cbConfigClean:
-	@rm $(T)/cli.ini
-
-
 
 
 .PHONY: certbotCertOnly
