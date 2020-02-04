@@ -36,17 +36,36 @@ tarList := $(wildcard *.tar)
 
 # Default - top level rule is what gets ran when you run just `make`
 .PHONY: build
-build: $(B)/xqerl-compile.complete
+build: $(B)/xqerl-compile.complete $(B)/proxy-up
 
 .PHONY: clean
 clean:
 	@rm -fr $(B)/*
 
-.PHONY: proxy
-proxy: $(D)/nginx-configuration.volume
+
+$(B)/xqerl-compile.complete: $(B)/xqerl-compiled-code.volume $(B)/xqerl.up
 	@echo '##[ $@ ]##'
-	@$(Gor) 'bin/openresty -t' 
-	@$(Gor) 'bin/openresty -s reload'
+	@$(GCmd) 'xqerl eval \
+"xqerl:compile(\"code/src/newBase60.xqm\"),\
+xqerl:compile(\"code/src/render_feed.xqm\"),\
+xqerl:compile(\"code/src/render_feed.xqm\"),\
+xqerl:compile(\"code/src/routes.xqm\")."'
+	@$(GCmd)  \
+ 'xqerl eval "lists:sort([binary_to_list(X) || X <- xqerl_code_server:library_namespaces()])"'  | tee $@
+
+# XQERL VOLUME 
+##############
+
+$(B)/xqerl-compiled-code.volume: $(B)/tars-into-gce-host.moved $(D)/xqerl-compiled-code.tar
+	@mkdir -p $(dir $@)
+	@# extract tar into volume
+	@$(Gcmd) 'docker run --rm \
+ --mount $(mountCode) \
+ --mount $(mountDeploy) \
+ --entrypoint "tar" $(XQERL_DOCKER_IMAGE) xvf /tmp/xqerl-compiled-code.tar -C /' | tee $(@)
+
+# PROXY VOLUMES
+################
 
 $(B)/nginx-configuration.volume: $(B)/tars-into-gce-host.moved $(D)/nginx-configuration.tar
 	@mkdir -p $(dir $@)
@@ -68,26 +87,8 @@ $(B)/static-assets.volume: $(B)/tars-into-gce-host.moved $(D)/static-assets.tar
  --entrypoint "tar" $(PROXY_DOCKER_IMAGE) xvf /tmp/static-assets.tar -C /' | tee $(@)
 	@printf %60s | tr ' ' '-' && echo
 
-# $(B)/volumes.checked
-# this is call from github action but may be called locally
-# newBase60 render_feed render_note micropub routes
-$(B)/xqerl-compile.complete: $(B)/xqerl-compiled-code.volume $(B)/xqerl.up
-	@echo '##[ $@ ]##'
-	@$(GCmd) 'xqerl eval \
-"xqerl:compile(\"code/src/newBase60.xqm\"),\
-xqerl:compile(\"code/src/render_feed.xqm\"),\
-xqerl:compile(\"code/src/render_feed.xqm\"),\
-xqerl:compile(\"code/src/routes.xqm\")."'
-	@$(GCmd)  \
- 'xqerl eval "lists:sort([binary_to_list(X) || X <- xqerl_code_server:library_namespaces()])"'  | tee $@
-
-$(B)/xqerl-compiled-code.volume: $(B)/tars-into-gce-host.moved $(D)/xqerl-compiled-code.tar
-	@mkdir -p $(dir $@)
-	@# extract tar into volume
-	@$(Gcmd) 'docker run --rm \
- --mount $(mountCode) \
- --mount $(mountDeploy) \
- --entrypoint "tar" $(XQERL_DOCKER_IMAGE) xvf /tmp/xqerl-compiled-code.tar -C /' | tee $(@)
+# TARS MOVED INTO GEC HOST
+##########################
 
 $(B)/tars-into-gce-host.moved: 
 	@mkdir -p $(dir $@)
@@ -95,6 +96,54 @@ $(B)/tars-into-gce-host.moved:
 	@gcloud compute scp $(D) $(GCE_NAME):~/ --recurse
 	$(Gcmd) 'ls -al deploy' | tee $@
 	@printf %60s | tr ' ' '-' && echo
+
+# PROXY
+#######
+
+$(B)/proxy-up: $(B)/nginx-configuration.tested
+	@echo '##[ $@ ]##'
+	@$(Gcmd) 'docker ps --filter name=$(OR) --format "{{.Status}}" | grep -q Up || \
+ docker run  \
+ --mount $(mountNginxConf) \
+ --mount $(mountNginxHtml) \
+ --mount $(mountLetsencrypt) \
+ --mount $(mountSiteLualib) \
+ --name  $(OR) \
+ --hostname openresty \
+ --network $(NETWORK) \
+ --publish 80:80 \
+ --publish 443:443 \
+ --detach \
+ $(PROXY_DOCKER_IMAGE)' && $(Gor) 'bin/openresty -s reload'
+	@sleep 2
+	@$(Gcmd) 'docker ps --filter name=$(OR) --format "{{.Names}} {{.Status}} "' | tee $@
+
+$(B)/nginx-configuration.tested: $(B)/nginx-configuration.volume $(B)/static-assets.volume
+	@# test configuration with dummy volume
+	@$(Gcmd) 'docker run --rm \
+ --mount $(mountNginxConf) \
+ --mount $(mountLetsencrypt) \
+ --mount $(mountNginxHtml) \
+ --network $(NETWORK) \
+ --entrypoint "sh" $(PROXY_DOCKER_IMAGE) -c "./bin/openresty -t"' | tee $(@)
+
+
+# XERL runs before PROXY
+########################
+
+$(B)/xqerl.up: $(B)/volumes.checked
+	@echo '##[ $@ ]##'
+	@$(Gcmd) 'docker ps --filter name=$(XQ) --format "{{.Status}}" | grep -q Up || \
+ docker run \
+ --mount $(mountCode) \
+ --mount $(mountData) \
+ --name  $(XQ) \
+ --hostname xqerl \
+ --network $(NETWORK) \
+ --publish $(XQERL_PORT):$(XQERL_PORT) \
+ --detach $(XQERL_DOCKER_IMAGE)' 
+	@sleep 2
+	@$(Gcmd) 'docker ps --filter name=$(XQ) --format "{{.Names}} {{.Status}} "' | tee $@
 
 $(B)/volumes.checked: $(B)/volumes.list
 	@mkdir -p $(dir $@)
@@ -117,40 +166,12 @@ $(B)/volumes.list:
 	@mkdir -p $(dir $@)
 	@$(Gcmd) 'docker volume list --format "{{.Name}}"' | tee $@
 	@printf %60s | tr ' ' '-' && echo
-	@#cat $@
 
-.PHONY: proxy-up
-proxy-up:
-	@echo '##[ $@ ]##'
-	@$(Gcmd) 'docker ps --filter name=$(OR) --format "{{.Status}}" | grep -q Up || \
- docker run  \
- --mount $(mountNginxConf) \
- --mount $(mountNginxHtml) \
- --mount $(mountLetsencrypt) \
- --mount $(mountSiteLualib) \
- --name  $(OR) \
- --hostname openresty \
- --network $(NETWORK) \
- --publish 80:80 \
- --publish 443:443 \
- --detach \
- $(PROXY_DOCKER_IMAGE)'
-	@sleep 2
-	@$(Gcmd) 'docker ps --filter name=$(OR)'
 
-$(B)/xqerl.up: $(B)/volumes.checked
-	@echo '##[ $@ ]##'
-	@$(Gcmd) 'docker ps --filter name=$(XQ) --format "{{.Status}}" | grep -q Up || \
- docker run \
- --mount $(mountCode) \
- --mount $(mountData) \
- --name  $(XQ) \
- --hostname xqerl \
- --network $(NETWORK) \
- --publish $(XQERL_PORT):$(XQERL_PORT) \
- --detach $(XQERL_DOCKER_IMAGE)' 
-	@sleep 2
-	@$(Gcmd) 'docker ps --filter name=$(XQ) --format "{{.Names}} {{.Status}} "' | tee $@
+
+###############
+### UTILITY ###
+###############
 
 .PHONY: xq-down
 xq-down: 
