@@ -48,7 +48,7 @@ proxy: $(D)/nginx-configuration.volume
 	@$(Gor) 'bin/openresty -t' 
 	@$(Gor) 'bin/openresty -s reload'
 
-$(B)/nginx-configuration.volume: $(D)/nginx-configuration.tar
+$(B)/nginx-configuration.volume: $(B)/tars-into-gce-host.moved $(D)/nginx-configuration.tar
 	@mkdir -p $(dir $@)
 	@# extract tar into volume
 	@$(Gcmd) 'docker run --rm \
@@ -59,7 +59,7 @@ $(B)/nginx-configuration.volume: $(D)/nginx-configuration.tar
 	@# should be able to create backup restore points by creating a date-time stamp
 	@printf %60s | tr ' ' '-' && echo
 
-$(B)/static-assets.volume: $(D)/static-assets.tar
+$(B)/static-assets.volume: $(B)/tars-into-gce-host.moved $(D)/static-assets.tar
 	@mkdir -p $(dir $@)
 	@# extract tar into volume
 	@$(Gcmd) 'docker run --rm \
@@ -67,7 +67,6 @@ $(B)/static-assets.volume: $(D)/static-assets.tar
  --mount $(mountDeploy) \
  --entrypoint "tar" $(PROXY_DOCKER_IMAGE) xvf /tmp/static-assets.tar -C /' | tee $(@)
 	@printf %60s | tr ' ' '-' && echo
-
 
 # $(B)/volumes.checked
 # this is call from github action but may be called locally
@@ -82,7 +81,7 @@ xqerl:compile(\"code/src/routes.xqm\")."'
 	@$(GCmd)  \
  'xqerl eval "lists:sort([binary_to_list(X) || X <- xqerl_code_server:library_namespaces()])"'  | tee $@
 
-$(B)/xqerl-compiled-code.volume: $(B)/tars-into-gce-host.moved
+$(B)/xqerl-compiled-code.volume: $(B)/tars-into-gce-host.moved $(D)/xqerl-compiled-code.tar
 	@mkdir -p $(dir $@)
 	@# extract tar into volume
 	@$(Gcmd) 'docker run --rm \
@@ -91,6 +90,7 @@ $(B)/xqerl-compiled-code.volume: $(B)/tars-into-gce-host.moved
  --entrypoint "tar" $(XQERL_DOCKER_IMAGE) xvf /tmp/xqerl-compiled-code.tar -C /' | tee $(@)
 
 $(B)/tars-into-gce-host.moved: 
+	@mkdir -p $(dir $@)
 	@$(Gcmd) 'rm -fr ./deploy' 
 	@gcloud compute scp $(D) $(GCE_NAME):~/ --recurse
 	$(Gcmd) 'ls -al deploy' | tee $@
