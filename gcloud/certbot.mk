@@ -18,7 +18,7 @@ DELIMIT := $(COMMA)$(EMPTY)
 AUTHENTICATOR = webroot
 OR := $(PROXY_CONTAINER_NAME)
 Gcmd := gcloud compute ssh $(GCE_NAME) --command
-
+Gor  := gcloud compute ssh $(GCE_NAME) --container $(OR) --command 
 
 
 define certbotConfig
@@ -70,6 +70,7 @@ certonly:
  --mount $(mountLetsencrypt) \
  --network $(NETWORK) \
  certbot/certbot certonly --dry-run'
+	@$(Gor) './bin/openresty -s reload'
  
  # --name certbot \
  # -v "letsencrypt:/etc/letsencrypt" \
@@ -81,7 +82,7 @@ renew:
  --mount $(mountNginxHtml) \
  --mount $(mountLetsencrypt) \
  --network $(NETWORK) \
- certbot/certbot renew  --dry-run'
+ certbot/certbot renew --quiet'
 
 .PHONY: certs
 certs:
