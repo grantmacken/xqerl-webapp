@@ -30,7 +30,7 @@ email = $(GIT_EMAIL)
 
 # Uncomment and update to generate certificates for the specified
 # domains.
-# domains = gmack.nz
+domains = $(DOMAINS)
 
 # use a text interface instead of ncurses
 text = true
@@ -38,7 +38,7 @@ text = true
 # use the webroot authenticator.
 # set path to the default html dir
 authenticator = $(AUTHENTICATOR)
-# webroot-path = /home
+webroot-path = /home
 agree-tos = true
 eff-email = true
 logs-dir = /home
@@ -57,7 +57,7 @@ $(T)/cli.ini:
 	@echo "create cli config file"
 	@echo "$${certbotConfig}" | tee $@
 
-# home is on certbot containwe
+# home is on certbot container
 # static-assets maps to $(OPENRESTY_HOME)/nginx/conf
 mountNginxHtml  :=  type=volume,source=static-assets,target=/home
 mountLetsencrypt := type=volume,source=letsencrypt,target=$(LETSENCRYPT)
@@ -69,7 +69,12 @@ certonly:
  --mount $(mountNginxHtml) \
  --mount $(mountLetsencrypt) \
  --network $(NETWORK) \
- certbot/certbot certonly --dry-run'
+ certbot/certbot certonly \
+ --webroot \
+ --webroot-path \
+ $(OPENRESTY_HOME)/nginx/html \
+-d gmack.nz \
+ --dry-run'
  
  # --name certbot \
  # -v "letsencrypt:/etc/letsencrypt" \
@@ -81,7 +86,7 @@ renew:
  --mount $(mountNginxHtml) \
  --mount $(mountLetsencrypt) \
  --network $(NETWORK) \
- certbot/certbot renew  --dry-run'
+ certbot/certbot renew --dry-run -w /home -d gmack.nz 
 
 .PHONY: certs
 certs:
@@ -127,4 +132,4 @@ ls:
  --mount $(mountLetsencrypt) \
  --network $(NETWORK) \
  --entrypoint "sh" \
- $(PROXY_DOCKER_IMAGE) -c "cat $(LETSENCRYPT)/cli.ini"'
+ $(PROXY_DOCKER_IMAGE) -c ""'
