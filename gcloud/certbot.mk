@@ -30,7 +30,7 @@ email = $(GIT_EMAIL)
 
 # Uncomment and update to generate certificates for the specified
 # domains.
-domains = $(DOMAINS)
+domains = $(subst ',,$(DOMAINS))
 
 # use a text interface instead of ncurses
 text = true
@@ -70,10 +70,6 @@ certonly:
  --mount $(mountLetsencrypt) \
  --network $(NETWORK) \
  certbot/certbot certonly \
- --webroot \
- --webroot-path \
- $(OPENRESTY_HOME)/nginx/html \
--d gmack.nz \
  --dry-run'
  
  # --name certbot \
