@@ -30,7 +30,7 @@ email = $(GIT_EMAIL)
 
 # Uncomment and update to generate certificates for the specified
 # domains.
-domains = $(subst ',,$(DOMAINS))
+domains = $(DOMAINS)
 
 # use a text interface instead of ncurses
 text = true
@@ -128,4 +128,4 @@ ls:
  --mount $(mountLetsencrypt) \
  --network $(NETWORK) \
  --entrypoint "sh" \
- $(PROXY_DOCKER_IMAGE) -c ""'
+ $(PROXY_DOCKER_IMAGE) -c "cat $(LETSENCRYPT)/cli.ini "'
