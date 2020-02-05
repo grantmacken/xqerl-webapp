@@ -30,7 +30,7 @@ email = $(GIT_EMAIL)
 
 # Uncomment and update to generate certificates for the specified
 # domains.
-domains = gmack.nz zie.nz markup.nz
+domains = gmack.nz
 
 # use a text interface instead of ncurses
 text = true
