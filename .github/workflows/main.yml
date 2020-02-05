@@ -1,21 +1,9 @@
 name: continuous-integration
 on:
-  pull_request:
-    types: [closed]
+  push:
     branches:
       - master
-
-# on:
-#   push:
-#     branches: master
-# on:
-#   pull_request:
-#     types: [closed]
-#     branches:
-#       - master
-# on:
-#   push:
-#     branches: master
+#https://help.github.com/en/actions/automating-your-workflow-with-github-actions/workflow-syntax-for-github-actions#onevent_nametypes
 # environment variables available to all jobs and steps in this workflow
 env:
   github_sha: ${{ github.sha }}
