@@ -82,7 +82,7 @@ renew:
  --mount $(mountNginxHtml) \
  --mount $(mountLetsencrypt) \
  --network $(NETWORK) \
- certbot/certbot renew --dry-run -w /home -d gmack.nz 
+ certbot/certbot renew'
 
 .PHONY: certs
 certs:
