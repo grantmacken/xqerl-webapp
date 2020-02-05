@@ -70,19 +70,26 @@ certonly:
  --mount $(mountLetsencrypt) \
  --network $(NETWORK) \
  certbot/certbot certonly --dry-run'
-	@$(Gor) './bin/openresty -s reload'
  
  # --name certbot \
  # -v "letsencrypt:/etc/letsencrypt" \
  # -v "html:/home" \
-
+ 
 .PHONY: renew
-renew:
+renew: nginx.reload
+
+nginx.reload: certs.renew
+	@grep -oP 'Cert not yet due for renewal' $< || \
+ $(Gor) './bin/openresty -s reload' | tee $@
+
+certs.renew:
 	@$(Gcmd) 'docker run -t --rm \
  --mount $(mountNginxHtml) \
  --mount $(mountLetsencrypt) \
  --network $(NETWORK) \
- certbot/certbot renew --quiet'
+ certbot/certbot renew' | tee $@
+
+
 
 .PHONY: certs
 certs:
