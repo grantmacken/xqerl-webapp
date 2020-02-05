@@ -30,7 +30,7 @@ email = $(GIT_EMAIL)
 
 # Uncomment and update to generate certificates for the specified
 # domains.
-domains = $(subst $(SPACE),$(DELIMIT)$(SPACE),$(DOMAINS))
+domains = gmack.nz
 
 # use a text interface instead of ncurses
 text = true
@@ -57,22 +57,42 @@ $(T)/cli.ini:
 	@echo "create cli config file"
 	@echo "$${certbotConfig}" | tee $@
 
+# home is on certbot containwe
+# static-assets maps to $(OPENRESTY_HOME)/nginx/conf
+mountNginxHtml  :=  type=volume,source=static-assets,target=/home
+mountLetsencrypt := type=volume,source=letsencrypt,target=$(LETSENCRYPT)
 
-.PHONY: certbotCertOnly
-certbotCertOnly:
+.PHONY: certonly
+certonly:
 	# $(@) #
-	@gcloud compute ssh gmack --command 'docker run -t --rm --name certbot \
- -v "letsencrypt:/etc/letsencrypt" \
- -v "html:/home" \
- certbot/certbot certonly'
+	@$(Gcmd) 'docker run -t --rm \
+ --mount $(mountNginxHtml) \
+ --mount $(mountLetsencrypt) \
+ --network $(NETWORK) \
+ certbot/certbot certonly --dry-run'
+ 
+ # --name certbot \
+ # -v "letsencrypt:/etc/letsencrypt" \
+ # -v "html:/home" \
 
-.PHONY: certsRenew
-certsRenew:
-	@$(Gcmd) 'docker run -t --rm --name certbot \
- -v "letsencrypt:/etc/letsencrypt" \
- -v "html:/home" \
- certbot/certbot renew'
+.PHONY: renew
+renew:
+	@$(Gcmd) 'docker run -t --rm \
+ --mount $(mountNginxHtml) \
+ --mount $(mountLetsencrypt) \
+ --network $(NETWORK) \
+ certbot/certbot renew  --dry-run'
 
+.PHONY: certs
+certs:
+	@$(Gcmd) 'docker run -t --rm \
+  -v "letsencrypt:/etc/letsencrypt" \
+  -v "static-assets:/home" \
+ certbot/certbot certificates'
+
+.PHONY: dates
+dates:
+	@echo | openssl s_client -connect $(TLS_COMMON_NAME):443 2>/dev/null | openssl x509 -noout -dates
 
 
 define certsHelp
@@ -100,3 +120,11 @@ mkCertsHelp: export mkCertsHelp=$(certsHelp)
 mkCertsHelp:
 	@echo "$${mkCertsHelp}"
 
+.PHONY: ls
+ls:
+	@$(Gcmd) 'docker run -t --rm \
+ --mount $(mountNginxHtml) \
+ --mount $(mountLetsencrypt) \
+ --network $(NETWORK) \
+ --entrypoint "sh" \
+ $(PROXY_DOCKER_IMAGE) -c "cat $(LETSENCRYPT)/cli.ini"'
