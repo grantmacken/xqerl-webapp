@@ -30,7 +30,9 @@ email = $(GIT_EMAIL)
 
 # Uncomment and update to generate certificates for the specified
 # domains.
+
 domains = $(DOMAINS)
+
 
 # use a text interface instead of ncurses
 text = true
@@ -57,7 +59,7 @@ $(T)/cli.ini:
 	@echo "create cli config file"
 	@echo "$${certbotConfig}" | tee $@
 
-# home is on certbot container
+
 # static-assets maps to $(OPENRESTY_HOME)/nginx/conf
 mountNginxHtml  :=  type=volume,source=static-assets,target=/home
 mountLetsencrypt := type=volume,source=letsencrypt,target=$(LETSENCRYPT)
@@ -69,8 +71,8 @@ certonly:
  --mount $(mountNginxHtml) \
  --mount $(mountLetsencrypt) \
  --network $(NETWORK) \
- certbot/certbot certonly \
- --dry-run'
+ certbot/certbot certonly --dry-run'
+
  
  # --name certbot \
  # -v "letsencrypt:/etc/letsencrypt" \
@@ -82,7 +84,8 @@ renew:
  --mount $(mountNginxHtml) \
  --mount $(mountLetsencrypt) \
  --network $(NETWORK) \
- certbot/certbot renew'
+ certbot/certbot renew  --dry-run'
+
 
 .PHONY: certs
 certs:
@@ -128,4 +131,5 @@ ls:
  --mount $(mountLetsencrypt) \
  --network $(NETWORK) \
  --entrypoint "sh" \
- $(PROXY_DOCKER_IMAGE) -c "cat $(LETSENCRYPT)/cli.ini "'
+ $(PROXY_DOCKER_IMAGE) -c "cat $(LETSENCRYPT)/cli.ini"'
+
