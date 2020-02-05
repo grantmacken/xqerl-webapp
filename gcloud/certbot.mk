@@ -30,7 +30,7 @@ email = $(GIT_EMAIL)
 
 # Uncomment and update to generate certificates for the specified
 # domains.
-domains = gmack.nz
+# domains = gmack.nz
 
 # use a text interface instead of ncurses
 text = true
@@ -38,7 +38,7 @@ text = true
 # use the webroot authenticator.
 # set path to the default html dir
 authenticator = $(AUTHENTICATOR)
-webroot-path = /home
+# webroot-path = /home
 agree-tos = true
 eff-email = true
 logs-dir = /home
