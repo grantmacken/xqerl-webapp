@@ -9,10 +9,10 @@ include ../.env
 OR := $(PROXY_CONTAINER_NAME)
 T := .tmp
 B := .build
-D :=  ../deploy
+D := ../deploy
+$(shell mkdir -p ./{$(T),$(B),$(D)})
 
 DEO  = docker exec $(OR)
-
 
 ###########################
 ### NGINX CONFIGURATION ###
@@ -51,7 +51,6 @@ clean:
 	@rm -fr $(T)/*
 
 $(D)/nginx-configuration.tar: $(B)/nginx/conf/certs.conf confs
-	@mkdir -p $(dir $@)
 	@echo ' - copy build files into "nginx-confguration" volume'
 	@$(dkrCpRun) --entrypoint "sh" $(PROXY_DOCKER_IMAGE) -c 'cp -r /tmp/nginx ./ '
 	@echo ' - tar the "nginx-confguration" volume into deploy directory' 
@@ -60,7 +59,6 @@ $(D)/nginx-configuration.tar: $(B)/nginx/conf/certs.conf confs
 $(B)/nginx/conf/certs.conf: export mkCertsConf:=$(mkCertsConf)
 $(B)/nginx/conf/certs.conf:
 	@echo '## $(patsubst $(B)/%,%,$@) ##'
-	@mkdir -p $(dir $@)
 	@echo "$${mkCertsConf}" > $@
 
 .PHONY: confs
@@ -85,12 +83,11 @@ watch-confs:
 #################################################
 ### OPENRESTY UP DOWN RESTART and TEST CONFIG ###
 #################################################
+orRunning != docker inspect -f '{{.State.Running}}' $(OR) | grep -oP '^true' || true
+orExited  != docker ps --all --filter name=$(OR) --format '{{.Status}}' | grep -oP '^Exited' || true
 
-
-.PHONY: up
-up: $(B)/certs.check  $(B)/network.check $(B)/port.check
-	@docker ps --filter name=$(OR) --format '{{.Status}}' | grep -oP '^Up.+$$' || \
- docker run  \
+define orRun
+docker run  \
  --mount $(mountNginxConf) \
  --mount $(mountNginxHtml) \
  --mount $(mountLetsencrypt) \
@@ -102,8 +99,22 @@ up: $(B)/certs.check  $(B)/network.check $(B)/port.check
  --publish 443:443 \
  --detach \
  $(PROXY_DOCKER_IMAGE)
+endef
 
-$(B)/certs.check: $(B)/volumes.check
+.PHONY: up
+up: clean $(T)/start.check
+	@$(if $(strip $(orExited)$(orRunning)), echo ' - running', echo ' - removed')
+	@$(if $(strip $(orExited)$(orRunning)),,$(orRun))
+
+
+# $(T)/certs.check  $(T)/network.check $(T)/port.check
+
+.PHONY: $(T)/start.check
+$(T)/start.check: 
+	@$(if $(orExited),echo  ' - status container $(OR) [ $(orExited) ]',)
+	@$(if $(orExited),echo -n ' - starting container: ' && docker start $(OR) && sleep 2,) 
+
+$(T)/certs.check: $(T)/volumes.check
 	@mkdir -p $(dir $@)
 	@# inspect mounted volume for certs
 	@docker run --rm \
@@ -119,7 +130,7 @@ $(B)/certs.check: $(B)/volumes.check
 MustHaveVolume = docker volume list --format "{{.Name}}" | \
  grep -q $(1) || docker volume create --driver local --name $(1)
 
-$(B)/volumes.check:
+$(T)/volumes.check:
 	@echo '##[ $@ ]##'
 	@docker volume list  --format "{{.Name}}" > $@
 	@$(call MustHaveVolume,nginx-configuration)
@@ -127,26 +138,25 @@ $(B)/volumes.check:
 	@$(call MustHaveVolume,letsencrypt)
 	@$(call MustHaveVolume,site-lualib)
 
-$(B)/network.check:
+$(T)/network.check:
 	@echo '##[ $@ ]##'
 	@docker network list --format '{{.Name}}' | tee $@
 	@grep -oP '^$(NETWORK)$$' $@ || docker network create $(NETWORK)
 
-$(B)/port.check:
+$(T)/port.check:
 	@echo '##[ $@ ]##'
 	@echo -n ' - check TLS port '
 	@docker ps --format '{{.Ports}}' | tee $@
 	@grep -oP '^(.+)443->\K(443)' $@ || echo  '[ 443 ] OK! can use.'
 	@grep -oP '^(.+)443->\K(443)' $@ && echo  '[ 443 ] already in use '
-	@# docker ps --filter name=$(OR) --format '{{.Status}}' | grep -q '^Up'
 
 .PHONY: down
 down: 
 	@echo '##[ $@ ]##'
-	@docker ps --filter name=$(OR) --format '{{.Status}}' | grep -oP '^Up.+$$' && docker stop $(OR)
-	@docker ps --all --filter name=$(OR) --format '{{.Status}}' | grep -oP '^Exited.+$$' && docker rm $(OR)
-	@docker  ps --all
-	@rm -f $(T)/*
+	@$(if $(orExited),echo ' - status $(OR) [ $(orExited) ]',)
+	@$(if $(orRunning),echo -n ' - stopping ' && docker stop $(OR),)
+	@#@docker ps --filter name=$(OR) --format '{{.Status}}' | grep -oP '^Up.+$$' && docker stop $(OR)
+	@#docker ps --all --filter name=$(OR) --format '{{.Status}}' | grep -oP '^Exited.+$$' && docker rm $(OR)
 
 .PHONY: restart
 restart:
