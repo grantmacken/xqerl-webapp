@@ -105,6 +105,6 @@ test: clean routes icons
 
 .PHONY: clean
 clean: 
-	@rm -r $(T)/* || echo
+	@[ -d $(T) ] && rm -r $(T)/*
 
 include routes.mk icons.mk

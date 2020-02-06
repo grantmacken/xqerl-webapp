@@ -34,9 +34,9 @@ mountBuild       := type=bind,target=/tmp,source=$(CURDIR)/$(B)
 
 dkrTarRun  := docker run --rm --mount $(mountNginxConf)
 dkrCpRun   := docker run --rm --mount $(mountNginxConf) --mount $(mountBuild) 
-
-
 buildConfs := $(patsubst %,$(B)/nginx/%, $(wildcard conf/*))
+
+orAddress  := docker inspect --format='{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' $(OR)
 
 .PHONY: build
 build: $(D)/nginx-configuration.tar
@@ -82,5 +82,150 @@ watch-confs:
         inotifywait -qre close_write . ; \
     done
 
-include .inc/up.mk .inc/certs.mk 
+#################################################
+### OPENRESTY UP DOWN RESTART and TEST CONFIG ###
+#################################################
+
+
+.PHONY: up
+up: $(B)/certs.check  $(B)/network.check $(B)/port.check
+	@docker ps --filter name=$(OR) --format '{{.Status}}' | grep -oP '^Up.+$$' || \
+ docker run  \
+ --mount $(mountNginxConf) \
+ --mount $(mountNginxHtml) \
+ --mount $(mountLetsencrypt) \
+ --mount $(mountSiteLualib) \
+ --name  $(OR) \
+ --hostname openresty \
+ --network $(NETWORK) \
+ --publish 80:80 \
+ --publish 443:443 \
+ --detach \
+ $(PROXY_DOCKER_IMAGE)
+
+$(B)/certs.check: $(B)/volumes.check
+	@mkdir -p $(dir $@)
+	@# inspect mounted volume for certs
+	@docker run --rm \
+ --mount $(mountLetsencrypt) \
+ --entrypoint "sh" $(PROXY_DOCKER_IMAGE) -c \
+ 'ls -al $(LETSENCRYPT)/live/$(TLS_COMMON_NAME)' | tee $@
+	@# checks will remove certs.check if failure
+	@grep -q 'privkey' $@
+	@grep -q 'fullchain' $@
+	@grep -q 'chain.pem' $@
+	@grep -q 'cert' $@
+
+MustHaveVolume = docker volume list --format "{{.Name}}" | \
+ grep -q $(1) || docker volume create --driver local --name $(1)
+
+$(B)/volumes.check:
+	@echo '##[ $@ ]##'
+	@docker volume list  --format "{{.Name}}" > $@
+	@$(call MustHaveVolume,nginx-configuration)
+	@$(call MustHaveVolume,static-assets)
+	@$(call MustHaveVolume,letsencrypt)
+	@$(call MustHaveVolume,site-lualib)
+
+$(B)/network.check:
+	@echo '##[ $@ ]##'
+	@docker network list --format '{{.Name}}' | tee $@
+	@grep -oP '^$(NETWORK)$$' $@ || docker network create $(NETWORK)
+
+$(B)/port.check:
+	@echo '##[ $@ ]##'
+	@echo -n ' - check TLS port '
+	@docker ps --format '{{.Ports}}' | tee $@
+	@grep -oP '^(.+)443->\K(443)' $@ || echo  '[ 443 ] OK! can use.'
+	@grep -oP '^(.+)443->\K(443)' $@ && echo  '[ 443 ] already in use '
+	@# docker ps --filter name=$(OR) --format '{{.Status}}' | grep -q '^Up'
+
+.PHONY: down
+down: 
+	@echo '##[ $@ ]##'
+	@docker ps --filter name=$(OR) --format '{{.Status}}' | grep -oP '^Up.+$$' && docker stop $(OR)
+	@docker ps --all --filter name=$(OR) --format '{{.Status}}' | grep -oP '^Exited.+$$' && docker rm $(OR)
+	@docker  ps --all
+	@rm -f $(T)/*
+
+.PHONY: restart
+restart:
+	@echo "## $@ ##"
+	@echo ' - local test nginx configuration'
+	@docker exec or ./bin/openresty -t
+	@echo ' - local restart'
+	@#docker exec or kill -HUP 1
+	@docker exec or ./bin/openresty -s reload
+	@#docker exec or openresty start
+	@#docker ps | grep 'openresty'
+
+.PHONY: config-test
+config-test:
+	@echo "## $@ ##"
+	@echo ' - local test nginx configuration'
+	@docker exec -t or openresty -t
+
+.PHONY: info
+info: $(T)/log-status
+	@cat $<
+
+$(T)/log-status:
+	@echo "## $@ ##"
+	@mkdir -p $(T)
+	@docker ps --filter name=$(OR) --format '  name: {{.Names}}' > $@
+	@docker ps --filter name=$(OR) --format  'status: {{.Status}}'  >> $@
+	@docker ps --filter name=$(OR) --format '  ports:  {{.Ports}}' >> $@
+	@docker inspect --format='IP addr: {{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' $(OR) >> $@
+
+$(T)/version-info:
+	@docker exec -t or openresty -v
+	@echo 'nginx modules'
+	@grep -oP '^..add.module.+$$' $< 
+	@echo 'nginx compiled with'
+	@grep -oP '^..with-[\w+-_]+$$' $< 
+
+#########################
+### LETSENCRYPT CERTS ###
+#########################
+Gcmd := gcloud compute ssh $(GCE_NAME) --command
+GCmd := gcloud compute ssh $(GCE_NAME) --container $(OR) --command 
+mountCerts := type=bind,target=/tmp,source=$(CURDIR)/certs
+mountGCE   := type=bind,target=/tmp,source=/home/$(GCE_NAME)/certs
+
+LEpath  := $(LETSENCRYPT)/live/$(TLS_COMMON_NAME)
+CopyCerts = docker cp or:$(LEpath)/$(1).pem ./certs -L
+
+.PHONY: certs-into-vol
+certs-into-vol: certs-to-host
+	@docker run --rm \
+ --mount $(mountLetsencrypt) \
+ --mount  $(mountCerts) \
+ --entrypoint "sh" $(PROXY_DOCKER_IMAGE) -c \
+ 'mkdir -p $(LEpath) \
+ && mv /tmp/dh-param.pem $(LETSENCRYPT)/ \
+ && cp /tmp/* $(LEpath)/ '
+
+.PHONY: certs-to-host
+certs-to-host:
+	@# or just cat use the following certs
+	@#$(Gcmd) 'rm -rf certs'
+	@$(Gcmd) 'mkdir -p certs \
+ && $(call CopyCerts,cert)  \
+ && $(call CopyCerts,fullchain)  \
+ && $(call CopyCerts,chain)  \
+ && $(call CopyCerts,privkey)  \
+ && docker cp or:$(LETSENCRYPT)/dh-param.pem ./certs -L \
+ && ls -al ./certs'
+	@gcloud compute scp $(GCE_NAME):~/certs ./ --recurse
+	@printf %60s | tr ' ' '-' && echo
+
+
+
+
+.PHONY: certs-check
+certs-check:
+	@$(GCmd) 'ls -al $(LEpath)'
+	@docker run --rm \
+ --mount $(mountLetsencrypt) \
+ --entrypoint "ls" $(PROXY_DOCKER_IMAGE) -alR  $(LETSENCRYPT)
 
