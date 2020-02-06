@@ -10,7 +10,7 @@ OR := $(PROXY_CONTAINER_NAME)
 T := .tmp
 B := .build
 D := ../deploy
-$(shell mkdir -p ./{$(T),$(B),$(D)})
+$(shell mkdir -p ./{$(T),$(B)/nginx/conf,$(D)})
 
 DEO  = docker exec $(OR)
 
@@ -70,7 +70,6 @@ confs: $(buildConfs)
 
 $(B)/nginx/conf/%: conf/%
 	@echo '## $(patsubst $(B)/%,%,$@) ##'
-	@mkdir -p $(dir $@)
 	$(if $(LOCAL_RELOAD),echo ' - local reload: $(LOCAL_RELOAD)',)
 	@$(if $(LOCAL_RELOAD),$(dkrCpRun) --entrypoint "sh" $(PROXY_DOCKER_IMAGE) -c 'cp  /tmp/nginx/conf/$(*) ./nginx/conf/',)
 	@$(if $(LOCAL_RELOAD),$(DEO) ./bin/openresty -t,) 
@@ -119,7 +118,6 @@ $(T)/start.check: $(T)/network.check $(T)/certs.check
 	@$(if $(orExited),echo -n ' - starting container: ' && docker start $(OR) && sleep 2,) 
 
 $(T)/certs.check: $(T)/volumes.check
-	@mkdir -p $(dir $@)
 	@# inspect mounted volume for certs
 	@docker run --rm \
  --mount $(mountLetsencrypt) \
@@ -185,7 +183,6 @@ info: $(T)/log-status
 
 $(T)/log-status:
 	@echo "## $@ ##"
-	@mkdir -p $(T)
 	@docker ps --filter name=$(OR) --format '  name: {{.Names}}' > $@
 	@docker ps --filter name=$(OR) --format  'status: {{.Status}}'  >> $@
 	@docker ps --filter name=$(OR) --format '  ports:  {{.Ports}}' >> $@
