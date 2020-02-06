@@ -86,11 +86,13 @@ watch-confs:
 #################################################
 ### OPENRESTY UP DOWN RESTART and TEST CONFIG ###
 #################################################
-orRunning != docker inspect -f '{{.State.Running}}' $(OR) | grep -oP '^true' || true
-orExited  != docker ps --all --filter name=$(OR) --format '{{.Status}}' | grep -oP '^Exited' || true
+orRunning != docker ps --all --filter name=$(OR) --format '{{.Status}}' | grep -oP '^Up' || true
+
+# docker inspect -f '{{.State.Running}}' $(OR) | grep -oP '^true' || true
+# orExited  != docker ps --all --filter name=$(OR) --format '{{.Status}}' | grep -oP '^Exited' || true
 
 define orRun
-docker run  \
+docker run --rm \
  --mount $(mountNginxConf) \
  --mount $(mountNginxHtml) \
  --mount $(mountLetsencrypt) \
@@ -105,17 +107,11 @@ docker run  \
 endef
 
 .PHONY: up
-up: clean-tmp $(T)/start.check
-	@$(if $(strip $(orExited)$(orRunning)),\
- docker ps --all --filter name=$(OR) --format ' -  $(OR) container status [ {{.Status}} ]', echo ' - removed')
-	@$(if $(strip $(orExited)$(orRunning)),,$(orRun))
+up: clean-tmp $(T)/network.check $(T)/certs.check
+	@$(if $(orRunning),,$(orRun))
+	@$(if $(orRunning),docker ps --all --filter name=$(OR) --format ' -  $(OR) container status [ {{.Status}} ]',)
 
 # $(T)/certs.check  $(T)/network.check $(T)/port.check
-
-.PHONY: $(T)/start.check
-$(T)/start.check: $(T)/network.check $(T)/certs.check
-	@$(if $(orExited),echo  ' - status container $(OR) [ $(orExited) ]',)
-	@$(if $(orExited),echo -n ' - starting container: ' && docker start $(OR) && sleep 2,) 
 
 $(T)/certs.check: $(T)/volumes.check
 	@# inspect mounted volume for certs
@@ -155,10 +151,7 @@ $(T)/port.check:
 .PHONY: down
 down: 
 	@echo '##[ $@ ]##'
-	@$(if $(orExited),echo ' - status $(OR) [ $(orExited) ]',)
-	@$(if $(orRunning),echo -n ' - stopping ' && docker stop $(OR),)
-	@#@docker ps --filter name=$(OR) --format '{{.Status}}' | grep -oP '^Up.+$$' && docker stop $(OR)
-	@#docker ps --all --filter name=$(OR) --format '{{.Status}}' | grep -oP '^Exited.+$$' && docker rm $(OR)
+	@$(if $(orRunning),echo -n ' - stopping container: ' && docker stop $(OR),)
 
 .PHONY: restart
 restart:
@@ -229,9 +222,6 @@ certs-to-host:
  && ls -al ./certs'
 	@gcloud compute scp $(GCE_NAME):~/certs ./ --recurse
 	@printf %60s | tr ' ' '-' && echo
-
-
-
 
 .PHONY: certs-check
 certs-check:
