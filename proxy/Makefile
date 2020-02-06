@@ -44,10 +44,14 @@ build: $(D)/nginx-configuration.tar
 	@#$(DEO) bin/openresty -s reload
 
 .PHONY: clean
-clean:
+clean: clean-tmp
 	@echo '## $(@) ##'
 	@rm -f $(buildConfs) $(B)/nginx/conf/certs.conf
 	@rm -f $(D)/nginx-configuration.tar
+	@rm -fr $(T)/*
+
+.PHONY: clean-tmp
+clean-tmp:
 	@rm -fr $(T)/*
 
 $(D)/nginx-configuration.tar: $(B)/nginx/conf/certs.conf confs
@@ -102,15 +106,15 @@ docker run  \
 endef
 
 .PHONY: up
-up: clean $(T)/start.check
-	@$(if $(strip $(orExited)$(orRunning)), echo ' - running', echo ' - removed')
+up: clean-tmp $(T)/start.check
+	@$(if $(strip $(orExited)$(orRunning)),\
+ docker ps --all --filter name=$(OR) --format ' -  $(OR) container status [ {{.Status}} ]', echo ' - removed')
 	@$(if $(strip $(orExited)$(orRunning)),,$(orRun))
-
 
 # $(T)/certs.check  $(T)/network.check $(T)/port.check
 
 .PHONY: $(T)/start.check
-$(T)/start.check: 
+$(T)/start.check: $(T)/network.check $(T)/certs.check
 	@$(if $(orExited),echo  ' - status container $(OR) [ $(orExited) ]',)
 	@$(if $(orExited),echo -n ' - starting container: ' && docker start $(OR) && sleep 2,) 
 
@@ -120,7 +124,7 @@ $(T)/certs.check: $(T)/volumes.check
 	@docker run --rm \
  --mount $(mountLetsencrypt) \
  --entrypoint "sh" $(PROXY_DOCKER_IMAGE) -c \
- 'ls -al $(LETSENCRYPT)/live/$(TLS_COMMON_NAME)' | tee $@
+ 'ls -al $(LETSENCRYPT)/live/$(TLS_COMMON_NAME)' > $@
 	@# checks will remove certs.check if failure
 	@grep -q 'privkey' $@
 	@grep -q 'fullchain' $@
@@ -131,7 +135,7 @@ MustHaveVolume = docker volume list --format "{{.Name}}" | \
  grep -q $(1) || docker volume create --driver local --name $(1)
 
 $(T)/volumes.check:
-	@echo '##[ $@ ]##'
+	@#echo '##[ $@ ]##'
 	@docker volume list  --format "{{.Name}}" > $@
 	@$(call MustHaveVolume,nginx-configuration)
 	@$(call MustHaveVolume,static-assets)
@@ -139,9 +143,9 @@ $(T)/volumes.check:
 	@$(call MustHaveVolume,site-lualib)
 
 $(T)/network.check:
-	@echo '##[ $@ ]##'
-	@docker network list --format '{{.Name}}' | tee $@
-	@grep -oP '^$(NETWORK)$$' $@ || docker network create $(NETWORK)
+	@#echo '##[ $@ ]##'
+	@docker network list --format '{{.Name}}' > $@
+	@grep -oP '^$(NETWORK)' $@ &>/dev/null || docker network create $(NETWORK)
 
 $(T)/port.check:
 	@echo '##[ $@ ]##'
