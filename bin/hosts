@@ -1,0 +1,23 @@
+#!/bin/bash +x
+set -euo pipefail
+IFS=$'\n\t'
+###############
+[ ! -e ".env" ] && echo 'exiting ... need to be in working project'
+
+source .env
+if [ -z "$DOMAIN" ] ; then
+  echo 'exiting ... need to be in working project'
+  exit
+fi
+
+HOST='127.0.0.1'
+DELETE=$(grep -oP '^DOMAIN=(.+)$' .env | sed "s/DOMAIN=/${HOST} /" )
+
+if grep -q "${DELETE}" /etc/hosts ; then
+  echo " - to see whats on production server ${DELETE} removed from /etc/hosts " 
+  sudo sed -i "/${DELETE}/d" /etc/hosts
+else
+   echo -n ' - to do local development: ' 
+   echo "$HOST $DOMAIN" | sudo tee -a /etc/hosts
+   echo ' - added to /etc/hosts' 
+fi

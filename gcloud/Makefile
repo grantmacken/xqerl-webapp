@@ -5,9 +5,10 @@ SHELL=/bin/bash
 MAKEFLAGS += --warn-undefined-variables
 MAKEFLAGS += --no-builtin-rules
 include ../.env
-T := .tmp
 B := .build
 D :=  ../deploy
+$(shell mkdir -p ./{$(B),$(D)})
+
 #########################
 #  GCLOUD DEPLOYMENT  ###
 ##########################
@@ -35,13 +36,13 @@ mountDeploy := type=bind,target=/tmp,source=/home/$(GCE_NAME)/deploy
 tarList := $(wildcard *.tar)
 
 # Default - top level rule is what gets ran when you run just `make`
-.PHONY: build
-build: $(B)/xqerl-compile.complete $(B)/proxy-up
+.PHONY: build-xqerl
+build-xqerl: $(B)/xqerl-compile.complete
 
+#$(B)/proxy-up
 .PHONY: clean
 clean:
 	@rm -fr $(B)/*
-
 
 $(B)/xqerl-compile.complete: $(B)/xqerl-compiled-code.volume $(B)/xqerl.up
 	@echo '##[ $@ ]##'
@@ -52,23 +53,30 @@ xqerl:compile(\"code/src/render_feed.xqm\"),\
 xqerl:compile(\"code/src/routes.xqm\")."'
 	@$(GCmd)  \
  'xqerl eval "lists:sort([binary_to_list(X) || X <- xqerl_code_server:library_namespaces()])"'  | tee $@
+	@printf %60s | tr ' ' '-' && echo
+	@echo ' - xqerl xquery code compiled'
+	@printf %60s | tr ' ' '-' && echo
+
 
 # XQERL VOLUME 
 ##############
 
 $(B)/xqerl-compiled-code.volume: $(B)/tars-into-gce-host.moved $(D)/xqerl-compiled-code.tar
-	@mkdir -p $(dir $@)
+	@echo '##[ $@ ]##'
 	@# extract tar into volume
 	@$(Gcmd) 'docker run --rm \
  --mount $(mountCode) \
  --mount $(mountDeploy) \
  --entrypoint "tar" $(XQERL_DOCKER_IMAGE) xvf /tmp/xqerl-compiled-code.tar -C /' | tee $(@)
+	@printf %60s | tr ' ' '-' && echo
+	@echo ' - xqerl-compiled-code volume commited '
+	@printf %60s | tr ' ' '-' && echo
+
 
 # PROXY VOLUMES
 ################
 
 $(B)/nginx-configuration.volume: $(B)/tars-into-gce-host.moved $(D)/nginx-configuration.tar
-	@mkdir -p $(dir $@)
 	@# extract tar into volume
 	@$(Gcmd) 'docker run --rm \
  --mount $(mountNginxConf) \
@@ -79,7 +87,6 @@ $(B)/nginx-configuration.volume: $(B)/tars-into-gce-host.moved $(D)/nginx-config
 	@printf %60s | tr ' ' '-' && echo
 
 $(B)/static-assets.volume: $(B)/tars-into-gce-host.moved $(D)/static-assets.tar
-	@mkdir -p $(dir $@)
 	@# extract tar into volume
 	@$(Gcmd) 'docker run --rm \
  --mount $(mountNginxHtml) \
@@ -91,7 +98,6 @@ $(B)/static-assets.volume: $(B)/tars-into-gce-host.moved $(D)/static-assets.tar
 ##########################
 
 $(B)/tars-into-gce-host.moved: 
-	@mkdir -p $(dir $@)
 	@$(Gcmd) 'rm -fr ./deploy' 
 	@gcloud compute scp $(D) $(GCE_NAME):~/ --recurse
 	$(Gcmd) 'ls -al deploy' | tee $@
@@ -135,6 +141,7 @@ $(B)/xqerl.up: $(B)/volumes.checked
 	@echo '##[ $@ ]##'
 	@$(Gcmd) 'docker ps --filter name=$(XQ) --format "{{.Status}}" | grep -q Up || \
  docker run \
+ --rm \
  --mount $(mountCode) \
  --mount $(mountData) \
  --name  $(XQ) \
