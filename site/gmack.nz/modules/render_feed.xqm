@@ -16,7 +16,7 @@ declare
 function feed:head( $map as map(*)) {
 element head {
   element meta { attribute charset { 'utf-8' }},
-  element title { $map('kind') || ' for ' || $map('domain') },
+  element title { $map('name') },
   element meta {
     attribute name { 'viewport' },
     attribute content { 'width=device-width, initial-scale=1' }
@@ -32,20 +32,12 @@ element head {
     attribute type { 'image/svg+xml' }
     },
   element link {
-    attribute href { $map('card-photo') } ,
-    attribute rel { 'apple-touch-icon' }
+    attribute href {  'https://github.com/' || $map('nickname') },
+    attribute rel {  'me' }
     },
   element link {
-    attribute href { 'https://indieauth.com/auth' },
-    attribute rel { 'authorization_endpoint' }
-    },
-  element link {
-    attribute href { 'https://tokens.indieauth.com/token' },
-    attribute rel { 'token_endpoint' }
-    },
-  element link {
-    attribute href { $map('micropub-endpoint') },
-    attribute rel { 'micropub' }
+    attribute href {  'https://twitter.com/' || $map('nickname') },
+    attribute rel { 'me' }
     }
   }
 };
@@ -111,6 +103,7 @@ element div {
   element a {
     attribute class { 'u-url' },
     attribute href { $map('url') },
+    attribute rel { 'me' },
     element figure {
       element img {
         attribute width { '16' },
@@ -264,7 +257,7 @@ declare
 function feed:render( $map as map(*) ) {
   element html {
     attribute lang {'en'},
-    feed:head( $map ),
+    feed:head( $map('card')),
     element body {
       feed:header( $map('card') ),
       element main {
