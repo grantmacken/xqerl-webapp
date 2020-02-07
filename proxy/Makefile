@@ -126,7 +126,7 @@ $(T)/certs.check: $(T)/volumes.check
 	@grep -q 'cert' $@
 
 MustHaveVolume = docker volume list --format "{{.Name}}" | \
- grep -q $(1) || docker volume create --driver local --name $(1)
+ grep -q $(1) || docker volume create --driver local --name $(1) &>/dev/null
 
 $(T)/volumes.check:
 	@#echo '##[ $@ ]##'

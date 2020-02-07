@@ -11,6 +11,9 @@ include $(abspath ../../.env)
 T := .tmp
 B := .build
 D := ../../deploy
+$(shell mkdir -p \
+ ./{$(D),$(T),$(B)/{modules,$(DOMAIN)/resources/{icons,styles,images,scripts}}})
+
 # shortcut aliases
 XQ := $(XQERL_CONTAINER_NAME)
 OR := $(PROXY_CONTAINER_NAME)
@@ -41,26 +44,26 @@ VolumeList := xqerl-compiled-code xqerl-database
 MountCode  := type=volume,target=$(XQERL_HOME)/code,source=xqerl-compiled-code
 MountData  := type=volume,target=$(XQERL_HOME)/data,source=xqerl-database
 MountBin   := type=bind,target=$(XQERL_HOME)/bin/scripts,source=$(CURDIR)/bin
-
 MountAssets  := type=volume,target=$(OPENRESTY_HOME)/nginx/html,source=static-assets
-
 MountBuild := type=bind,target=/tmp,source=$(CURDIR)/$(B)
 
 .PHONY: build
 build: $(D)/xqerl-compiled-code.tar
 
 .PHONY: clean
-clean:
+clean: clean-tmp
 	@echo '##[ $@ ]##'
 	@rm -f $(BuildList)
 	@rm -f $(D)/xqerl-compiled-code.tar
+
+.PHONY: clean-tmp
+clean-tmp:
 	@rm -fr $(T)/*
 
 $(D)/xqerl-compiled-code.tar: $(BuildList) 
 	@echo '## $(notdir $@) ##'
 	@$(EVAL) $(compiledLibs)
 	@echo;printf %60s | tr ' ' '-' && echo
-	@mkdir -p $(dir $@)
 	@docker run --rm \
  --mount $(MountCode) \
  --entrypoint "tar" $(XQERL_DOCKER_IMAGE) -czf - $(XQERL_HOME)/code > $@
@@ -68,41 +71,60 @@ $(D)/xqerl-compiled-code.tar: $(BuildList)
 
 $(B)/modules/%.xqm: modules/%.xqm
 	@echo '##[ $* ]##'
-	@mkdir -p $(dir $@) && mkdir -p $(T)
 	@rm -f $(T)/compile_$(*).txt
 	@docker cp $(<) $(XQ):$(XQERL_HOME)/code/src
 	@$(call compile,$(notdir $<)) | tee $(T)/compile_$(*).txt && echo
 	@cat $(T)/compile_$(*).txt | grep -q ':I:'
 	@cp $< $@
 
-# include ../.inc/assets.mk
-# include ../.inc/up.mk
-dkrNetworkInUse != docker network list --format '{{.Name}}' | grep -oP '$(NETWORK)'
-dkrPortInUse     != docker ps --format '{{.Ports}}' | grep -oP '^(.+)8081->\K(8081)'
-MustHaveVolume = docker volume list --format "{{.Name}}" | grep -q $(1) || docker volume create --driver local --name $(1)
+####################
+### XQERL UP DOWN ##
+####################
 
-.PHONY: check-volumes
-check-volumes:
+xqRunning != docker ps --all --filter name=$(XQ) --format '{{.Status}}' | grep -oP '^Up' || true
+
+define xqRun
+ docker run --rm  \
+ --mount $(MountCode) \
+ --mount $(MountData) \
+ --mount $(MountBin) \
+ --name  $(XQ) \
+ --hostname xqerl \
+ --network $(NETWORK) \
+ --publish $(XQERL_PORT):$(XQERL_PORT) \
+ --detach \
+ $(XQERL_DOCKER_IMAGE)
+endef
+
+.PHONY: up
+up: clean-tmp $(T)/network.check $(T)/volumes.check
+	@$(if $(xqRunning),,$(xqRun) && sleep 3)
+	@$(if $(xqRunning),docker ps --all --filter name=$(XQ) --format ' -  $(XQ) container status [ {{.Status}} ]',)
+
+.PHONY: down
+down: 
+	@$(if $(xqRunning),echo -n ' - stopping container: ' && docker stop $(XQ),)
+
+$(T)/network.check:
+	@#echo '##[ $@ ]##'
+	@docker network list --format '{{.Name}}' > $@
+	@grep -oP '^$(NETWORK)' $@ &>/dev/null || docker network create $(NETWORK)
+
+
+
+MustHaveVolume = docker volume list --format "{{.Name}}" | \
+ grep -q $(1) || docker volume create --driver local --name $(1) &>/dev/null
+
+$(T)/volumes.check:
+	@# might as well check proxy volumes as well
+	@docker volume list  --format "{{.Name}}" > $@
 	@$(call MustHaveVolume,xqerl-compiled-code)
 	@$(call MustHaveVolume,xqerl-database)
 	@$(call MustHaveVolume,static-assets)
-	@# docker volume list  --format "{{.Name}}"
-	@echo "[ $(VolumeList) ] OK! all volumes available"
-
-.PHONY: check-network
-check-network:
-	@echo -n ' - $@  '
-	@$(if $(dkrNetworkInUse),echo  '[ $(NETWORK) ] OK! can use ',docker network create $(NETWORK))
-
-.PHONY: check-port
-check-port:
-	@echo -n ' - $@:  '
-	@docker ps --format '{{.Ports}}' | grep -oP '^(.+)8081->\K(8081)' || echo  '[ 8081 ] OK! can use '
-
-.PHONY: up
-up: info
-	@$(MAKE) -silent clean
-	@$(MAKE) -silent build
+	@$(call MustHaveVolume,nginx-configuration)
+	@$(call MustHaveVolume,letsencrypt)
+	@$(call MustHaveVolume,site-lualib)
+	@docker volume list  --format "{{.Name}}" > $@
 
 .PHONY: info
 info: run
@@ -127,28 +149,6 @@ info: run
 	@$(EVAL) $(compiledLibs)
 
 
-.PHONY: run
-run: check-volumes check-network check-port
-	@echo '##[ $@ ]##'
-	@docker ps --filter name=$(XQ) --format '{{.Status}}' | grep -oP '^Up.+$$' || \
- docker run \
- --mount $(MountCode) \
- --mount $(MountData) \
- --mount $(MountBin) \
- --name  $(XQ) \
- --hostname xqerl \
- --network $(NETWORK) \
- --publish $(XQERL_PORT):$(XQERL_PORT) \
- --detach \
- $(XQERL_DOCKER_IMAGE)
-	@sleep 3
-
-.PHONY: down
-down: 
-	@echo '##[ $@ ]##'
-	@docker ps --filter name=$(XQ) --format '{{.Status}}' | grep -oP '^Up.+$$' && docker stop $(XQ)
-	@docker ps --all --filter name=$(XQ) --format '{{.Status}}' | grep -oP '^Exited.+$$' && docker rm $(XQ)
-	@docker  ps --all
 
 ######################
 ###  STATIC ASSETS ###
@@ -165,7 +165,6 @@ clean-assets: clean-icons clean-styles
 
 $(D)/static-assets.tar: icons styles
 	@echo '## $@ ##'
-	@mkdir -p $(dir $@)
 	@# after all assets built copy into the static-assets volume
 	@docker run --rm \
  --mount $(MountAssets) \

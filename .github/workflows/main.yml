@@ -38,10 +38,9 @@ jobs:
             echo ' starting xqerl will also: '
             echo ' - create the volumes we require'
             echo ' - create the network we require'
-            echo ' after starting `make` will'
-            echo ' - clean the build'
-            echo ' - compile build xQuery files to run on the beam'
             make up
+            echo ' - compile build xQuery files to run on the beam'
+            make
             popd
             pushd tests/xqerl
             echo ' - run some curl tests for restXQ routes using the '
