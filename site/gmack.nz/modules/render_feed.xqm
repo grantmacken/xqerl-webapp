@@ -107,9 +107,9 @@ declare
 function feed:rep-card( $map as map(*)) {
 element div {
   attribute id {'rep-card'},
+  attribute class {'h-card'},
   element a {
     attribute class { 'u-url' },
-    attribute rel { 'me' },
     attribute href { $map('url') },
     element figure {
       element img {
@@ -119,7 +119,7 @@ element div {
         attribute src { '/icons/user' }
       },
       element figcaption {
-        attribute class { 'nameAsHeader' },
+        attribute class { 'nameAsHeader p-name' },
          $map('name') 
       }
     }
@@ -192,7 +192,7 @@ element div {
            attribute alt { 'github icon' },
            attribute src { '/icons/twitter' }
          },
-         element figcaption { '@' || $map('nickname') || 'on Twitter' }
+         element figcaption { '@' || $map('nickname') || ' on Twitter' }
        }
      }
     }
