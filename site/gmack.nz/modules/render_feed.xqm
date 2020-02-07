@@ -169,6 +169,7 @@ element div {
     element p {'my profile links'},
      element a {
        attribute href {  'https://github.com/' || $map('nickname') },
+       attribute rel {  'me' },
        element figure {
          attribute class { 'contact-info' },
          element img {
@@ -177,11 +178,12 @@ element div {
            attribute alt { 'github icon' },
            attribute src { '/icons/github' }
          },
-         element figcaption { 'https://github.com/' || $map('nickname') }
+         element figcaption {  $map('nickname') || ' on github'}
        }
      },
      element a {
-       attribute href {  'https://twitter.com/' || $map('nickname') },
+       attribute href { 'https://twitter.com/' || $map('nickname') },
+       attribute rel {  'me' },
        element figure {
          attribute class { 'contact-info' },
          element img {
@@ -190,7 +192,7 @@ element div {
            attribute alt { 'github icon' },
            attribute src { '/icons/twitter' }
          },
-         element figcaption { 'https://twitter.com/' || $map('nickname') }
+         element figcaption { '@' || $map('nickname') || 'on Twitter' }
        }
      }
     }

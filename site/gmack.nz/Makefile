@@ -37,7 +37,8 @@ compiledLibs := 'BinList = xqerl_code_server:library_namespaces(),\
 # and not the build dir
 ####################################################################
 # NOTE: xquery module list order is important
-ModuleList := newBase60 render_feed render_note micropub routes
+ModuleList := newBase60 render_feed render_feed render_note routes
+# render_feed render_note micropub routes
 BuildList  := $(patsubst %,$(B)/modules/%.xqm,$(ModuleList))
 VolumeList := xqerl-compiled-code xqerl-database
 
@@ -61,20 +62,19 @@ clean-tmp:
 	@rm -fr $(T)/*
 
 $(D)/xqerl-compiled-code.tar: $(BuildList) 
-	@echo '## $(notdir $@) ##'
-	@$(EVAL) $(compiledLibs)
-	@echo;printf %60s | tr ' ' '-' && echo
+	@# echo '## $(notdir $@) ##'
+	@# $(EVAL) $(compiledLibs)
 	@docker run --rm \
  --mount $(MountCode) \
- --entrypoint "tar" $(XQERL_DOCKER_IMAGE) -czf - $(XQERL_HOME)/code > $@
-	@echo;printf %60s | tr ' ' '-' && echo
+ --entrypoint "tar" $(XQERL_DOCKER_IMAGE) -czf - $(XQERL_HOME)/code &>/dev/null > $@
+	@#echo;printf %60s | tr ' ' '-' && echo
 
 $(B)/modules/%.xqm: modules/%.xqm
-	@echo '##[ $* ]##'
+	@#echo '##[ $* ]##'
 	@rm -f $(T)/compile_$(*).txt
 	@docker cp $(<) $(XQ):$(XQERL_HOME)/code/src
 	@$(call compile,$(notdir $<)) | tee $(T)/compile_$(*).txt && echo
-	@cat $(T)/compile_$(*).txt | grep -q ':I:'
+	@grep -q ':I:' $(T)/compile_$(*).txt
 	@cp $< $@
 
 ####################

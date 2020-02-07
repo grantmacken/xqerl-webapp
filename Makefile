@@ -44,8 +44,21 @@ xqerl-down:
 .PHONY: xqerl-build
 xqerl-build: 
 	@pushd site/$(DOMAIN) &>/dev/null
-	@$(MAKE) -silent clean
 	@$(MAKE) -silent build
+	@popd &>/dev/null
+
+.PHONY: xqerl-clean
+xqerl-clean: 
+	@pushd site/$(DOMAIN) &>/dev/null
+	@$(MAKE) -silent clean
+	@popd &>/dev/null
+
+## will error if error
+.PHONY: xqerl-build-watch
+xqerl-build-watch:
+	@pushd site/$(DOMAIN) &>/dev/null
+	@while true; do $(MAKE) --silent build; \
+ inotifywait -qre close_write .  &>/dev/null; done
 	@popd &>/dev/null
 
 .PHONY: assets
