@@ -14,14 +14,13 @@ test:
 	@popd &>/dev/null
 
 .PHONY: up
-up: proxy-up
+up: xqerl-up  proxy-up
 
 .PHONY: xqerl-up
 xqerl-up:
 	@pushd site/$(DOMAIN) &>/dev/null
 	@$(MAKE) -silent up
 	@popd &>/dev/null
-
 
 .PHONY: proxy-up
 proxy-up: 
@@ -31,6 +30,12 @@ proxy-up:
 
 .PHONY: proxy-down
 down: 
+	@pushd proxy &>/dev/null
+	@$(MAKE) -silent down
+	@popd &>/dev/null
+
+.PHONY: proxy-reload
+proxy-reload: 
 	@pushd proxy &>/dev/null
 	@$(MAKE) -silent down
 	@popd &>/dev/null
@@ -65,7 +70,10 @@ xqerl-build-watch:
 assets: 
 	@pushd site/$(DOMAIN) &>/dev/null
 	@$(MAKE) -silent assets
+	@#echo ' ---'
+	@#docker exec $(PROXY_CONTAINER_NAME) kill -HUP 1
 	@popd &>/dev/null
+
 
 
 

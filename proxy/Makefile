@@ -153,16 +153,13 @@ down:
 	@echo '##[ $@ ]##'
 	@$(if $(orRunning),echo -n ' - stopping container: ' && docker stop $(OR),)
 
-.PHONY: restart
-restart:
+.PHONY: reload
+reload:
 	@echo "## $@ ##"
 	@echo ' - local test nginx configuration'
 	@docker exec or ./bin/openresty -t
 	@echo ' - local restart'
-	@#docker exec or kill -HUP 1
 	@docker exec or ./bin/openresty -s reload
-	@#docker exec or openresty start
-	@#docker ps | grep 'openresty'
 
 .PHONY: config-test
 config-test:

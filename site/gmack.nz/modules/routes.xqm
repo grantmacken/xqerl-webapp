@@ -8,7 +8,7 @@ import module namespace feed = "http://gmack.nz/#render_feed";
 
 declare variable $routes:myCard := map { 
     'card' : map {
-       'name' : 'Grant Mackenzie',
+       'name' : 'Grant MacKenzie',
        'url' : 'https://gmack.nz',
        'uuid' : 'https://gmack.nz',
        'email' : 'mailto:grantmacken@gmail.com',

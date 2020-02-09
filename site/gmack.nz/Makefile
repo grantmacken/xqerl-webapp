@@ -11,8 +11,8 @@ include $(abspath ../../.env)
 T := .tmp
 B := .build
 D := ../../deploy
-$(shell mkdir -p \
- ./{$(D),$(T),$(B)/{modules,$(DOMAIN)/resources/{icons,styles,images,scripts}}})
+$(shell mkdir -p ./{$(D),$(T)/$(DOMAIN)/resources/{icons,styles,images,scripts},$(B)/{modules,$(DOMAIN)/resources/{icons,styles,images,scripts}}})
+
 
 # shortcut aliases
 XQ := $(XQERL_CONTAINER_NAME)
@@ -169,17 +169,18 @@ $(D)/static-assets.tar: icons styles
 	@docker run --rm \
  --mount $(MountAssets) \
  --mount $(MountBuild) \
- --entrypoint "sh" $(PROXY_DOCKER_IMAGE) -c 'cp -rv /tmp/$(DOMAIN) ./nginx/html/$(DOMAIN)'
-	@# tar the static-assets volume to ready for deployment
+ --entrypoint "sh" $(PROXY_DOCKER_IMAGE) -c 'cp -rv /tmp/$(DOMAIN) $(OPENRESTY_HOME)/nginx/html/'
+	@rm -f $(D)/static-assets.tar
+	# tar the static-assets volume to ready for deployment
 	@docker run --rm \
  --mount $(MountAssets) \
- --entrypoint "tar" $(PROXY_DOCKER_IMAGE) -czf - $(OPENRESTY_HOME)/nginx/html > $@
+ --entrypoint "tar" $(PROXY_DOCKER_IMAGE) czf - $(OPENRESTY_HOME)/nginx/html  > $@
 
-.PHONY: remove-assets
-remove-assets:
+.PHONY: remove-content-in-assets-volume
+remove-content-in-assets-volume:
 	@echo '## $@ ##'
 	@docker run --rm \
- --mount MountAssets \
+ --mount $(MountAssets) \
  --entrypoint "rm" $(PROXY_DOCKER_IMAGE) -rf ./nginx/html/$(DOMAIN)
 
 
@@ -237,7 +238,6 @@ clean-styles:
 
 $(T)/$(DOMAIN)/resources/styles/%.css: resources/styles/%.css
 	@echo "##[ $(notdir $@) ]##"
-	@[ -d $(dir $@) ] || mkdir -p $(dir $@)
 	@echo  ' - use cssnano to reduce css file size'
 	@cat $< | docker run \
   --rm \
@@ -248,15 +248,14 @@ $(T)/$(DOMAIN)/resources/styles/%.css: resources/styles/%.css
 
 $(B)/$(DOMAIN)/resources/styles/%.css.gz: $(T)/$(DOMAIN)/resources/styles/%.css
 	@echo "##[ $(notdir $@) ]##"
-	@[ -d $(dir $@) ] || mkdir -p $(dir $@)
 	@echo  ' - use zopfli to gzip file'
 	@cat $< | docker run \
   --rm \
   --name zopfli \
   --interactive \
   docker.pkg.github.com/grantmacken/alpine-zopfli/zopfli:0.0.1 > $@
-	@echo " orginal size: [ $$(wc -c $< | cut -d' ' -f1) ]"
-	@echo "   cssnano size: [ $$(wc -c $(T)/resources/styles/$*.css | cut -d' ' -f1) ]"
+	@echo "orginal size: [ $$(wc -c $< | cut -d' ' -f1) ]"
+	@echo "cssnano size: [ $$(wc -c $(T)/$(DOMAIN)/resources/styles/$*.css | cut -d' ' -f1) ]"
 	@echo "   gzip size: [ $$(wc -c  $@ | cut -d' ' -f1) ]"
 
 

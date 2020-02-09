@@ -47,28 +47,6 @@ body {
 header {
   grid-area: header;
   margin-right: 1em;
-  /* background-size: 4px 4px; */
-  /* background: linear-gradient( */
-  /*   to bottom, */
-  /*   hsla(74, 36%, 61%, 0.5) 0%, */
-  /*   hsla(74, 36%, 61%, 0.1) 50%, */
-  /*   hsla(74, 36%, 61%, 0.01) 100% */
-  /* ); */
-  /* max-height: 10vh; */
-
-  /* An array of DIVs
-  /* box properties */
-
-  /* display: flex; */
-  /* flex-direction: row; */
-  /* flex-wrap: wrap; */
-  /* align-items: left; */
-  /* justify-content: center; */
-  /* align-content: center; */
-  /* padding-left: 1em; */
-  /* flex-direction: column; */
-  /* min-height: 100vh; */
-  /* background-image: url("icons/texture"); */
 }
 
 /* #banner { */
@@ -202,11 +180,16 @@ figure {
 }
 
 .nameAsHeader {
-  /* font-family: "Paytone One", sans-serif; */
+  font-family: "Paytone One", sans-serif;
   font-size: 1.4rem;
   font-variant-caps: titling-caps;
   font-stretch: wider;
   font-weight: 800;
+}
+
+
+.p-note{
+  font-size: smaller;
 }
 
 img {

@@ -117,6 +117,10 @@ element div {
       }
     }
    },
+  element p {
+    attribute class { 'p-note' },
+     $map('note') 
+  },
    element a {
      attribute class { 'u-email' },
      attribute href { $map('email') },
