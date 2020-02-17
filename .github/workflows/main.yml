@@ -123,5 +123,13 @@ jobs:
         run: |
             source .env
             pushd gcloud
-            #make
+            pwd
+            make tars-into-gce-host
+            make compiled-code-volume
+            make xqerl-compile-code
+            make static-assets-volume
+            make site-lualib-volume
+            make nginx-configuration-volume
+            make nginx-configuration-test
+            make proxy-reload
             popd

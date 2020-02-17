@@ -52,8 +52,6 @@ local function verifyCode( code )
   -- say(' - path '  .. path)
  -- say(' - domain '  .. ngx.var.host)
 
-
-
   --
    -- -- 4 sslhandshake opts
    local reusedSession = nil -- defaults to nil
@@ -67,8 +65,6 @@ local function verifyCode( code )
      msg = "failed to do SSL handshake: ", err
      return requestError(ngx.HTTP_UNAUTHORIZED,'unauthorized', msg )
    end
-
-
 
   -- say('  - SSL Handshake Completed'  .. type(shake))
 
