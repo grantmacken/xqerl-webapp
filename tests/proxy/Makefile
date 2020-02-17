@@ -8,7 +8,7 @@ MAKEFLAGS += --no-builtin-rules
 SHELL=/bin/bash
 include ../../.env
 T = response
-$(shell mkdir -p $(T)/{routes,styles,icons,lualib} )
+$(shell mkdir -p $(T)/{routes,styles/{gzip,gunzip},icons,lualib} )
 XQ := $(XQERL_CONTAINER_NAME)
 OR := $(PROXY_CONTAINER_NAME)
 ######################################################
