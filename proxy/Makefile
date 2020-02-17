@@ -4,13 +4,13 @@ SHELL=/bin/bash
 .DELETE_ON_ERROR:
 MAKEFLAGS += --warn-undefined-variables
 MAKEFLAGS += --no-builtin-rules
-LOCAL_RELOAD := 
+LOCAL_RELOAD :=
 include ../.env
 OR := $(PROXY_CONTAINER_NAME)
 T := .tmp
 B := .build
 D := ../deploy
-$(shell mkdir -p ./{$(T),$(B)/nginx/conf,$(D)})
+$(shell mkdir -p ./{$(T),$(B)/{nginx/conf,site/lualib/$(REPO_OWNER)},$(D)})
 
 DEO  = docker exec $(OR)
 
@@ -32,16 +32,25 @@ mountLetsencrypt := type=volume,target=$(LETSENCRYPT),source=letsencrypt
 mountSiteLualib  := type=volume,target=$(OPENRESTY_HOME)/site/lualib,source=site-lualib
 mountBuild       := type=bind,target=/tmp,source=$(CURDIR)/$(B)
 
-dkrTarRun  := docker run --rm --mount $(mountNginxConf)
-dkrCpRun   := docker run --rm --mount $(mountNginxConf) --mount $(mountBuild) 
+dkrCpNginxConf   := docker run --rm --mount $(mountNginxConf) --mount $(mountBuild)
+dkrTarNginxConf  := docker run --rm --mount $(mountNginxConf)
+dkrCpSiteLualib   := docker run --rm --mount $(mountSiteLualib) --mount $(mountBuild)
+dkrTarSiteLualib  := docker run --rm --mount $(mountSiteLualib)
+
 buildConfs := $(patsubst %,$(B)/nginx/%, $(wildcard conf/*))
+buildLibs := $(patsubst lualib/%.lua,$(B)/site/lualib/$(REPO_OWNER)/%.lua, $(wildcard lualib/*))
 
 orAddress  := docker inspect --format='{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' $(OR)
 
 .PHONY: build
-build: $(D)/nginx-configuration.tar
+build:  $(D)/site-lualib.tar $(D)/nginx-configuration.tar
 	@#$(DEO) bin/openresty -t
 	@#$(DEO) bin/openresty -s reload
+
+.PHONY: build-libs
+build-libs: $(D)/site-lualib.tar
+
+#$(D)/nginx-configuration.tar
 
 .PHONY: clean
 clean: clean-tmp
@@ -56,9 +65,9 @@ clean-tmp:
 
 $(D)/nginx-configuration.tar: $(B)/nginx/conf/certs.conf confs
 	@echo ' - copy build files into "nginx-confguration" volume'
-	@$(dkrCpRun) --entrypoint "sh" $(PROXY_DOCKER_IMAGE) -c 'cp -r /tmp/nginx ./ '
-	@echo ' - tar the "nginx-confguration" volume into deploy directory' 
-	@$(dkrTarRun) --entrypoint "tar" $(PROXY_DOCKER_IMAGE) -czf - $(OPENRESTY_HOME)/nginx/conf > $@
+	@$(dkrCpNginxConf) --entrypoint "sh" $(PROXY_DOCKER_IMAGE) -c 'cp -r /tmp/nginx ./ '
+	@echo ' - tar the "nginx-confguration" volume into deploy directory'
+	@$(dkrTarNginxConf) --entrypoint "tar" $(PROXY_DOCKER_IMAGE) -czf - $(OPENRESTY_HOME)/nginx/conf > $@
 
 $(B)/nginx/conf/certs.conf: export mkCertsConf:=$(mkCertsConf)
 $(B)/nginx/conf/certs.conf:
@@ -71,9 +80,9 @@ confs: $(buildConfs)
 $(B)/nginx/conf/%: conf/%
 	@echo '## $(patsubst $(B)/%,%,$@) ##'
 	$(if $(LOCAL_RELOAD),echo ' - local reload: $(LOCAL_RELOAD)',)
-	@$(if $(LOCAL_RELOAD),$(dkrCpRun) --entrypoint "sh" $(PROXY_DOCKER_IMAGE) -c 'cp  /tmp/nginx/conf/$(*) ./nginx/conf/',)
-	@$(if $(LOCAL_RELOAD),$(DEO) ./bin/openresty -t,) 
-	@$(if $(LOCAL_RELOAD),$(DEO) ./bin/openresty -s reload,) 
+	@$(if $(LOCAL_RELOAD),$(dkrCpNginxConf) --entrypoint "sh" $(PROXY_DOCKER_IMAGE) -c 'cp  /tmp/nginx/conf/$(*) ./nginx/conf/',)
+	@$(if $(LOCAL_RELOAD),$(DEO) ./bin/openresty -t,)
+	@$(if $(LOCAL_RELOAD),$(DEO) ./bin/openresty -s reload,)
 	@cp $< $@
 
 .PHONY: watch-confs
@@ -82,6 +91,18 @@ watch-confs:
         $(MAKE) --silent confs LOCAL_RELOAD=yep ; \
         inotifywait -qre close_write . ; \
     done
+
+$(D)/site-lualib.tar: $(buildLibs)
+	@echo ' - copy build files into "site/lualib" volume'
+	@$(dkrCpSiteLualib) --entrypoint "sh" $(PROXY_DOCKER_IMAGE) -c 'cp -r /tmp/site ./ '
+	@echo ' - tar the "site/lualib" volume into deploy directory'
+	@$(dkrTarSiteLualib) --entrypoint "tar" $(PROXY_DOCKER_IMAGE) -czf - $(OPENRESTY_HOME)/site/lualib > $@
+
+$(B)/site/lualib/$(REPO_OWNER)/%.lua: lualib/%.lua
+	@#echo '## $(patsubst $(B)/%,%,$@) ##'
+	@cp -v $< $@
+
+
 
 #################################################
 ### OPENRESTY UP DOWN RESTART and TEST CONFIG ###
@@ -149,7 +170,7 @@ $(T)/port.check:
 	@grep -oP '^(.+)443->\K(443)' $@ && echo  '[ 443 ] already in use '
 
 .PHONY: down
-down: 
+down:
 	@echo '##[ $@ ]##'
 	@$(if $(orRunning),echo -n ' - stopping container: ' && docker stop $(OR),)
 
@@ -181,15 +202,15 @@ $(T)/log-status:
 $(T)/version-info:
 	@docker exec -t or openresty -v
 	@echo 'nginx modules'
-	@grep -oP '^..add.module.+$$' $< 
+	@grep -oP '^..add.module.+$$' $<
 	@echo 'nginx compiled with'
-	@grep -oP '^..with-[\w+-_]+$$' $< 
+	@grep -oP '^..with-[\w+-_]+$$' $<
 
 #########################
 ### LETSENCRYPT CERTS ###
 #########################
 Gcmd := gcloud compute ssh $(GCE_NAME) --command
-GCmd := gcloud compute ssh $(GCE_NAME) --container $(OR) --command 
+GCmd := gcloud compute ssh $(GCE_NAME) --container $(OR) --command
 mountCerts := type=bind,target=/tmp,source=$(CURDIR)/certs
 mountGCE   := type=bind,target=/tmp,source=/home/$(GCE_NAME)/certs
 
@@ -226,4 +247,3 @@ certs-check:
 	@docker run --rm \
  --mount $(mountLetsencrypt) \
  --entrypoint "ls" $(PROXY_DOCKER_IMAGE) -alR  $(LETSENCRYPT)
-

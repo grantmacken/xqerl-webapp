@@ -14,7 +14,37 @@ test:
 	@popd &>/dev/null
 
 .PHONY: up
-up: xqerl-up  proxy-up
+up: xqerl-up  proxy-up  xqerl-clean xqerl-build
+
+.PHONY: proxy-up
+proxy-up:
+	@pushd proxy &>/dev/null
+	@$(MAKE) -silent up
+	@popd &>/dev/null
+
+.PHONY: proxy-down
+down:
+	@pushd proxy &>/dev/null
+	@$(MAKE) -silent down
+	@popd &>/dev/null
+
+.PHONY: certs-into-vol
+certs-into-vol:
+	@pushd proxy &>/dev/null
+	@$(MAKE) -silent $@
+	@popd &>/dev/null
+
+.PHONY: proxy-build
+proxy-build:
+	@pushd proxy &>/dev/null
+	@$(MAKE) -silent build
+	@popd &>/dev/null
+
+.PHONY: proxy-reload
+proxy-reload:
+	@pushd proxy &>/dev/null
+	@$(MAKE) -silent reload
+	@popd &>/dev/null
 
 .PHONY: xqerl-up
 xqerl-up:
@@ -22,38 +52,26 @@ xqerl-up:
 	@$(MAKE) -silent up
 	@popd &>/dev/null
 
-.PHONY: proxy-up
-proxy-up: 
-	@pushd proxy &>/dev/null
-	@$(MAKE) -silent up
-	@popd &>/dev/null
-
-.PHONY: proxy-down
-down: 
-	@pushd proxy &>/dev/null
-	@$(MAKE) -silent down
-	@popd &>/dev/null
-
-.PHONY: proxy-reload
-proxy-reload: 
-	@pushd proxy &>/dev/null
-	@$(MAKE) -silent down
+.PHONY: xqerl-info
+xqerl-info:
+	@pushd site/$(DOMAIN) &>/dev/null
+	@$(MAKE) -silent info
 	@popd &>/dev/null
 
 .PHONY: xqerl-down
-xqerl-down: 
+xqerl-down:
 	@pushd site/$(DOMAIN) &>/dev/null
 	@$(MAKE) -silent down
 	@popd &>/dev/null
 
 .PHONY: xqerl-build
-xqerl-build: 
+xqerl-build:
 	@pushd site/$(DOMAIN) &>/dev/null
 	@$(MAKE) -silent build
 	@popd &>/dev/null
 
 .PHONY: xqerl-clean
-xqerl-clean: 
+xqerl-clean:
 	@pushd site/$(DOMAIN) &>/dev/null
 	@$(MAKE) -silent clean
 	@popd &>/dev/null
@@ -67,22 +85,27 @@ xqerl-build-watch:
 	@popd &>/dev/null
 
 .PHONY: assets
-assets: 
+assets:
 	@pushd site/$(DOMAIN) &>/dev/null
 	@$(MAKE) -silent assets
 	@#echo ' ---'
 	@#docker exec $(PROXY_CONTAINER_NAME) kill -HUP 1
 	@popd &>/dev/null
 
+.PHONY: pull-pkgs
+pull-pkgs:
+	@#docker login docker.pkg.github.com --username $(REPO_NAME)
+	@cat ../.github-access-token | \
+ docker login docker.pkg.github.com  --username $(REPO_OWNER) --password-stdin
+	@# docker pull $(PROXY_DOCKER_IMAGE) have to use local image due to mse2a SSE instruction set
+	@docker pull docker.pkg.github.com/grantmacken/alpine-scour/scour:0.0.2
+	@docker pull docker.pkg.github.com/grantmacken/alpine-zopfli/zopfli:0.0.1
+	@docker pull docker.pkg.github.com/grantmacken/alpine-cssnano/cssnano:0.0.3
 
 
 
 .PHONY: clean
-clean: 
+clean:
 	@pushd proxy &>/dev/null
 	@$(MAKE) -silent clean
 	@popd &>/dev/null
-
-
-
-

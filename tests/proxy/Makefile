@@ -8,7 +8,7 @@ MAKEFLAGS += --no-builtin-rules
 SHELL=/bin/bash
 include ../../.env
 T = response
-$(shell mkdir $(T)/{routes,styles,icons} )
+$(shell mkdir -p $(T)/{routes,styles,icons,lualib} )
 XQ := $(XQERL_CONTAINER_NAME)
 OR := $(PROXY_CONTAINER_NAME)
 ######################################################
@@ -16,6 +16,7 @@ include setup.mk
 
 .PHONY: test
 test: styles icons routes
+# styles icons routes
 # routes icons icons styles.mk styles-size
 
 .PHONY: clean-responses
@@ -23,4 +24,4 @@ clean-responses:
 	@echo '## $@ ##'
 	@rm -rf ./response/styles
 
-include routes.mk icons.mk styles.mk
+include routes.mk icons.mk styles.mk resty.mk

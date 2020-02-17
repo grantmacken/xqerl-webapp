@@ -1,5 +1,6 @@
 xquery version "3.1";
 module namespace feed = "http://gmack.nz/#render_feed";
+
 declare
 function feed:getKindOfPost( $entry ) {
     if ( $entry/category[contains(.,'post:')][1] )
@@ -38,6 +39,10 @@ element head {
   element link {
     attribute href {  'https://twitter.com/' || $map('nickname') },
     attribute rel { 'me' }
+    },
+  element link {
+    attribute href { 'https://indielogin.com/auth'},
+    attribute rel { 'authorization_endpoint"' }
     }
   }
 };
@@ -78,19 +83,18 @@ element form {
   element input {
     attribute type {'hidden'},
     attribute name {'client_id'},
-    attribute value {$map('url')}
+    attribute value { $map('url') }
    },
 
   element input {
     attribute type {'hidden'},
     attribute name {'redirect_uri'},
-    attribute value {'https://gmack.nz/_login'}
+    attribute value { $map('url') || '/_callback'}
    },
-
   element input {
     attribute type {'hidden'},
     attribute name {'state'},
-    attribute value {'skdsldslmdmdaaaqwpomnzx'}
+    attribute value {'randomBase64'}
    }
   }
 };
@@ -113,13 +117,13 @@ element div {
       },
       element figcaption {
         attribute class { 'nameAsHeader p-name' },
-         $map('name') 
+         $map('name')
       }
     }
    },
   element p {
     attribute class { 'p-note' },
-     $map('note') 
+     $map('note')
   },
    element a {
      attribute class { 'u-email' },
@@ -270,8 +274,7 @@ function feed:render( $map as map(*) ) {
         (: feed:recent-entries( $map ) :)
       },
       element aside {
-        "TODO"
-        (:feed:sign-in-form( $map('card') ) :)
+        feed:sign-in-form( $map('card') )
         },
       feed:footer( $map('card') )
       }

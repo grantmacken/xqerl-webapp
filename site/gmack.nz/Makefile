@@ -61,7 +61,7 @@ clean: clean-tmp
 clean-tmp:
 	@rm -fr $(T)/*
 
-$(D)/xqerl-compiled-code.tar: $(BuildList) 
+$(D)/xqerl-compiled-code.tar: $(BuildList)
 	@# echo '## $(notdir $@) ##'
 	@# $(EVAL) $(compiledLibs)
 	@docker run --rm \
@@ -102,7 +102,7 @@ up: clean-tmp $(T)/network.check $(T)/volumes.check
 	@$(if $(xqRunning),docker ps --all --filter name=$(XQ) --format ' -  $(XQ) container status [ {{.Status}} ]',)
 
 .PHONY: down
-down: 
+down:
 	@$(if $(xqRunning),echo -n ' - stopping container: ' && docker stop $(XQ),)
 
 $(T)/network.check:
@@ -127,7 +127,7 @@ $(T)/volumes.check:
 	@docker volume list  --format "{{.Name}}" > $@
 
 .PHONY: info
-info: run
+info:
 	@echo '## $@ ##'
 	@docker ps --filter name=$(XQ) --format ' -    name: {{.Names}}'
 	@docker ps --filter name=$(XQ) --format ' -  status: {{.Status}}'
@@ -140,7 +140,7 @@ info: run
 	@$(EVAL) '{ok,CWD}=file:get_cwd(),list_to_atom(CWD).'
 	@echo -n '-        node: '
 	@$(EVAL) 'erlang:node().'
-	@#$(EVAL) 'erlang:nodes().' 
+	@#$(EVAL) 'erlang:nodes().'
 	@echo -n '-      cookie: '
 	@$(EVAL) 'erlang:get_cookie().'
 	@echo -n '-        host: '
@@ -193,7 +193,7 @@ BuildIconsList := $(patsubst  %.svg,$(B)/$(DOMAIN)/%.svgz,$(wildcard resources/i
 .PHONY: icons
 icons: $(BuildIconsList)
 
-.PHONY: clean-icons 
+.PHONY: clean-icons
 clean-icons:
 	@echo '## $@ ##'
 	@rm -f $(BuildIconsList)
@@ -257,5 +257,3 @@ $(B)/$(DOMAIN)/resources/styles/%.css.gz: $(T)/$(DOMAIN)/resources/styles/%.css
 	@echo "orginal size: [ $$(wc -c $< | cut -d' ' -f1) ]"
 	@echo "cssnano size: [ $$(wc -c $(T)/$(DOMAIN)/resources/styles/$*.css | cut -d' ' -f1) ]"
 	@echo "   gzip size: [ $$(wc -c  $@ | cut -d' ' -f1) ]"
-
-
