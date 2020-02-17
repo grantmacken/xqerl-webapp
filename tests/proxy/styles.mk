@@ -1,18 +1,21 @@
 
 ######################################
-gzipSize  != grep -oP '^ download\s+\[\s\K(\d+)' $(T)/styles/gzip
-gunzipSize != grep -oP '^ download\s+\[\s\K(\d+)' $(T)/styles/gunzip
-gzipTransfer != grep -oP '^ tansfered\s+\[\s\K([.\d]+)' $(T)/styles/gzip
-gunzipTransfer != grep -oP '^ tansfered\s+\[\s\K([.\d]+)' $(T)/styles/gunzip
+gzipSize  =  $(shell grep -oP '^ download\s+\[\s\K(\d+)' $(T)/styles/gzip || true )
+gunzipSize = $(shell grep -oP '^ download\s+\[\s\K(\d+)' $(T)/styles/gunzip || true )
+#gzipTransfer != grep -oP '^ tansfered\s+\[\s\K([.\d]+)' $(T)/styles/gzip
+#gunzipTransfer != grep -oP '^ tansfered\s+\[\s\K([.\d]+)' $(T)/styles/gunzip
+# $(call IsLessThan,$(gzipTransfer),$(gunzipTransfer),xx)
+# echo '$(gzipTransfer) >= $(gunzipTransfer)' | bc
 
 .PHONY: styles
 styles: styles-gzip styles-gunzip
 	@echo '## $@ ##'
 	@echo " - with gziped files we should get a size reduction"
-	@$(call IsLessThan,$(gzipSize),$(gunzipSize),gzip size should be smaller than gunzip ) 
-	@#$(call IsLessThan,$(gzipTransfer),$(gunzipTransfer),xx) 
-	@#echo '$(gzipTransfer) >= $(gunzipTransfer)' | bc
+	@$(call IsLessThan,$(gzipSize),$(gunzipSize),gzip size should be smaller than gunzip )
 
+.PHONY: clean-styles
+clean-styles:
+	@rm -f $(T)/styles/*
 
 .PHONY: styles-gzip
 styles-gzip: $(T)/styles/gzip
@@ -43,7 +46,7 @@ $(T)/styles/gzip:
  --write-out $(WriteOut) \
  --dump-header $(dir $@)/headers-$(notdir $@) \
  --output /dev/null \
- $(URL)/styles > $@ 
+ $(URL)/styles > $@
 
 .PHONY: styles-gunzip
 styles-gunzip: $(T)/styles/gunzip
@@ -57,5 +60,3 @@ styles-gunzip: $(T)/styles/gunzip
 $(T)/styles/gunzip:
 	@mkdir -p $(dir $@)
 	@$(call binGET,/styles,$@)
-
-

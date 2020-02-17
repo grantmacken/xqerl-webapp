@@ -10,7 +10,11 @@ icons: $(T)/icons/mail
 	@$(call ServesContentType,$(call fHeader,mail,$<),content-encoding,gzip)
 	@$(call ServesContentType,$(call fHeader,mail,$<),vary,Accept-Encoding)
 
+
+.PHONY: clean-icons
+clean-icons:
+	@rm -f $(T)/icons/*
+
 $(T)/icons/mail:
 	@mkdir -p $(dir $@)
 	@$(call binGET,/icons/mail,$@)
-

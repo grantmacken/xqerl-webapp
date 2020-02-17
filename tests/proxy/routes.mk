@@ -1,6 +1,10 @@
 .PHONY: routes
 routes: home-page
 
+.PHONY: clean-routes
+clean-routes:
+	@rm -f $(T)/routes/*
+
 .PHONY: home-page
 home-page: $(T)/routes/home-page
 	@echo '## $@ ##'
