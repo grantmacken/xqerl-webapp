@@ -43,12 +43,15 @@ buildLibs := $(patsubst lualib/%.lua,$(B)/site/lualib/$(REPO_OWNER)/%.lua, $(wil
 orAddress  := docker inspect --format='{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' $(OR)
 
 .PHONY: build
-build:  $(D)/site-lualib.tar $(D)/nginx-configuration.tar
+build: build-site-lualib  build-nginx-configuration
 	@#$(DEO) bin/openresty -t
 	@#$(DEO) bin/openresty -s reload
 
-.PHONY: build-libs
-build-libs: $(D)/site-lualib.tar
+.PHONY: build-site-lualib
+build-site-lualib: $(D)/site-lualib.tar
+
+.PHONY: build-nginx-configuration
+build-nginx-configuration: $(D)/nginx-configuration.tar
 
 #$(D)/nginx-configuration.tar
 

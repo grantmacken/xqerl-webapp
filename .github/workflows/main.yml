@@ -47,18 +47,24 @@ jobs:
             echo '  the xqerl container internal IPAddress and published port'
             make
             popd
-      - name: From static assets build pipeline to 'static-assets' volume
+      - name: Build 'static assets' from src files and put into 'static-assets' volume
         run: |
-            source .env   
+            source .env
             echo " - build static assets for ${DOMAIN} website" 
             pushd site/${DOMAIN}
             make assets
             popd
-      - name: Create generic Nginx configuration
+      - name: Build and put 'nginx configuration' files into 'nginx-configuration' volume
         run: |
-            source .env   
-            pushd proxy 
-            make
+            source .env
+            pushd proxy
+            make build-nginx-configuration
+            popd
+      - name: Build and put 'site owners' lua files into 'site lualib' volume
+        run: |
+            source .env
+            pushd proxy
+            make build-site-lualib
             popd
       - name: Setup Gcloud
         uses: googlecloudplatform/github-actions/setup-gcloud@master
@@ -78,7 +84,7 @@ jobs:
             gcloud compute ssh ${GCE_NAME} --command \
             "docker pull ${XQERL_DOCKER_IMAGE} && docker pull ${PROXY_DOCKER_IMAGE}"
             #gcloud info
-      - name: Fetch certs and put into 'letsencypt' volume
+      - name: Fetch certs and put into 'letsencypt' volume on 'github-actions' host
         run: |
             source .env
             pushd proxy 
@@ -86,7 +92,7 @@ jobs:
             # modify hosts file
             sudo echo "127.0.0.1 ${TLS_COMMON_NAME}" | sudo tee -a /etc/hosts
             popd
-      - name: Bring proxy container up on 'github-actions'  host
+      - name: Bring proxy container up on 'github-actions' host
         run: |
             pushd proxy
             make up
@@ -107,9 +113,15 @@ jobs:
             pushd proxy
             make down
             popd
+      - name: Check deploy directory
+        run: |
+            source .env
+            pushd deploy
+            ls -al .
+            popd
       - name: Upload tars to GCE host and deploy using gcloud client
         run: |
             source .env
             pushd gcloud
-            make
+            #make
             popd

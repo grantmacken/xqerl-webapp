@@ -102,8 +102,6 @@ pull-pkgs:
 	@docker pull docker.pkg.github.com/grantmacken/alpine-zopfli/zopfli:0.0.1
 	@docker pull docker.pkg.github.com/grantmacken/alpine-cssnano/cssnano:0.0.3
 
-
-
 .PHONY: clean
 clean:
 	@pushd proxy &>/dev/null
