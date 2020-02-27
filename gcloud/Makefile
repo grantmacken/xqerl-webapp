@@ -26,8 +26,8 @@ Gngx  := gcloud compute ssh $(GCE_NAME) --container $(NGX) --command
 mountData   := type=volume,target=$(XQERL_HOME)/data,source=xqerl-database
 mountCode   := type=volume,target=$(XQERL_HOME)/code,source=xqerl-compiled-code
 #  proxy volumes
-mountNginxConf   := type=volume,target=$(OPENRESTY_HOME)/nginx/conf,source=nginx-configuration
-mountNginxHtml   := type=volume,target=$(OPENRESTY_HOME)/nginx/html,source=static-assets
+mountNginxConf   := type=volume,target=$(PROXY_HOME)/conf,source=nginx-configuration
+mountNginxHtml   := type=volume,target=$(PROXY_HOME)/html,source=static-assets
 mountLetsencrypt := type=volume,target=$(LETSENCRYPT),source=letsencrypt
 # the bind mount on GCE host
 mountDeploy := type=bind,target=/tmp,source=/home/$(GCE_NAME)/deploy
@@ -175,14 +175,14 @@ $(B)/nginx-configuration.tested: $(B)/nginx-configuration.volume $(B)/static-ass
  --mount $(mountLetsencrypt) \
  --mount $(mountNginxHtml) \
  --network $(NETWORK) \
- --entrypoint "sh" $(PROXY_DOCKER_IMAGE) -c "./bin/openresty -t"' | tee $(@)
+ --entrypoint "sh" $(PROXY_DOCKER_IMAGE) -c "./sbin/nginx -t"' | tee $(@)
 	@printf %60s | tr ' ' '-' && echo
 	@echo ' - nginx configuration tested using dummy container instance'
 	@printf %60s | tr ' ' '-' && echo
 
 $(B)/proxy.reloaded: $(B)/proxy.up
 	@# test configuration with dummy proxy
-	@$(Gngx) './bin/openresty -s reload'
+	@$(Gngx) './sbin/nginx -s reload'
 	@printf %60s | tr ' ' '-' && echo
 
 # XERL runs before PROXY
