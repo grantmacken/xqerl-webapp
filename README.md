@@ -3,8 +3,8 @@ maybe a template for a xQuery webapp projects using xqerl, but just now an exper
 
 ## Containers And Container Volumes
 
-1. openresty (nginx) as a *cache*, *proxy*, and *static file* server  [ may use redis as cache server ]
-2. xqerl resides behind our openresty proxy as an web application server
+1. nginx as a *cache*, *proxy*, and *static file* server
+2. xqerl resides behind our nginx proxy as an web application server
 
 xqerl provides capabilities to handle structured marked up data resources like HTML, XML, JSON and CSV
  - a restXQ implementation providing an API interface to Create Retrieve Update Delete these resources in its internal data store.
@@ -12,8 +12,117 @@ xqerl provides capabilities to handle structured marked up data resources like H
  - an xQuery application engine to retrieve, query and transform data resources via the *functional*, *typed* **xQuery** language
 
 Since containers are ephemeral by nature, 
-we provide volumes to persist data between stopping and starting the containers.
-These volumes are in the 'docker-compose' file and their purpose should be self evident.
+we provide docker volumes to persist data between stopping and starting the containers.
+
+ - **letsencrypt**
+ - **nginx-configuration** 
+ - **static-assets** 
+ - **xqerl-compiled-code**
+ - **xqerl-database**
+
+
+Our `Make` build artifacts are tar archives produced from container volumes.
+These tars end up in the deploy directory. 
+To **deploy** these tar archives they are simply untared into their respective volumes. 
+This is done using running short lived containers, and not via a running `ps` container.
+
+## Local Actions
+
+Under the site directory we create directories 
+for the **domains** under our control and have 
+two main working directories
+
+```
+.
+└── site
+    └── gmack.nz
+        ├── modules
+        └── resources
+``
+
+ 1. modules:   this contains the xquery modules to be compiled by xqerl 
+ 2. resources: this contains the static assets for the site with each asset class 
+ having its own directory and a **build pipeline** to the build directiory
+
+###  build pipelines for static assets
+
+Our build pipelines consists of chaining together io from short lived container instances.
+
+Example: for a css resource:
+ - we use css nano to reduces file size,
+ - then use zopfli to gzip.
+
+This build pipelining is driven by Make. 
+e.g. `make styles` the corresponding  *Makefile* section
+
+ ```
+$(T)/$(DOMAIN)/resources/styles/%.css: resources/styles/%.css
+	@echo "##[ $(notdir $@) ]##"
+	@echo  ' - use cssnano to reduce css file size'
+	@cat $< | docker run \
+  --rm \
+  --init \
+  --name cssnano \
+  --interactive \
+   docker.pkg.github.com/grantmacken/alpine-cssnano/cssnano:0.0.3 > $@
+
+$(B)/$(DOMAIN)/resources/styles/%.css.gz: $(T)/$(DOMAIN)/resources/styles/%.css
+	@echo "##[ $(notdir $@) ]##"
+	@echo  ' - use zopfli to gzip file'
+	@cat $< | docker run \
+  --rm \
+  --name zopfli \
+  --interactive \
+  docker.pkg.github.com/grantmacken/alpine-zopfli/zopfli:0.0.1 > $@
+	@echo "orginal size: [ $$(wc -c $< | cut -d' ' -f1) ]"
+	@echo "cssnano size: [ $$(wc -c $(T)/$(DOMAIN)/resources/styles/$*.css | cut -d' ' -f1) ]"
+	@echo "   gzip size: [ $$(wc -c  $@ | cut -d' ' -f1) ]"
+```
+
+The resulting build files will have a `.gz` extension
+These are directly served by our server nginx using the `http_gzip_static_module`
+
+All the stuff under the resources director can be built by the make target 'assets'
+
+```
+make assets
+```
+Once built, the built assets are copied into the `static-assets` volume using a short lived container instance. This 'static-assets' volume is then tared, so the actual  *build artifact* from `make assets` that can be deployed is a tar file named `static-assets.tar`. It is found in the deploy directory at project root.
+
+However before we deploy, we should run some *local* tests on a running container instance.
+
+## Github Actions
+
+1. build phases => produce tar archives => untar into container volumes
+ - TODO
+2. running container test phases
+  - xqerl container tests:
+    - bring xqerl container up
+    - use xqerl container internal IPAddress and published port to test restXQ routes
+  - proxy container tests:
+    - add domain under test to /etc/hosts
+    - curl tests using domain to check behaviour of proxy
+3. google cloud deploy phase
+  - move tars into GCE host
+  - untar tars into respective volumes
+  - compile xqerl code
+  - reload proxy
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 <!--
 

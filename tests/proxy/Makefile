@@ -5,10 +5,9 @@ SHELL=/bin/bash
 MAKEFLAGS += --warn-undefined-variables
 MAKEFLAGS += --no-builtin-rules
 ########################################
-SHELL=/bin/bash
 include ../../.env
 T = response
-$(shell mkdir -p $(T)/{routes,styles,icons,lualib} )
+$(shell mkdir -p $(T)/{routes,styles,icons} )
 XQ := $(XQERL_CONTAINER_NAME)
 OR := $(PROXY_CONTAINER_NAME)
 ######################################################

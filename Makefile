@@ -14,7 +14,7 @@ test:
 	@popd &>/dev/null
 
 .PHONY: up
-up: xqerl-up  proxy-up  xqerl-clean xqerl-build
+up: xqerl-up proxy-up xqerl-clean xqerl-build
 
 .PHONY: proxy-up
 proxy-up:
@@ -23,7 +23,7 @@ proxy-up:
 	@popd &>/dev/null
 
 .PHONY: proxy-down
-down:
+proxy-down:
 	@pushd proxy &>/dev/null
 	@$(MAKE) -silent down
 	@popd &>/dev/null
@@ -44,6 +44,12 @@ proxy-build:
 proxy-reload:
 	@pushd proxy &>/dev/null
 	@$(MAKE) -silent reload
+	@popd &>/dev/null
+
+.PHONY: proxy-tests
+proxy-tests:
+	@pushd tests/proxy &>/dev/null
+	@$(MAKE) -silent
 	@popd &>/dev/null
 
 .PHONY: xqerl-up
@@ -73,6 +79,12 @@ xqerl-build:
 .PHONY: xqerl-clean
 xqerl-clean:
 	@pushd site/$(DOMAIN) &>/dev/null
+	@$(MAKE) -silent clean
+	@popd &>/dev/null
+
+.PHONY: xqerl-tests
+xqerl-tests:
+	@pushd tests/xqerl &>/dev/null
 	@$(MAKE) -silent clean
 	@popd &>/dev/null
 

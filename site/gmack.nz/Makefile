@@ -13,23 +13,24 @@ B := .build
 D := ../../deploy
 $(shell mkdir -p ./{$(D),$(T)/$(DOMAIN)/resources/{icons,styles,images,scripts},$(B)/{modules,$(DOMAIN)/resources/{icons,styles,images,scripts}}})
 
-
 # shortcut aliases
 XQ := $(XQERL_CONTAINER_NAME)
-OR := $(PROXY_CONTAINER_NAME)
 DEX := docker exec $(XQ)
 ESCRIPT := $(DEX) xqerl escript
 EVAL := $(DEX) xqerl eval
-
-# DEO := docker exec $(OR)
-
 compile =  $(ESCRIPT) bin/scripts/compile.escript ./code/src/$1
 compiledLibs := 'BinList = xqerl_code_server:library_namespaces(),\
  NormalList = [binary_to_list(X) || X <- BinList],\
  io:fwrite("~1p~n",[lists:sort(NormalList)]).'
-
+####################################################################
+Tick  = echo -n "$$(tput setaf 2) ✔ $$(tput sgr0) " && echo -n $1  && echo
+Cross = echo -n "$$(tput setaf 1) ✘ $$(tput sgr0) " && echo -n $1 && echo
 ####################################################################
 # targets
+# 'make'  first target  is `make build`
+# `make assets`
+# `make clean-assets`
+#
 # make: this targets `make xqerl-compiled-code`, the first target
 # xqerl-compiled-code
 # the tar should be an updated when local files change
@@ -45,7 +46,7 @@ VolumeList := xqerl-compiled-code xqerl-database
 MountCode  := type=volume,target=$(XQERL_HOME)/code,source=xqerl-compiled-code
 MountData  := type=volume,target=$(XQERL_HOME)/data,source=xqerl-database
 MountBin   := type=bind,target=$(XQERL_HOME)/bin/scripts,source=$(CURDIR)/bin
-MountAssets  := type=volume,target=$(OPENRESTY_HOME)/nginx/html,source=static-assets
+MountAssets  := type=volume,target=$(PROXY_HOME)/html,source=static-assets
 MountBuild := type=bind,target=/tmp,source=$(CURDIR)/$(B)
 
 .PHONY: build
@@ -97,20 +98,25 @@ define xqRun
 endef
 
 .PHONY: up
-up: clean-tmp $(T)/network.check $(T)/volumes.check
-	@$(if $(xqRunning),,$(xqRun) && sleep 3)
-	@$(if $(xqRunning),docker ps --all --filter name=$(XQ) --format ' -  $(XQ) container status [ {{.Status}} ]',)
+up: clean-tmp $(T)/network.check $(T)/volumes.check $(T)/xqerl-up.check
 
 .PHONY: down
 down:
 	@$(if $(xqRunning),echo -n ' - stopping container: ' && docker stop $(XQ),)
 
+$(T)/xqerl-up.check:
+	@docker ps --all --filter name=$(XQ) --format '{{.Status}}' &> $@
+	@if ! grep -oP '^Up(.+)$$' $@ &>/dev/null ; then $(xqRun) \
+ && sleep 2 \
+ && docker ps --all --filter name=$(XQ) --format '{{.Status}}' &> $@ ; fi
+	@@if grep -oP '^Up(.+)$$' $@ &>/dev/null ;then\
+ $(call Tick, - xqerl: [ $$(tail -1 $@) ]); else \
+ $(call Cross,- xqerl: [ down ]) && false; fi
+
 $(T)/network.check:
-	@#echo '##[ $@ ]##'
 	@docker network list --format '{{.Name}}' > $@
 	@grep -oP '^$(NETWORK)' $@ &>/dev/null || docker network create $(NETWORK)
-
-
+	@$(call Tick, - network: [ $(NETWORK) ])
 
 MustHaveVolume = docker volume list --format "{{.Name}}" | \
  grep -q $(1) || docker volume create --driver local --name $(1) &>/dev/null
@@ -123,8 +129,7 @@ $(T)/volumes.check:
 	@$(call MustHaveVolume,static-assets)
 	@$(call MustHaveVolume,nginx-configuration)
 	@$(call MustHaveVolume,letsencrypt)
-	@$(call MustHaveVolume,site-lualib)
-	@docker volume list  --format "{{.Name}}" > $@
+	@$(call Tick, - volumes OK!)
 
 .PHONY: info
 info:
@@ -148,12 +153,9 @@ info:
 	@echo;printf %60s | tr ' ' '-' && echo
 	@$(EVAL) $(compiledLibs)
 
-
-
 ######################
 ###  STATIC ASSETS ###
 ######################
-
 
 .PHONY: assets
 assets: $(D)/static-assets.tar
@@ -169,19 +171,19 @@ $(D)/static-assets.tar: icons styles
 	@docker run --rm \
  --mount $(MountAssets) \
  --mount $(MountBuild) \
- --entrypoint "sh" $(PROXY_DOCKER_IMAGE) -c 'cp -rv /tmp/$(DOMAIN) $(OPENRESTY_HOME)/nginx/html/'
+ --entrypoint "sh" $(PROXY_DOCKER_IMAGE) -c 'cp -rv /tmp/$(DOMAIN) $(PROXY_HOME)/html/'
 	@rm -f $(D)/static-assets.tar
 	# tar the static-assets volume to ready for deployment
 	@docker run --rm \
  --mount $(MountAssets) \
- --entrypoint "tar" $(PROXY_DOCKER_IMAGE) czf - $(OPENRESTY_HOME)/nginx/html  > $@
+ --entrypoint "tar" $(PROXY_DOCKER_IMAGE) czf - $(PROXY_HOME)/html  > $@
 
 .PHONY: remove-content-in-assets-volume
 remove-content-in-assets-volume:
 	@echo '## $@ ##'
 	@docker run --rm \
  --mount $(MountAssets) \
- --entrypoint "rm" $(PROXY_DOCKER_IMAGE) -rf ./nginx/html/$(DOMAIN)
+ --entrypoint "rm" $(PROXY_DOCKER_IMAGE) -rf ./html/$(DOMAIN)
 
 
 #############

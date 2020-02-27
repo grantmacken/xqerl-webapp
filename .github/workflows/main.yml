@@ -47,89 +47,89 @@ jobs:
             echo '  the xqerl container internal IPAddress and published port'
             make
             popd
-      - name: Build 'static assets' from src files and put into 'static-assets' volume
-        run: |
-            source .env
-            echo " - build static assets for ${DOMAIN} website" 
-            pushd site/${DOMAIN}
-            make assets
-            popd
-      - name: Build and put 'nginx configuration' files into 'nginx-configuration' volume
-        run: |
-            source .env
-            pushd proxy
-            make build-nginx-configuration
-            popd
-      - name: Build and put 'site owners' lua files into 'site lualib' volume
-        run: |
-            source .env
-            pushd proxy
-            make build-site-lualib
-            popd
-      - name: Setup Gcloud
-        uses: googlecloudplatform/github-actions/setup-gcloud@master
-        with:
-            version: "270.0.0"
-            service_account_email: ${{ secrets.client_email }}
-            service_account_key: ${{ secrets.gce_key }}
-      - name: Configure GCE project
-        run: |
-            source .env
-            gcloud config set project ${GCE_PROJECT}
-            gcloud config set compute/zone ${GCE_ZONE}
-            # gcloud compute instances list
-            gcloud compute config-ssh &>/dev/null
-            gcloud compute ssh ${GCE_NAME} --command \
-            "docker login docker.pkg.github.com --username ${REPO_OWNER} --password ${{ secrets.github_token }}"
-            gcloud compute ssh ${GCE_NAME} --command \
-            "docker pull ${XQERL_DOCKER_IMAGE} && docker pull ${PROXY_DOCKER_IMAGE}"
-            #gcloud info
-      - name: Fetch certs and put into 'letsencypt' volume on 'github-actions' host
-        run: |
-            source .env
-            pushd proxy 
-            make certs-into-vol
-            # modify hosts file
-            sudo echo "127.0.0.1 ${TLS_COMMON_NAME}" | sudo tee -a /etc/hosts
-            popd
-      - name: Bring proxy container up on 'github-actions' host
-        run: |
-            pushd proxy
-            make up
-            make info
-            popd
-      - name: Use Curl with Grep to run some website tests
-        run: |
-            source .env
-            pushd tests/proxy
-            make 
-            popd
-      - name: Take both containers down on 'github-actions' host
-        run: |
-            source .env
-            pushd site/${DOMAIN} 
-            make down
-            popd
-            pushd proxy
-            make down
-            popd
-      - name: Check deploy directory
-        run: |
-            source .env
-            pushd deploy
-            ls -al .
-            popd
-      - name: Upload tars to GCE host and deploy using gcloud client
-        run: |
-            source .env
-            pushd gcloud
-            pwd
-            make tars-into-gce-host
-            make compiled-code-volume
-            make xqerl-compile-code
-            make static-assets-volume
-            make site-lualib-volume
-            make nginx-configuration-volume
-            make nginx-configuration-test
-            make proxy-reload
-            popd
+      #- name: Build 'static assets' from src files and put into 'static-assets' volume
+      #  run: |
+      #      source .env
+      #      echo " - build static assets for ${DOMAIN} website" 
+      #      pushd site/${DOMAIN}
+      #      make assets
+      #      popd
+      #- name: Build and put 'nginx configuration' files into 'nginx-configuration' volume
+      #  run: |
+      #      source .env
+      #      pushd proxy
+      #      make build-nginx-configuration
+      #      popd
+      #- name: Build and put 'site owners' lua files into 'site lualib' volume
+      #  run: |
+      #      source .env
+      #      pushd proxy
+      #      make build-site-lualib
+      #      popd
+      #- name: Setup Gcloud
+      #  uses: googlecloudplatform/github-actions/setup-gcloud@master
+      #  with:
+      #      version: "270.0.0"
+      #      service_account_email: ${{ secrets.client_email }}
+      #      service_account_key: ${{ secrets.gce_key }}
+      #- name: Configure GCE project
+      #  run: |
+      #      source .env
+      #      gcloud config set project ${GCE_PROJECT}
+      #      gcloud config set compute/zone ${GCE_ZONE}
+      #      # gcloud compute instances list
+      #      gcloud compute config-ssh &>/dev/null
+      #      gcloud compute ssh ${GCE_NAME} --command \
+      #      "docker login docker.pkg.github.com --username ${REPO_OWNER} --password ${{ secrets.github_token }}"
+      #      gcloud compute ssh ${GCE_NAME} --command \
+      #      "docker pull ${XQERL_DOCKER_IMAGE} && docker pull ${PROXY_DOCKER_IMAGE}"
+      #      #gcloud info
+      #- name: Fetch certs and put into 'letsencypt' volume on 'github-actions' host
+      #  run: |
+      #      source .env
+      #      pushd proxy 
+      #      make certs-into-vol
+      #      # modify hosts file
+      #      sudo echo "127.0.0.1 ${TLS_COMMON_NAME}" | sudo tee -a /etc/hosts
+      #      popd
+      #- name: Bring proxy container up on 'github-actions' host
+      #  run: |
+      #      pushd proxy
+      #      make up
+      #      make info
+      #      popd
+      #- name: Use Curl with Grep to run some website tests
+      #  run: |
+      #      source .env
+      #      pushd tests/proxy
+      #      make 
+      #      popd
+      #- name: Take both containers down on 'github-actions' host
+      #  run: |
+      #      source .env
+      #      pushd site/${DOMAIN} 
+      #      make down
+      #      popd
+      #      pushd proxy
+      #      make down
+      #      popd
+      #- name: Check deploy directory
+      #  run: |
+      #      source .env
+      #      pushd deploy
+      #      ls -al .
+      #      popd
+      #- name: Upload tars to GCE host and deploy using gcloud client
+      #  run: |
+      #      source .env
+      #      pushd gcloud
+      #      pwd
+      #      make tars-into-gce-host
+      #      make compiled-code-volume
+      #      make xqerl-compile-code
+      #      make static-assets-volume
+      #      make site-lualib-volume
+      #      make nginx-configuration-volume
+      #      make nginx-configuration-test
+      #      make proxy-reload
+      #      popd

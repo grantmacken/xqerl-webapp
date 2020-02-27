@@ -35,6 +35,11 @@ mountLetsencrypt := type=volume,target=$(LETSENCRYPT),source=letsencrypt
 mountDeploy := type=bind,target=/tmp,source=/home/$(GCE_NAME)/deploy
 tarList := $(wildcard *.tar)
 
+# proxy env vars
+
+GH_ClIENT_ID     := $(shell cat ../../.ghClientID)
+GH_ClIENT_SECRET := $(shell cat ../../.ghClientSecret)
+
 # Default - top level rule is what gets ran when you run just `make`
 .PHONY: build-xqerl
 build-xqerl: $(B)/xqerl-compile.complete
@@ -46,7 +51,6 @@ clean:
 
 .PHONY: tars-into-gce-host
 tars-into-gce-host: $(B)/tars-into-gce-host.moved
-
 
 .PHONY: compiled-code-volume
 compiled-code-volume: $(B)/xqerl-compiled-code.volume
@@ -75,9 +79,9 @@ proxy-up: $(B)/proxy.up
 PHONY: volumes-check
 volumes-check: $(B)/volumes.checked
 
-# PHONY: proxy-stop
-# proxy-stop:
-# 	@$(Gor) './bin/openresty -s stop'
+PHONY: proxy-down
+proxy-down:
+	@$(Gcmd) 'docker stop $(OR)'
 
 # PHONY: proxy-start
 # proxy-start:
@@ -163,25 +167,30 @@ $(B)/gce-deploy.cleaned:
 	@printf %60s | tr ' ' '-' && echo
 
 
-# PROXY
-#######
 
-$(B)/proxy.up: $(B)/nginx-configuration.tested
-	@echo '##[ $@ ]##'
-	@$(Gcmd) 'docker ps --filter name=$(OR) --format "{{.Status}}" | grep -q Up || \
- docker run \
- --rm \
+define orRun
+docker run --rm \
  --mount $(mountNginxConf) \
  --mount $(mountNginxHtml) \
  --mount $(mountLetsencrypt) \
  --mount $(mountSiteLualib) \
  --name  $(OR) \
+ -e "GH_ClIENT_ID=$(GH_ClIENT_ID)" \
+ -e "GH_ClIENT_SECRET=$(GH_ClIENT_SECRET)" \
  --hostname openresty \
  --network $(NETWORK) \
  --publish 80:80 \
  --publish 443:443 \
  --detach \
- $(PROXY_DOCKER_IMAGE)'
+ $(PROXY_DOCKER_IMAGE)
+endef
+
+# PROXY
+#######
+
+$(B)/proxy.up: $(B)/nginx-configuration.tested
+	@echo '##[ $@ ]##'
+	@$(Gcmd) 'docker ps --filter name=$(OR) --format "{{.Status}}" | grep -q Up || $(orRun)'
 	@sleep 2
 	@$(Gcmd) 'docker ps --filter name=$(OR) --format "{{.Names}} {{.Status}} "' | tee $@
 
@@ -202,6 +211,9 @@ $(B)/proxy.reloaded: $(B)/proxy.up
 	@# test configuration with dummy proxy
 	@$(Gor) './bin/openresty -s reload'
 	@printf %60s | tr ' ' '-' && echo
+
+
+
 
 # XERL runs before PROXY
 ########################

@@ -32,17 +32,13 @@ element head {
     attribute rel { 'icon' },
     attribute type { 'image/svg+xml' }
     },
-  element link {
-    attribute href {  'https://github.com/' || $map('nickname') },
-    attribute rel {  'me' }
+   element link {
+    attribute href { 'https://github.com/' || $map('nickname') },
+    attribute rel { 'me authn' }
     },
   element link {
-    attribute href {  'https://twitter.com/' || $map('nickname') },
+    attribute href { 'https://twitter.com/' || $map('nickname') },
     attribute rel { 'me' }
-    },
-  element link {
-    attribute href { 'https://indielogin.com/auth'},
-    attribute rel { 'authorization_endpoint"' }
     }
   }
 };
@@ -83,9 +79,8 @@ element form {
   element input {
     attribute type {'hidden'},
     attribute name {'client_id'},
-    attribute value { $map('url') }
+    attribute value { $map('url') || '/' }
    },
-
   element input {
     attribute type {'hidden'},
     attribute name {'redirect_uri'},
@@ -95,6 +90,11 @@ element form {
     attribute type {'hidden'},
     attribute name {'state'},
     attribute value {'randomBase64'}
+   },
+   element input {
+    attribute type {'hidden'},
+    attribute name {'prompt'},
+    attribute value {'login'}
    }
   }
 };
@@ -139,63 +139,31 @@ element div {
        element figcaption { $map('email') }
      }
    },
- (: address :)
-  element div {
-    element figure {
-      attribute class { 'h-adr' },
-      element img {
-      attribute width { '16' },
-      attribute height { '16' },
-      attribute alt { 'geo location' },
-      attribute src { '/icons/geolocation' }
-      },
-      element figcaption {
-        element span {
+  (: address :)
+    element div {
+      element figure {
+        attribute class { 'h-adr' },
+        element img {
+          attribute width { '16' },
+          attribute height { '16' },
+          attribute alt { 'geo location' },
+          attribute src { '/icons/geolocation' }
+        },
+        element figcaption {
+          element span {
             attribute class { 'p-street-address'  },
             $map('adr')('street-address')
-        }, ', ' ,
-      element span {
+          }, ', ' ,
+          element span {
             attribute class { 'p-locality'  },
             $map('adr')('locality' )
-        }, ', ',
-      element span {
+          }, ', ',
+          element span {
             attribute class { 'p-country-name'  },
             $map('adr')('country-name')
+          }
         }
       }
-    }
-  },
-  element div {
-    attribute id { 'link-to-profiles' },
-    element p {'my profile links'},
-     element a {
-       attribute href {  'https://github.com/' || $map('nickname') },
-       attribute rel {  'me' },
-       element figure {
-         attribute class { 'contact-info' },
-         element img {
-           attribute width { '16' },
-           attribute height { '16' },
-           attribute alt { 'github icon' },
-           attribute src { '/icons/github' }
-         },
-         element figcaption {  $map('nickname') || ' on github'}
-       }
-     },
-     element a {
-       attribute href { 'https://twitter.com/' || $map('nickname') },
-       attribute rel {  'me' },
-       element figure {
-         attribute class { 'contact-info' },
-         element img {
-           attribute width { '16' },
-           attribute height { '16' },
-           attribute alt { 'github icon' },
-           attribute src { '/icons/twitter' }
-         },
-         element figcaption { '@' || $map('nickname') || ' on Twitter' }
-       }
-     }
     }
   }
 };
