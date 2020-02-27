@@ -171,12 +171,12 @@ $(D)/static-assets.tar: icons styles
 	@docker run --rm \
  --mount $(MountAssets) \
  --mount $(MountBuild) \
- --entrypoint "sh" $(PROXY_DOCKER_IMAGE) -c 'cp -rv /tmp/$(DOMAIN) $(PROXY_HOME)/html/'
+ --entrypoint "sh" $(PROXY_DOCKER_IMAGE) -c 'cp -r /tmp/$(DOMAIN) $(PROXY_HOME)/html/'
 	@rm -f $(D)/static-assets.tar
 	# tar the static-assets volume to ready for deployment
 	@docker run --rm \
  --mount $(MountAssets) \
- --entrypoint "tar" $(PROXY_DOCKER_IMAGE) czf - $(PROXY_HOME)/html  > $@
+ --entrypoint "tar" $(PROXY_DOCKER_IMAGE) czf - $(PROXY_HOME)/html &>/dev/null > $@
 
 .PHONY: remove-content-in-assets-volume
 remove-content-in-assets-volume:
@@ -257,5 +257,4 @@ $(B)/$(DOMAIN)/resources/styles/%.css.gz: $(T)/$(DOMAIN)/resources/styles/%.css
   --interactive \
   docker.pkg.github.com/grantmacken/alpine-zopfli/zopfli:0.0.1 > $@
 	@echo "orginal size: [ $$(wc -c $< | cut -d' ' -f1) ]"
-	@echo "cssnano size: [ $$(wc -c $(T)/$(DOMAIN)/resources/styles/$*.css | cut -d' ' -f1) ]"
-	@echo "   gzip size: [ $$(wc -c  $@ | cut -d' ' -f1) ]"
+	@echo "   gzip size: [ $$(wc -c $@ | cut -d' ' -f1) ]"

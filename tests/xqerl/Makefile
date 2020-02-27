@@ -32,7 +32,7 @@ test: routes
 
 .PHONY: clean
 clean: clean-routes
-	@echo ' - start fresh by removing previous responces'
+	@echo ' - start afresh by removing previous responses'
 
 
 include routes.mk
