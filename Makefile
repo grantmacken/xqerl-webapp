@@ -16,6 +16,9 @@ test:
 .PHONY: up
 up: xqerl-up proxy-up xqerl-clean xqerl-build
 
+.PHONY: down
+down: proxy-down xqerl-down
+
 .PHONY: proxy-up
 proxy-up:
 	@pushd proxy &>/dev/null

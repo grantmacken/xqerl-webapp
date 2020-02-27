@@ -89,27 +89,20 @@ jobs:
            make proxy-build
            echo ' - the build artifact is the **nginx-configuration.tar**'
            ls -al deploy/nginx-configuration.tar
-      #- name: Bring proxy container up on 'github-actions' host
-      #  run: |
-      #      pushd proxy
-      #      make up
-      #      make info
-      #      popd
-      #- name: Use Curl with Grep to run some website tests
-      #  run: |
-      #      source .env
-      #      pushd tests/proxy
-      #      make 
-      #      popd
-      #- name: Take both containers down on 'github-actions' host
-      #  run: |
-      #      source .env
-      #      pushd site/${DOMAIN} 
-      #      make down
-      #      popd
-      #      pushd proxy
-      #      make down
-      #      popd
+      - name: Bring proxy container up on 'github-actions' host
+        run: |
+            echo ' - with our nginx-configuration to bring the nginx proxy up successfuly we need to'
+            echo ' 1. have the certs in the path as specified in the config '
+            echo ' 2. have a resolvable *proxy pass* as specified in the config '
+            make proxy-up
+      - name: Use Curl with Grep to run some website tests
+        run: |
+            source .env
+            make proxy-tests
+      - name: Take both containers down on 'github-actions' host
+        run: |
+            source .env
+            make down
       #- name: Check deploy directory
       #  run: |
       #      source .env
