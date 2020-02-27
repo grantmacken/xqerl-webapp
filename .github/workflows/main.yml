@@ -38,17 +38,22 @@ jobs:
             echo ' - create the network we require'
             make xqerl-up
             echo ' - compile build xQuery files to run on the beam'
+            echo ' - the build artifact is the **xqerl-compiled-code.tar**'
             make xqerl-build
-            echo ' - run some curl tests for restXQ routes using the '
-            echo '  the xqerl container internal IPAddress and published port'
+            ls -al deploy/xqerl-compiled-code.tar
+            echo ' - take a peek at the running xqerl container instance'
+            make xqerl-info
+            echo ' - before we place a reverse proxy server before xqerl '
+            echo '   we can test our **restXQ routes** using the *curl* and '
+            echo '   the xqerl internal IPAddress and published port'
             make xqerl-tests
-      #- name: Build 'static assets' from src files and put into 'static-assets' volume
-      #  run: |
-      #      source .env
-      #      echo " - build static assets for ${DOMAIN} website" 
-      #      pushd site/${DOMAIN}
-      #      make assets
-      #      popd
+      - name: Build 'static assets' from src files and put into 'static-assets' volume
+        run: |
+            source .env
+            echo " - build static assets for [ ${DOMAIN} ]"
+            make assets
+            echo ' - the build artifact is the **static-assets.tar**'
+            ls -al deploy/static-assets.tar
       #- name: Build and put 'nginx configuration' files into 'nginx-configuration' volume
       #  run: |
       #      source .env
