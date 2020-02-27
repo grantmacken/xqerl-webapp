@@ -8,7 +8,7 @@ clean-routes:
 .PHONY: home-page
 home-page: res/routes/home-page
 	@echo '## $@ ##'
-	@$(call ServesHeader,$(dir $<)/headers-$(notdir $<),HTTP/2 200,HTTP/1.1 200 OK)
+	@$(call ServesHeader,$(dir $<)/headers-$(notdir $<),HTTP/1.1 200, - status OK!)
 	@$(call HasHeaderKeyShowValue,$(dir $<)/headers-$(notdir $<),content-type)
 
 res/routes/home-page:

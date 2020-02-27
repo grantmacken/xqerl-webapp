@@ -30,4 +30,9 @@ test: routes
 # styles icons routes
 # routes icons icons styles.mk styles-size
 
+.PHONY: clean
+clean: clean-routes
+	@echo ' - start fresh by removing previous responces'
+
+
 include routes.mk

@@ -86,6 +86,7 @@ xqerl-clean:
 xqerl-tests:
 	@pushd tests/xqerl &>/dev/null
 	@$(MAKE) -silent clean
+	@$(MAKE) -silent
 	@popd &>/dev/null
 
 ## will error if error

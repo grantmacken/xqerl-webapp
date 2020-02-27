@@ -33,20 +33,15 @@ jobs:
       - name: Bring up the xqerl container, compile xQuery, then test restXQ routes
         run: |
             source .env
-            source .env
-            pushd site/${DOMAIN}
             echo ' starting xqerl will also: '
             echo ' - create the volumes we require'
             echo ' - create the network we require'
-            make up
+            make xqerl-up
             echo ' - compile build xQuery files to run on the beam'
-            make
-            popd
-            pushd tests/xqerl
+            make xqerl-build
             echo ' - run some curl tests for restXQ routes using the '
             echo '  the xqerl container internal IPAddress and published port'
-            make
-            popd
+            make xqerl-tests
       #- name: Build 'static assets' from src files and put into 'static-assets' volume
       #  run: |
       #      source .env
