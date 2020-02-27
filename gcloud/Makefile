@@ -18,7 +18,6 @@ NGX := $(PROXY_CONTAINER_NAME)
 xqVolumeList  := xqerl-compiled-code xqerl-database
 orVolumeList  := nginx-configuration  static-assets
 # NOTE: 'letsencrypt' volume is populated by certbot
-# NOTE: site-lualib not yet implemented
 ModuleList  := newBase60 render_feed render_note micropub routes
 Gcmd := gcloud compute ssh $(GCE_NAME) --command
 Gxq := gcloud compute ssh $(GCE_NAME) --container $(XQ) --command
@@ -29,7 +28,6 @@ mountCode   := type=volume,target=$(XQERL_HOME)/code,source=xqerl-compiled-code
 #  proxy volumes
 mountNginxConf   := type=volume,target=$(OPENRESTY_HOME)/nginx/conf,source=nginx-configuration
 mountNginxHtml   := type=volume,target=$(OPENRESTY_HOME)/nginx/html,source=static-assets
-mountSiteLualib  := type=volume,target=$(OPENRESTY_HOME)/site/lualib,source=site-lualib
 mountLetsencrypt := type=volume,target=$(LETSENCRYPT),source=letsencrypt
 # the bind mount on GCE host
 mountDeploy := type=bind,target=/tmp,source=/home/$(GCE_NAME)/deploy
@@ -59,9 +57,6 @@ xqerl-compile-code: $(B)/xqerl-compile.complete
 
 .PHONY: static-assets-volume
 static-assets-volume: $(B)/static-assets.volume
-
-.PHONY: site-lualib-volume
-site-lualib-volume: $(B)/site-lualib.volume
 
 .PHONY: nginx-configuration-volume
 nginx-configuration-volume: $(B)/nginx-configuration.volume
@@ -126,16 +121,6 @@ $(B)/nginx-configuration.volume: $(B)/tars-into-gce-host.moved $(D)/nginx-config
 	@echo ' - /nginx-configuration.tar extracted into the docker nginx-configuration volume'
 	@printf %60s | tr ' ' '-' && echo
 
-$(B)/site-lualib.volume: $(B)/tars-into-gce-host.moved $(D)/site-lualib.tar
-	@# extract tar into volume
-	@$(Gcmd) 'docker run --rm \
- --mount $(mountSiteLualib) \
- --mount $(mountDeploy) \
- --entrypoint "tar" $(PROXY_DOCKER_IMAGE) xvf /tmp/site-lualib.tar -C /' | tee $(@)
-	@printf %60s | tr ' ' '-' && echo
-	@echo ' - site-lualib.tar extracted into the docker site-lualib volume'
-	@printf %60s | tr ' ' '-' && echo
-
 $(B)/static-assets.volume: $(B)/tars-into-gce-host.moved $(D)/static-assets.tar
 	@echo '##[ $@ ]##'
 	@$(Gcmd) 'docker run --rm \
@@ -165,7 +150,6 @@ docker run --rm \
  --mount $(mountNginxConf) \
  --mount $(mountNginxHtml) \
  --mount $(mountLetsencrypt) \
- --mount $(mountSiteLualib) \
  --name  $(NGX) \
  --hostname nginx \
  --network $(NETWORK) \
@@ -184,13 +168,12 @@ $(B)/proxy.up: $(B)/nginx-configuration.tested
 	@sleep 2
 	@$(Gcmd) 'docker ps --filter name=$(NGX) --format "{{.Names}} {{.Status}} "' | tee $@
 
-$(B)/nginx-configuration.tested: $(B)/nginx-configuration.volume $(B)/static-assets.volume $(B)/site-lualib.volume
+$(B)/nginx-configuration.tested: $(B)/nginx-configuration.volume $(B)/static-assets.volume
 	@# test configuration with dummy proxy
 	@$(Gcmd) 'docker run --rm \
  --mount $(mountNginxConf) \
  --mount $(mountLetsencrypt) \
  --mount $(mountNginxHtml) \
- --mount $(mountSiteLualib) \
  --network $(NETWORK) \
  --entrypoint "sh" $(PROXY_DOCKER_IMAGE) -c "./bin/openresty -t"' | tee $(@)
 	@printf %60s | tr ' ' '-' && echo
@@ -224,7 +207,6 @@ $(B)/volumes.checked: $(B)/volumes.list
 	@mkdir -p $(dir $@)
 	@grep -oP 'letsencrypt' $< &>/dev/null || $(Gcmd) 'docker volume create --driver local --name letsencrypt'
 	@grep -oP 'nginx-configuration' $<  &>/dev/null|| $(Gcmd) 'docker volume create --driver local --name nginx-configuration'
-	@grep -oP 'site-lualib' $< &>/dev/null || $(Gcmd) 'docker volume create --driver local --name site-lualib'
 	@grep -oP 'static-assets' $< &>/dev/null || $(Gcmd) 'docker volume create --driver local --name static-assets'
 	@grep -oP 'xqerl-compiled-code' $< &>/dev/null || $(Gcmd) 'docker volume create --driver local --name xqerl-compiled-code'
 	@grep -oP 'xqerl-database' $< &>/dev/null || $(Gcmd) 'docker volume create --driver local --name xqerl-database'
