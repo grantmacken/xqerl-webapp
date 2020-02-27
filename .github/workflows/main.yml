@@ -103,23 +103,18 @@ jobs:
         run: |
             source .env
             make down
-      #- name: Check deploy directory
-      #  run: |
-      #      source .env
-      #      pushd deploy
-      #      ls -al .
-      #      popd
-      #- name: Upload tars to GCE host and deploy using gcloud client
-      #  run: |
-      #      source .env
-      #      pushd gcloud
-      #      pwd
-      #      make tars-into-gce-host
-      #      make compiled-code-volume
-      #      make xqerl-compile-code
-      #      make static-assets-volume
-      #      make site-lualib-volume
-      #      make nginx-configuration-volume
-      #      make nginx-configuration-test
-      #      make proxy-reload
-      #      popd
+      - name: Check deploy directory on 'github-actions' host
+        run: |
+            ls -al deploy
+      - name: Upload tars to GCE host and deploy using gcloud client
+        run: |
+            source .env
+            pushd gcloud
+            make tars-into-gce-host
+            make compiled-code-volume
+            make xqerl-compile-code
+            make static-assets-volume
+            make nginx-configuration-volume
+            make nginx-configuration-test
+            make proxy-reload
+            popd

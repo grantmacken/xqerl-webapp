@@ -14,7 +14,7 @@ $(shell mkdir -p ./{$(B),$(D)})
 ##########################
 
 XQ := $(XQERL_CONTAINER_NAME)
-OR := $(PROXY_CONTAINER_NAME)
+NGX := $(PROXY_CONTAINER_NAME)
 xqVolumeList  := xqerl-compiled-code xqerl-database
 orVolumeList  := nginx-configuration  static-assets
 # NOTE: 'letsencrypt' volume is populated by certbot
@@ -22,7 +22,7 @@ orVolumeList  := nginx-configuration  static-assets
 ModuleList  := newBase60 render_feed render_note micropub routes
 Gcmd := gcloud compute ssh $(GCE_NAME) --command
 Gxq := gcloud compute ssh $(GCE_NAME) --container $(XQ) --command
-Gor  := gcloud compute ssh $(GCE_NAME) --container $(OR) --command
+Gngx  := gcloud compute ssh $(GCE_NAME) --container $(NGX) --command
 #  xqerl volumes
 mountData   := type=volume,target=$(XQERL_HOME)/data,source=xqerl-database
 mountCode   := type=volume,target=$(XQERL_HOME)/code,source=xqerl-compiled-code
@@ -36,9 +36,8 @@ mountDeploy := type=bind,target=/tmp,source=/home/$(GCE_NAME)/deploy
 tarList := $(wildcard *.tar)
 
 # proxy env vars
-
-GH_ClIENT_ID     := $(shell cat ../../.ghClientID)
-GH_ClIENT_SECRET := $(shell cat ../../.ghClientSecret)
+# GH_ClIENT_ID     := $(shell cat ../../.ghClientID)
+# GH_ClIENT_SECRET := $(shell cat ../../.ghClientSecret)
 
 # Default - top level rule is what gets ran when you run just `make`
 .PHONY: build-xqerl
@@ -81,12 +80,7 @@ volumes-check: $(B)/volumes.checked
 
 PHONY: proxy-down
 proxy-down:
-	@$(Gcmd) 'docker stop $(OR)'
-
-# PHONY: proxy-start
-# proxy-start:
-# 	@$(Gor) './bin/openresty'
-
+	@$(Gcmd) 'docker stop $(NGX)'
 
 ###########################################################################
 
@@ -160,24 +154,20 @@ $(B)/tars-into-gce-host.moved: $(B)/gce-deploy.cleaned
 	$(Gcmd) 'ls -al deploy' | tee $@
 	@printf %60s | tr ' ' '-' && echo
 
-
 $(B)/gce-deploy.cleaned:
 	@echo '##[ $@ ]##'
 	@$(Gcmd) 'rm -fv deploy/*' | tee $@
 	@printf %60s | tr ' ' '-' && echo
 
 
-
-define orRun
+define ngxRun
 docker run --rm \
  --mount $(mountNginxConf) \
  --mount $(mountNginxHtml) \
  --mount $(mountLetsencrypt) \
  --mount $(mountSiteLualib) \
- --name  $(OR) \
- -e "GH_ClIENT_ID=$(GH_ClIENT_ID)" \
- -e "GH_ClIENT_SECRET=$(GH_ClIENT_SECRET)" \
- --hostname openresty \
+ --name  $(NGX) \
+ --hostname nginx \
  --network $(NETWORK) \
  --publish 80:80 \
  --publish 443:443 \
@@ -190,9 +180,9 @@ endef
 
 $(B)/proxy.up: $(B)/nginx-configuration.tested
 	@echo '##[ $@ ]##'
-	@$(Gcmd) 'docker ps --filter name=$(OR) --format "{{.Status}}" | grep -q Up || $(orRun)'
+	@$(Gcmd) 'docker ps --filter name=$(NGX) --format "{{.Status}}" | grep -q Up || $(ngxRun)'
 	@sleep 2
-	@$(Gcmd) 'docker ps --filter name=$(OR) --format "{{.Names}} {{.Status}} "' | tee $@
+	@$(Gcmd) 'docker ps --filter name=$(NGX) --format "{{.Names}} {{.Status}} "' | tee $@
 
 $(B)/nginx-configuration.tested: $(B)/nginx-configuration.volume $(B)/static-assets.volume $(B)/site-lualib.volume
 	@# test configuration with dummy proxy
@@ -209,11 +199,8 @@ $(B)/nginx-configuration.tested: $(B)/nginx-configuration.volume $(B)/static-ass
 
 $(B)/proxy.reloaded: $(B)/proxy.up
 	@# test configuration with dummy proxy
-	@$(Gor) './bin/openresty -s reload'
+	@$(Gngx) './bin/openresty -s reload'
 	@printf %60s | tr ' ' '-' && echo
-
-
-
 
 # XERL runs before PROXY
 ########################
@@ -250,8 +237,6 @@ $(B)/volumes.list:
 	@mkdir -p $(dir $@)
 	@$(Gcmd) 'docker volume list --format "{{.Name}}"' > $@
 	@printf %60s | tr ' ' '-' && echo
-
-
 
 ###############
 ### UTILITY ###
