@@ -144,7 +144,6 @@ $(B)/gce-deploy.cleaned:
 	@$(Gcmd) 'rm -fv deploy/*' | tee $@
 	@printf %60s | tr ' ' '-' && echo
 
-
 define ngxRun
 docker run --rm \
  --mount $(mountNginxConf) \

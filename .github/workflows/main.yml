@@ -106,15 +106,15 @@ jobs:
       - name: Check deploy directory on 'github-actions' host
         run: |
             ls -al deploy
-      # - name: Upload tars to GCE host and deploy using gcloud client
-      #   run: |
-      #       source .env
-      #       pushd gcloud
-      #       make tars-into-gce-host
+      - name: Upload tars to GCE host and deploy using gcloud client
+        run: |
+            pushd gcloud
+            make tars-into-gce-host
+            popd
+
       #       make compiled-code-volume
       #       make xqerl-compile-code
       #       make static-assets-volume
       #       make nginx-configuration-volume
       #       make nginx-configuration-test
       #       make proxy-reload
-      #       popd
