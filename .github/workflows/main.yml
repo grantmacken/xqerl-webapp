@@ -114,6 +114,8 @@ jobs:
             make xqerl-compile-code
             make static-assets-volume
             make nginx-configuration-volume
+            make nginx-configuration-test
+            make proxy-reload
             popd
 
       #       make xqerl-compile-code
