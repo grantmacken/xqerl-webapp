@@ -110,9 +110,10 @@ jobs:
         run: |
             pushd gcloud
             make tars-into-gce-host
+            make compiled-code-volume
+            make static-assets-volume
             popd
 
-      #       make compiled-code-volume
       #       make xqerl-compile-code
       #       make static-assets-volume
       #       make nginx-configuration-volume
