@@ -38,11 +38,69 @@ two main working directories
     └── gmack.nz
         ├── modules
         └── resources
-``
+```
 
- 1. modules:   this contains the xquery modules to be compiled by xqerl 
+ 1. modules:   this contains the xQuery modules to be compiled by xqerl to run on the [beam](https://en.wikipedia.org/wiki/BEAM_(Erlang_virtual_machine))
  2. resources: this contains the static assets for the site with each asset class 
  having its own directory and a **build pipeline** to the build directiory
+
+
+### xQuery modules
+
+xQuery is both 'data query language' and a 'function programing language'.
+
+#### data query language
+
+With xQuery 3.1 query data sources for have expanded beyond XML to incorporating JSON 
+and other structured data formats like CSV. It also has the capacity to deal with 
+extracting data unparsed test through [regular expressions](https://www.regular-expressions.info/xpath.html)
+
+Whats more query output [serialisation](https://www.w3.org/TR/xslt-xquery-serialization-31) is expanded to include
+JSON, HTML, Text and an 'adaptive output method'
+
+#### typed functional programing language
+
+With xQuery has always been a **typed functional programing language**, however with xQuery 3.1 there have been several improvements.
+
+1. has new syntax coding sugar which makes functional code more **readable**, like the 'new arrow' and 'bang' operators.
+2. introduces new string contructors which allows for easy string interpolation like traditional 'here docs' or logic-less 'mustache' like templating
+3. extends the [XQuery and xPath](https://www.w3.org/TR/xpath-datamodel) **data model** to include functions, maps array that make serialising to and from JSON easier.
+4. introduces basic higher order functions: for-each fold-left, fold-right, sort, apply as well as function introspection with function-lookup.
+
+All in all xQuery 3.1  is a well thought out powerful ***data query language** and ***typed functional programming*** language 
+
+#### xQuery 3.1 on the beam.
+
+xqerl is a erlang application 
+
+TODO!
+
+
+## xqerl development environment
+
+In project root, bring docker containers up.
+
+
+```
+make up
+```
+
+NOTE: if you have not setup the nginx proxy and obtained your certs for your domains, 
+the proxy will start serving on port 80 and port 443, but will not yet act as a reverse proxy for xqerl. 
+xqerl will be serving on port 8081, and we can start creating our xQuery modules
+
+### A main restXQ module as an entry-point to serving resources from a site domain.
+```
+.
+└── site
+    ├── gmack.nz
+    │   ├── modules
+    │   │   ├── routes.xqm
+
+```
+
+TODO!
+
 
 ###  build pipelines for static assets
 
@@ -89,6 +147,7 @@ make assets
 ```
 Once built, the built assets are copied into the `static-assets` volume using a short lived container instance. This 'static-assets' volume is then tared, so the actual  *build artifact* from `make assets` that can be deployed is a tar file named `static-assets.tar`. It is found in the deploy directory at project root.
 
+<!--
 However before we deploy, we should run some *local* tests on a running container instance.
 
 ## Github Actions
@@ -112,7 +171,7 @@ However before we deploy, we should run some *local* tests on a running containe
 
 
 
-
+-->
 
 
 
