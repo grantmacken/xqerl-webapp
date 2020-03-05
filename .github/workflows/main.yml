@@ -142,10 +142,16 @@ jobs:
           gcloud config set compute/zone ${GCE_ZONE}
           # gcloud compute instances list
           gcloud compute config-ssh &>/dev/null
-          gcloud compute ssh ${GCE_NAME} --command \
-          "docker login docker.pkg.github.com --username ${REPO_OWNER} --password ${{ secrets.github_token }}"
-          gcloud compute ssh ${GCE_NAME} --command \
-          "docker pull ${XQERL_DOCKER_IMAGE} && docker pull ${PROXY_DOCKER_IMAGE}"
+    - name: Md5 checksum to see what tar need to be deployed
+      run |
+          source .env
+          gcloud compute ssh ${GCE_NAME} --command ls -al deploy
+
+
+          # gcloud compute ssh ${GCE_NAME} --command \
+          # "docker login docker.pkg.github.com --username ${REPO_OWNER} --password ${{ secrets.github_token }}"
+          # gcloud compute ssh ${GCE_NAME} --command \
+          # "docker pull ${XQERL_DOCKER_IMAGE} && docker pull ${PROXY_DOCKER_IMAGE}"
 
     # if: github.event.pull_request.merged
 
