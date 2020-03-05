@@ -147,9 +147,9 @@ jobs:
           source .env
           mkdir deployed 
           gcloud compute ssh ${GCE_NAME} --command \
-          'docker run --rm \
+          "docker run --rm \
            --volume /home/${GCE_NAME}/deploy:/tmp \
-           --entrypoint "md5sum" ${XQERL_DOCKER_IMAGE} /tmp/nginx-configuration.tar' | tee nginx-configuration.txt
+           --entrypoint 'md5sum' ${XQERL_DOCKER_IMAGE} /tmp/nginx-configuration.tar" | tee nginx-configuration.txt
     - name: Download Artifacts
       uses: actions/download-artifact@v1
       with:
