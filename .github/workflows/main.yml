@@ -89,8 +89,7 @@ jobs:
       if:  ${{ env.DEPLOYED_XQERL_COMPILED_CODE}} == 'true'
       run: |
          source .env
-         gcloud compute ssh ${GCE_NAME} --command 'cd deploy && md5sum xqerl-compile-code.tar' > xqerl-compiled-code.hashes
-
+         gcloud compute ssh ${GCE_NAME} --command 'md5sum deploy/xqerl-compile-code.tar' | tee xqerl-compiled-code.hashes
          # gcloud compute ssh ${GCE_NAME} --command \
          # "docker run --rm --workdir /home --volume /home/${GCE_NAME}/deploy:/home \
          #  --entrypoint 'md5sum' ${XQERL_DOCKER_IMAGE} xqerl-compiled-code.tar" | tee xqerl-compiled-code.txt
@@ -100,27 +99,27 @@ jobs:
     #   with:
     #     name: deployed-xqerl-compiled-code-hash
     #     path: deployed-xqerl-compiled-code.hash
-    - name: Bring up the xqerl container, compile xQuery, then test restXQ routes
-      run: |
-          source .env
-          echo ' starting xqerl will also: '
-          echo ' - create the volumes we require'
-          echo ' - create the network we require'
-          make xqerl-up
-          echo ' - compile build xQuery files to run on the beam'
-          echo ' - the build artifact is the **xqerl-compiled-code.tar**'
-          make xqerl-build
-          ls -al deploy/xqerl-compiled-code.tar
-          pushd deploy && md5sum xqerl-compiled-code.tar | tee -a ../xqerl-compiled-code.hashes && popd
-          echo ' - - - - - - - - - '
-          cat xqerl-compiled-code.hashes
-          md5sum --check xqerl-compiled-code.hashes
-          echo ' - - - - - - - - - '
-          echo ' - take a peek at the running xqerl container instance'
-          make xqerl-info
-          echo ' - before we place a reverse proxy server before xqerl '
-          echo '   we can test our **restXQ routes** using  *curl* and '
-          echo '   the xqerl internal IPAddress and published port'
+    # - name: Bring up the xqerl container, compile xQuery, then test restXQ routes
+    #   run: |
+    #       source .env
+    #       echo ' starting xqerl will also: '
+    #       echo ' - create the volumes we require'
+    #       echo ' - create the network we require'
+    #       make xqerl-up
+    #       echo ' - compile build xQuery files to run on the beam'
+    #       echo ' - the build artifact is the **xqerl-compiled-code.tar**'
+    #       make xqerl-build
+    #       ls -al deploy/xqerl-compiled-code.tar
+    #       pushd deploy && md5sum xqerl-compiled-code.tar | tee -a ../xqerl-compiled-code.hashes && popd
+    #       echo ' - - - - - - - - - '
+    #       cat xqerl-compiled-code.hashes
+    #       md5sum --check xqerl-compiled-code.hashes
+    #       echo ' - - - - - - - - - '
+    #       echo ' - take a peek at the running xqerl container instance'
+    #       make xqerl-info
+    #       echo ' - before we place a reverse proxy server before xqerl '
+    #       echo '   we can test our **restXQ routes** using  *curl* and '
+    #       echo '   the xqerl internal IPAddress and published port'
           # make xqerl-tests
     # - name: Fetch certs and put into 'letsencypt' volume on 'github-actions' host
     #     run: |
