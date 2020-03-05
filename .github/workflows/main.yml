@@ -29,17 +29,19 @@ jobs:
         with:
           path: image-cache
           key: image-cache-${{ runner.os }}
-          - if: steps.image-cache.outputs.cache-hit != 'true'
-            run: |
-                source .env
-                docker pull ${XQERL_DOCKER_IMAGE}
-                docker save -o ~/image-cache/alpine-xqerl.tar
-          - if: steps.image-cache.outputs.cache-hit == 'true'
-            run: docker load -i ~/image-cache/alpine-xqerl.tar
-          - name: Images Check
-            run: docker images
+      - name: generate images
+        if: steps.image-cache.outputs.cache-hit != 'true'
+        run: |
+          source .env
+          docker pull ${XQERL_DOCKER_IMAGE}
+          docker save -o ~/image-cache/alpine-xqerl.tar
+        if: steps.image-cache.outputs.cache-hit == 'true'
+        run: docker load -i ~/image-cache/alpine-xqerl.tar
+      - name: Images Check
+        run: docker images
 
-  
+
+
         #run: |
         #    echo ' - pull in my docker images as helpers'
         #    docker pull ${PROXY_DOCKER_IMAGE}
