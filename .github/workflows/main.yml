@@ -33,80 +33,80 @@ jobs:
           docker pull docker.pkg.github.com/grantmacken/alpine-scour/scour:0.0.2
           docker pull docker.pkg.github.com/grantmacken/alpine-zopfli/zopfli:0.0.1
           docker pull docker.pkg.github.com/grantmacken/alpine-cssnano/cssnano:0.0.3
-      #- name: Bring up the xqerl container, compile xQuery, then test restXQ routes
-        #run: |
-        #    source .env
-        #    echo ' starting xqerl will also: '
-        #    echo ' - create the volumes we require'
-        #    echo ' - create the network we require'
-        #    make xqerl-up
-        #    echo ' - compile build xQuery files to run on the beam'
-        #    echo ' - the build artifact is the **xqerl-compiled-code.tar**'
-        #    make xqerl-build
-        #    ls -al deploy/xqerl-compiled-code.tar
-        #    echo ' - take a peek at the running xqerl container instance'
-        #    make xqerl-info
-        #    echo ' - before we place a reverse proxy server before xqerl '
-        #    echo '   we can test our **restXQ routes** using  *curl* and '
-        #    echo '   the xqerl internal IPAddress and published port'
-        #    make xqerl-tests
-      #- name: Create compiled-xqerl-code artifact
-        #uses: actions/upload-artifact@v1
-        #with:
-        #  name: compiled-xqerl-code
-        #  path: deploy/xqerl-compiled-code.tar
-      #- name: Build 'static assets' from src files and put into 'static-assets' volume
-        #run: |
-        #    source .env
-        #    echo " - build static assets for [ ${DOMAIN} ]"
-        #    make assets
-        #    echo ' - the build artifact is the **static-assets.tar**'
-        #    ls -al deploy/static-assets.tar
-      #- name: Create static-assets artifact
-        #uses: actions/upload-artifact@v1
-        #with:
-        #  name: static-assets
-        #  path: deploy/static-assets.tar
-      #- name: Setup Gcloud
-        #uses: googlecloudplatform/github-actions/setup-gcloud@master
-        #with:
-        #    version: "270.0.0"
-        #    service_account_email: ${{ secrets.client_email }}
-        #    service_account_key: ${{ secrets.gce_key }}
-      #- name: Configure GCE project
-        #run: |
-        #    source .env
-        #    echo ' - set up GCE project from .env vars '
-        #    gcloud config set project ${GCE_PROJECT}
-        #    gcloud config set compute/zone ${GCE_ZONE}
-        #    # gcloud compute instances list
-        #    gcloud compute config-ssh &>/dev/null
-        #    gcloud compute ssh ${GCE_NAME} --command \
-        #    "docker login docker.pkg.github.com --username ${REPO_OWNER} --password ${{ secrets.github_token }}"
-        #    gcloud compute ssh ${GCE_NAME} --command \
-        #    "docker pull ${XQERL_DOCKER_IMAGE} && docker pull ${PROXY_DOCKER_IMAGE}"
-        #    #gcloud info
-      #- name: Fetch certs and put into 'letsencypt' volume on 'github-actions' host
-        #run: |
-        #    source .env
-        #    echo ' - extract existing certs that reside in a docker *letsencrypt* volume on'
-        #    echo '  GCE host into the *letsencrypt* volume that is on this host '
-        #    docker volume ls | grep -q letsencrypt
-        #    make certs-into-vol
-        #    # TODO rm due to curl --resolve modify hosts file
-        #    # sudo echo "127.0.0.1 ${TLS_COMMON_NAME}" | sudo tee -a /etc/hosts
-      #- name: Build and put 'nginx configuration' files into 'nginx-configuration' volume
-        #run: |
-        #   source .env
-        #   echo " - build generic nginx configuration"
-        #   make proxy-build
-        #   echo ' - the build artifact is the **nginx-configuration.tar**'
-        #   ls -al deploy/nginx-configuration.tar
-      #- name: Create nginx-configuration artifact
-        #uses: actions/upload-artifact@v1
-        #with:
-        #  name: nginx-configuration
-        #  path: deploy/nginx-configuration.tar
+      - name: Bring up the xqerl container, compile xQuery, then test restXQ routes
+        run: |
+            source .env
+            echo ' starting xqerl will also: '
+            echo ' - create the volumes we require'
+            echo ' - create the network we require'
+            make xqerl-up
+            echo ' - compile build xQuery files to run on the beam'
+            echo ' - the build artifact is the **xqerl-compiled-code.tar**'
+            make xqerl-build
+            ls -al deploy/xqerl-compiled-code.tar
+            echo ' - take a peek at the running xqerl container instance'
+            make xqerl-info
+            echo ' - before we place a reverse proxy server before xqerl '
+            echo '   we can test our **restXQ routes** using  *curl* and '
+            echo '   the xqerl internal IPAddress and published port'
+            make xqerl-tests
+      - name: Create compiled-xqerl-code artifact
+        uses: actions/upload-artifact@v1
+        with:
+          name: compiled-xqerl-code
+          path: deploy/xqerl-compiled-code.tar
+      - name: Build 'static assets' from src files and put into 'static-assets' volume
+        run: |
+            source .env
+            echo " - build static assets for [ ${DOMAIN} ]"
+            make assets
+            echo ' - the build artifact is the **static-assets.tar**'
+            ls -al deploy/static-assets.tar
+      - name: Create static-assets artifact
+        uses: actions/upload-artifact@v1
+        with:
+          name: static-assets
+          path: deploy/static-assets.tar
+      - name: Setup Gcloud
+        uses: googlecloudplatform/github-actions/setup-gcloud@master
+        with:
+            version: "270.0.0"
+            service_account_email: ${{ secrets.client_email }}
+            service_account_key: ${{ secrets.gce_key }}
+      - name: Configure GCE project
+        run: |
+            source .env
+            echo ' - set up GCE project from .env vars '
+            gcloud config set project ${GCE_PROJECT}
+            gcloud config set compute/zone ${GCE_ZONE}
+            # gcloud compute instances list
+            gcloud compute config-ssh &>/dev/null
+            gcloud compute ssh ${GCE_NAME} --command \
+            "docker login docker.pkg.github.com --username ${REPO_OWNER} --password ${{ secrets.github_token }}"
+            gcloud compute ssh ${GCE_NAME} --command \
+            "docker pull ${XQERL_DOCKER_IMAGE} && docker pull ${PROXY_DOCKER_IMAGE}"
+            #gcloud info
+      - name: Fetch certs and put into 'letsencypt' volume on 'github-actions' host
+        run: |
+            source .env
+            echo ' - extract existing certs that reside in a docker *letsencrypt* volume on'
+            echo '  GCE host into the *letsencrypt* volume that is on this host '
+            docker volume ls | grep -q letsencrypt
+            make certs-into-vol
+            # TODO rm due to curl --resolve modify hosts file
+            # sudo echo "127.0.0.1 ${TLS_COMMON_NAME}" | sudo tee -a /etc/hosts
+      - name: Build and put 'nginx configuration' files into 'nginx-configuration' volume
+        run: |
+           source .env
+           echo " - build generic nginx configuration"
+           make proxy-build
+           echo ' - the build artifact is the **nginx-configuration.tar**'
+           ls -al deploy/nginx-configuration.tar
+      - name: Create nginx-configuration artifact
+        uses: actions/upload-artifact@v1
+        with:
+          name: nginx-configuration
+          path: deploy/nginx-configuration.tar
       #- name: Bring proxy container up on 'github-actions' host
         #run: |
         #    echo ' - with our nginx-configuration to bring the nginx proxy up successfuly we need to'
