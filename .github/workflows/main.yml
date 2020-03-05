@@ -20,7 +20,7 @@ jobs:
     - name: Set environment variables
       run: |
           source .env
-          echo '::set-env name=TERM::xterm' 
+          echo '::set-env name=TERM::xterm'
     - name: Pull In Docker Images
       run: |
           source .env
@@ -84,78 +84,91 @@ jobs:
           "docker login docker.pkg.github.com --username ${REPO_OWNER} --password ${{ secrets.github_token }}"
           gcloud compute ssh ${GCE_NAME} --command \
           "docker pull ${XQERL_DOCKER_IMAGE} && docker pull ${PROXY_DOCKER_IMAGE}"
-          #gcloud info
-    - name: Fetch certs and put into 'letsencypt' volume on 'github-actions' host
-      run: |
-          source .env
-          echo ' - extract existing certs that reside in a docker *letsencrypt* volume on'
-          echo '  GCE host into the *letsencrypt* volume that is on this host '
-          docker volume ls | grep -q letsencrypt
-          make certs-into-vol
-          # TODO rm due to curl --resolve modify hosts file
-          # sudo echo "127.0.0.1 ${TLS_COMMON_NAME}" | sudo tee -a /etc/hosts
-    - name: Build and put 'nginx configuration' files into 'nginx-configuration' volume
-      run: |
-         source .env
-         echo " - build generic nginx configuration"
-         make proxy-build
-         echo ' - the build artifact is the **nginx-configuration.tar**'
-         ls -al deploy/nginx-configuration.tar
-    - name: Create nginx-configuration artifact
-      uses: actions/upload-artifact@v1
-      with:
-        name: nginx-configuration
-        path: deploy/nginx-configuration.tar
-    - name: Bring proxy container up on 'github-actions' host
-      run: |
-          echo ' - with our nginx-configuration to bring the nginx proxy up successfuly we need to'
-          echo ' 1. have the certs in the path as specified in the config '
-          echo ' 2. have a resolvable *proxy pass* as specified in the config '
-          make proxy-up
-    - name: Use Curl with Grep to run some website tests
-      run: |
-          source .env
-          make proxy-tests
-  deploy:
-    runs-on: ubuntu-latest
-    needs: [build]
-    steps:
-    - name: Checkout Repo
-      uses: actions/checkout@v1
-      with:
-          fetch-depth: 1
-    - name: Set environment variables
-      run: |
-        source .env
-        echo '::set-env name=TERM::xterm' 
-    - name: Setup Gcloud
-      uses: googlecloudplatform/github-actions/setup-gcloud@master
-      with:
-          version: "270.0.0"
-          service_account_email: ${{ secrets.client_email }}
-          service_account_key: ${{ secrets.gce_key }}
-    - name: Configure GCE project
-      run: |
-          source .env
-          echo ' - set up GCE project from .env vars '
-          gcloud config set project ${GCE_PROJECT}
-          gcloud config set compute/zone ${GCE_ZONE}
-          # gcloud compute instances list
-          gcloud compute config-ssh &>/dev/null
-    - name: md5sum of deployed tar
-      run: |
-          source .env
-          mkdir deployed 
           gcloud compute ssh ${GCE_NAME} --command \
-          "docker run --rm \
-           --volume /home/${GCE_NAME}/deploy:/tmp \
-           --entrypoint 'md5sum' ${XQERL_DOCKER_IMAGE} /tmp/nginx-configuration.tar" | tee nginx-configuration.txt
-    - name: Download Artifacts
-      uses: actions/download-artifact@v1
-      with:
-          name: nginx-configuration
-    - name: Md5 checksum
+          "ls deploy" > deployedTars.list
+      if:  grep nginx-configuration.tar deployedTars.list
       run: |
-          source .env
-          ls -al nginx-configuration
-          cat nginx-configuration.txt
+            echo ' previous nginx-configuration tar exists'
+            source .env
+
+
+#          #gcloud info
+#    - name: Fetch certs and put into 'letsencypt' volume on 'github-actions' host
+#      run: |
+#          source .env
+#          echo ' - extract existing certs that reside in a docker *letsencrypt* volume on'
+#          echo '  GCE host into the *letsencrypt* volume that is on this host '
+#          docker volume ls | grep -q letsencrypt
+#          make certs-into-vol
+#          # TODO rm due to curl --resolve modify hosts file
+#          # sudo echo "127.0.0.1 ${TLS_COMMON_NAME}" | sudo tee -a /etc/hosts
+#    - name: Build and put 'nginx configuration' files into 'nginx-configuration' volume
+#      run: |
+#         source .env
+#         echo " - build generic nginx configuration"
+#         make proxy-build
+#         echo ' - the build artifact is the **nginx-configuration.tar**'
+#         ls -al deploy/nginx-configuration.tar
+#    - name: Create nginx-configuration artifact
+#      uses: actions/upload-artifact@v1
+#      with:
+#        name: nginx-configuration
+#        path: deploy/nginx-configuration.tar
+#    - name: Bring proxy container up on 'github-actions' host
+#      run: |
+#          echo ' - with our nginx-configuration to bring the nginx proxy up successfuly we need to'
+#          echo ' 1. have the certs in the path as specified in the config '
+#          echo ' 2. have a resolvable *proxy pass* as specified in the config '
+#          make proxy-up
+#    - name: Use Curl with Grep to run some website tests
+#      run: |
+#          source .env
+#          make proxy-tests
+#  deploy:
+#    runs-on: ubuntu-latest
+#    needs: [build]
+#    steps:
+#    - name: Checkout Repo
+#      uses: actions/checkout@v1
+#      with:
+#          fetch-depth: 1
+#    - name: Set environment variables
+#      run: |
+#        source .env
+#        echo '::set-env name=TERM::xterm' 
+#    - name: Setup Gcloud
+#      uses: googlecloudplatform/github-actions/setup-gcloud@master
+#      with:
+#          version: "270.0.0"
+#          service_account_email: ${{ secrets.client_email }}
+#          service_account_key: ${{ secrets.gce_key }}
+#    - name: Configure GCE project
+#      run: |
+#          source .env
+#          echo ' - set up GCE project from .env vars '
+#          gcloud config set project ${GCE_PROJECT}
+#          gcloud config set compute/zone ${GCE_ZONE}
+#          # gcloud compute instances list
+#          gcloud compute config-ssh &>/dev/null
+#    - name: md5sum of deployed tar
+#      run: |
+#          source .env
+#          mkdir deployed 
+#          gcloud compute ssh ${GCE_NAME} --command \
+#          "docker run --rm --volume /home/${GCE_NAME}/deploy:/tmp \
+#           --entrypoint 'md5sum' ${XQERL_DOCKER_IMAGE} /tmp/nginx-configuration.tar" | tee nginx-configuration.txt
+#          gcloud compute ssh ${GCE_NAME} --command \
+#          "docker run --rm --volume /home/${GCE_NAME}/deploy:/tmp \
+#           --entrypoint 'md5sum' ${XQERL_DOCKER_IMAGE} /tmp/static-assets.tar" | tee static-assets.txt
+#          gcloud compute ssh ${GCE_NAME} --command \
+#          "docker run --rm --volume /home/${GCE_NAME}/deploy:/tmp \
+#           --entrypoint 'md5sum' ${XQERL_DOCKER_IMAGE} /tmp/xqerl-compiled-code.tar" | tee xqerl-compiled-code.txt
+#    - name: Download Artifacts
+#      uses: actions/download-artifact@v1
+#      with:
+#          name: nginx-configuration
+#    - name: Md5 checksum
+#      run: |
+#          source .env
+#          ls -al nginx-configuration
+#          cat nginx-configuration.txt
