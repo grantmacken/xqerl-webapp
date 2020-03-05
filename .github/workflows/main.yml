@@ -21,51 +21,7 @@ jobs:
       run: |
           source .env
           echo '::set-env name=TERM::xterm'
-    - name: Pull In Docker Images
-      run: |
-          source .env
-          docker login docker.pkg.github.com --username ${REPO_OWNER} --password ${{ secrets.github_token }} &>/dev/null
-          echo ' - pull in main docker images'
-          docker pull ${XQERL_DOCKER_IMAGE}
-          docker pull ${PROXY_DOCKER_IMAGE}
-          echo ' - pull in my docker images as helpers'
-          docker pull docker.pkg.github.com/grantmacken/alpine-scour/scour:0.0.2
-          docker pull docker.pkg.github.com/grantmacken/alpine-zopfli/zopfli:0.0.1
-          docker pull docker.pkg.github.com/grantmacken/alpine-cssnano/cssnano:0.0.3
-    - name: Bring up the xqerl container, compile xQuery, then test restXQ routes
-      run: |
-          source .env
-          echo ' starting xqerl will also: '
-          echo ' - create the volumes we require'
-          echo ' - create the network we require'
-          make xqerl-up
-          echo ' - compile build xQuery files to run on the beam'
-          echo ' - the build artifact is the **xqerl-compiled-code.tar**'
-          make xqerl-build
-          ls -al deploy/xqerl-compiled-code.tar
-          echo ' - take a peek at the running xqerl container instance'
-          make xqerl-info
-          echo ' - before we place a reverse proxy server before xqerl '
-          echo '   we can test our **restXQ routes** using  *curl* and '
-          echo '   the xqerl internal IPAddress and published port'
-          make xqerl-tests
-    - name: Create compiled-xqerl-code artifact
-      uses: actions/upload-artifact@v1
-      with:
-        name: compiled-xqerl-code
-        path: deploy/xqerl-compiled-code.tar
-    - name: Build 'static assets' from src files and put into 'static-assets' volume
-      run: |
-          source .env
-          echo " - build static assets for [ ${DOMAIN} ]"
-          make assets
-          echo ' - the build artifact is the **static-assets.tar**'
-          ls -al deploy/static-assets.tar
-    - name: Create static-assets artifact
-      uses: actions/upload-artifact@v1
-      with:
-        name: static-assets
-        path: deploy/static-assets.tar
+
     - name: Setup Gcloud
       uses: googlecloudplatform/github-actions/setup-gcloud@master
       with:
@@ -87,7 +43,8 @@ jobs:
           gcloud compute ssh ${GCE_NAME} --command \
           "ls deploy" > deployedTars.list
           echo ::set-env name=DEPLOYED_NGINX_CONFIGURATION::$(grep 'nginx-configuration.tar' deployedTars.list && echo 'true' || echo 'false' )
-
+          echo ::set-env name=DEPLOYED_XQERL_COMPILE_CODE::$(grep 'xqerl-compile-code.tar' deployedTars.list && echo 'true' || echo 'false' )
+          echo ::set-env name=DEPLOYED_STATIC_ASSETS::$(grep 'static-assets.tar' deployedTars.list && echo 'true' || echo 'false' )
     - name: Previous nginx-configuration Deploy
       if:  ${{ env.DEPLOYED_NGINX_CONFIGURATION}} == 'true'
       run: |
@@ -95,13 +52,134 @@ jobs:
          source .env
          gcloud compute ssh ${GCE_NAME} --command \
          "docker run --rm --volume /home/${GCE_NAME}/deploy:/tmp \
-          --entrypoint 'md5sum' ${XQERL_DOCKER_IMAGE} /tmp/nginx-configuration.tar" | tee nginx-configuration.hash
+          --entrypoint 'md5sum' ${XQERL_DOCKER_IMAGE} /tmp/nginx-configuration.tar" | tee deployed-nginx-configuration.hash
     - name: Previous nginx-configuration hash artifact
       if:  ${{ env.DEPLOYED_NGINX_CONFIGURATION}} == 'true'
       uses: actions/upload-artifact@v1
       with:
         name: deployed-nginx-configuration-hash
-        path: nginx-configuration.hash
+        path: deployed-nginx-configuration.hash
+
+    - name: Previous static-assets Deploy
+      if:  ${{ env.DEPLOYED_STATIC_ASSETS}} == 'true'
+      run: |
+         echo ' previous static-assets tar exists'
+         source .env
+         gcloud compute ssh ${GCE_NAME} --command \
+         "docker run --rm --volume /home/${GCE_NAME}/deploy:/tmp \
+          --entrypoint 'md5sum' ${XQERL_DOCKER_IMAGE} /tmp/static-assets.tar" | tee deployed-static-assets.hash
+    - name: Previous static-assets hash artifact
+      if:  ${{ env.DEPLOYED_STATIC_ASSETS}} == 'true'
+      uses: actions/upload-artifact@v1
+      with:
+        name: deployed-static-assets-hash
+        path: deployed-static-assets.hash
+
+    - name: Previous xqerl-compiled-code Deploy
+      if:  ${{ env.DEPLOYED_XQERL_COMPILED_CODE}} == 'true'
+      run: |
+         echo ' previous xqerl-compiled-code tar exists'
+         source .env
+         gcloud compute ssh ${GCE_NAME} --command \
+         "docker run --rm --volume /home/${GCE_NAME}/deploy:/tmp \
+          --entrypoint 'md5sum' ${XQERL_DOCKER_IMAGE} /tmp/xqerl-compiled-code.tar" | tee deployed-xqerl-compiled-code.hash
+    - name: Previous static-assets hash artifact
+      if:  ${{ env.DEPLOYED_XQERL_COMPILED_CODE}} == 'true'
+      uses: actions/upload-artifact@v1
+      with:
+        name: deployed-xqerl-compiled-code-hash
+        path: deployed-xqerl-compiled-coded.hash
+
+
+#          gcloud compute ssh ${GCE_NAME} --command \
+#          "docker run --rm --volume /home/${GCE_NAME}/deploy:/tmp \
+#           --entrypoint 'md5sum' ${XQERL_DOCKER_IMAGE} /tmp/static-assets.tar" | tee static-assets.txt
+#          gcloud compute ssh ${GCE_NAME} --command \
+#          "docker run --rm --volume /home/${GCE_NAME}/deploy:/tmp \
+#           --entrypoint 'md5sum' ${XQERL_DOCKER_IMAGE} /tmp/xqerl-compiled-code.tar" | tee xqerl-compiled-code.txt
+#    - name: Download Artifacts
+#      uses: actions/download-artifact@v1
+    # - name: Pull In Docker Images
+    #   run: |
+    #       source .env
+    #       docker login docker.pkg.github.com --username ${REPO_OWNER} --password ${{ secrets.github_token }} &>/dev/null
+    #       echo ' - pull in main docker images'
+    #       docker pull ${XQERL_DOCKER_IMAGE}
+    #       docker pull ${PROXY_DOCKER_IMAGE}
+    #       echo ' - pull in my docker images as helpers'
+    #       docker pull docker.pkg.github.com/grantmacken/alpine-scour/scour:0.0.2
+    #       docker pull docker.pkg.github.com/grantmacken/alpine-zopfli/zopfli:0.0.1
+    #       docker pull docker.pkg.github.com/grantmacken/alpine-cssnano/cssnano:0.0.3
+
+    # - name: Bring up the xqerl container, compile xQuery, then test restXQ routes
+    #   run: |
+    #       source .env
+    #       echo ' starting xqerl will also: '
+    #       echo ' - create the volumes we require'
+    #       echo ' - create the network we require'
+    #       make xqerl-up
+    #       echo ' - compile build xQuery files to run on the beam'
+    #       echo ' - the build artifact is the **xqerl-compiled-code.tar**'
+    #       make xqerl-build
+    #       ls -al deploy/xqerl-compiled-code.tar
+    #       echo ' - take a peek at the running xqerl container instance'
+    #       make xqerl-info
+    #       echo ' - before we place a reverse proxy server before xqerl '
+    #       echo '   we can test our **restXQ routes** using  *curl* and '
+    #       echo '   the xqerl internal IPAddress and published port'
+    #       make xqerl-tests
+    # - name: Create compiled-xqerl-code artifact
+    #   uses: actions/upload-artifact@v1
+    #   with:
+    #     name: compiled-xqerl-code
+    #     path: deploy/xqerl-compiled-code.tar
+    # - name: Build 'static assets' from src files and put into 'static-assets' volume
+    #   run: |
+    #       source .env
+    #       echo " - build static assets for [ ${DOMAIN} ]"
+    #       make assets
+    #       echo ' - the build artifact is the **static-assets.tar**'
+    #       ls -al deploy/static-assets.tar
+    # - name: Create static-assets artifact
+    #   uses: actions/upload-artifact@v1
+    #   with:
+    #     name: static-assets
+    #     path: deploy/static-assets.tar
+    # - name: Setup Gcloud
+    #   uses: googlecloudplatform/github-actions/setup-gcloud@master
+    #   with:
+    #       version: "270.0.0"
+    #       service_account_email: ${{ secrets.client_email }}
+    #       service_account_key: ${{ secrets.gce_key }}
+    # - name: Configure GCE project
+    #   run: |
+    #       source .env
+    #       echo ' - set up GCE project from .env vars '
+    #       gcloud config set project ${GCE_PROJECT}
+    #       gcloud config set compute/zone ${GCE_ZONE}
+    #       # gcloud compute instances list
+    #       gcloud compute config-ssh &>/dev/null
+    #       gcloud compute ssh ${GCE_NAME} --command \
+    #       "docker login docker.pkg.github.com --username ${REPO_OWNER} --password ${{ secrets.github_token }}"
+    #       gcloud compute ssh ${GCE_NAME} --command \
+    #       "docker pull ${XQERL_DOCKER_IMAGE} && docker pull ${PROXY_DOCKER_IMAGE}"
+    #       gcloud compute ssh ${GCE_NAME} --command \
+    #       "ls deploy" > deployedTars.list
+    #       echo ::set-env name=DEPLOYED_NGINX_CONFIGURATION::$(grep 'nginx-configuration.tar' deployedTars.list && echo 'true' || echo 'false' )
+    # - name: Previous nginx-configuration Deploy
+    #   if:  ${{ env.DEPLOYED_NGINX_CONFIGURATION}} == 'true'
+    #   run: |
+    #      echo ' previous nginx-configuration tar exists'
+    #      source .env
+    #      gcloud compute ssh ${GCE_NAME} --command \
+    #      "docker run --rm --volume /home/${GCE_NAME}/deploy:/tmp \
+    #       --entrypoint 'md5sum' ${XQERL_DOCKER_IMAGE} /tmp/nginx-configuration.tar" | tee nginx-configuration.hash
+    # - name: Previous nginx-configuration hash artifact
+    #   if:  ${{ env.DEPLOYED_NGINX_CONFIGURATION}} == 'true'
+    #   uses: actions/upload-artifact@v1
+    #   with:
+    #     name: deployed-nginx-configuration-hash
+    #     path: nginx-configuration.hash
 
 #          #gcloud info
 #    - name: Fetch certs and put into 'letsencypt' volume on 'github-actions' host
