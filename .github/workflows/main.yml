@@ -90,7 +90,7 @@ jobs:
       run: |
          source .env
          gcloud compute ssh ${GCE_NAME} --command 'ls -al deploy'
-         gcloud compute ssh ${GCE_NAME} --command 'md5sum deploy/xqerl-compile-code.tar' | tee xqerl-compiled-code.hashes
+         gcloud compute ssh ${GCE_NAME} --command 'md5sum deploy/xqerl-compiled-code.tar' | tee xqerl-compiled-code.hashes
          # gcloud compute ssh ${GCE_NAME} --command \
          # "docker run --rm --workdir /home --volume /home/${GCE_NAME}/deploy:/home \
          #  --entrypoint 'md5sum' ${XQERL_DOCKER_IMAGE} xqerl-compiled-code.tar" | tee xqerl-compiled-code.txt
