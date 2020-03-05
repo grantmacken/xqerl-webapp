@@ -142,9 +142,22 @@ jobs:
           gcloud config set compute/zone ${GCE_ZONE}
           # gcloud compute instances list
           gcloud compute config-ssh &>/dev/null
-    - name: Md5 checksum to see what tar need to be deployed
+    - name: Copy exiting tars
       run: |
           source .env
           gcloud compute ssh ${GCE_NAME} --command 'ls -al deploy'
+          gcloud compute ssh ${GCE_NAME} --command 'which md5'
+    - name: Download Artifacts
+      uses: actions/download-artifact@v1
+      with:
+          name: nginx-configuration
+    - name: Md5 checksum
+      run: |
+          source .env
+          md5 deploy/nginx-configuration.tar > nginx-configuration.txt
+          cat nginx-configuration.txt
+
+
+          # md5sum -c <filename>.zip.md5 <filename>.zip
 
 
