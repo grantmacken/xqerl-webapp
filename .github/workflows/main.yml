@@ -145,8 +145,9 @@ jobs:
     - name: Copy exiting tars
       run: |
           source .env
-          gcloud compute ssh ${GCE_NAME} --command 'ls -al deploy'
-          gcloud compute ssh ${GCE_NAME} --command 'which md5'
+          mkdir deployed 
+          gcloud compute scp  $(GCE_NAME):~/deploy  ./deployed --recurse
+          md5 deployed/nginx-configuration.tar >> nginx-configuration.txt
     - name: Download Artifacts
       uses: actions/download-artifact@v1
       with:
@@ -154,7 +155,7 @@ jobs:
     - name: Md5 checksum
       run: |
           source .env
-          md5 deploy/nginx-configuration.tar > nginx-configuration.txt
+          md5 deploy/nginx-configuration.tar >> nginx-configuration.txt
           cat nginx-configuration.txt
 
 
