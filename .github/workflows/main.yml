@@ -35,10 +35,12 @@ jobs:
       run: |
         source .env
         docker pull ${XQERL_DOCKER_IMAGE}
-        docker save -o imageCache/alpine-xqerl.tar $(XQERL_CONTAINER_NAME)
-
+        docker save -o imageCache/alpine-xqerl.tar ${XQERL_CONTAINER_NAME}
     - name: Use Image Cache
-      run: docker images
+      if: steps.image-cache.outputs.cache-hit != 'true'
+      run: |
+        docker load -i imageCache/alpine-xqerl.tar
+        docker images
 
 
     # - name: Pull in docker images
