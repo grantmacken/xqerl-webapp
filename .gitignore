@@ -6,7 +6,5 @@ deploy
 proxy/certs
 notes
 site/markup.nz
-site/gmack.nz/tests/response
-tests/proxy/response/*
-tests/xqerl/response/*
 tests/xqerl/res
+tests/proxy/res

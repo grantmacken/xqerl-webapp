@@ -10,13 +10,15 @@ XQ := $(XQERL_CONTAINER_NAME)
 DOMAIN = gmack.nz
 $(shell mkdir -p res/routes )
 XQ := $(XQERL_CONTAINER_NAME)
-xqAddress != docker inspect --format='{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' $(XQ)
+xqAddress := $(shell docker inspect --format='{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' $(XQ))
+xqResolve := --resolve $(DOMAIN):$(XQERL_PORT):$(xqAddress)
 URL := http://$(xqAddress):$(XQERL_PORT)/$(DOMAIN)
 
 ##############################################
 
 GET = curl --silent --show-error \
  --write-out $(WriteOut) \
+  $(xqResolve) \
  --dump-header $(dir $2)/headers-$(notdir $2) \
  --output $(dir $2)/doc-$(notdir $2) \
  $(URL)$1 > $2

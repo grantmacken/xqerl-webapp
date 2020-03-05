@@ -27,7 +27,6 @@ we provide docker volumes to persist data between stopping and starting the cont
  - **xqerl-compiled-code**
  - **xqerl-database**
 
-
 Our `Make` build artifacts are tar archives produced from container volumes.
 These tars end up in the deploy directory. 
 To **deploy** these tar archives they are simply untared into their respective volumes. 

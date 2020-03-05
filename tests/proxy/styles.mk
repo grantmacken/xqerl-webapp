@@ -1,9 +1,9 @@
 
 ######################################
-gzipSize  =  $(shell grep -oP '^ download\s+\[\s\K(\d+)' $(T)/styles/gzip || true )
-gunzipSize = $(shell grep -oP '^ download\s+\[\s\K(\d+)' $(T)/styles/gunzip || true )
-#gzipTransfer != grep -oP '^ tansfered\s+\[\s\K([.\d]+)' $(T)/styles/gzip
-#gunzipTransfer != grep -oP '^ tansfered\s+\[\s\K([.\d]+)' $(T)/styles/gunzip
+gzipSize  =  $(shell grep -oP '^ download\s+\[\s\K(\d+)' res/styles/gzip || true )
+gunzipSize = $(shell grep -oP '^ download\s+\[\s\K(\d+)' res/styles/gunzip || true )
+#gzipTransfer != grep -oP '^ tansfered\s+\[\s\K([.\d]+)' res/styles/gzip
+#gunzipTransfer != grep -oP '^ tansfered\s+\[\s\K([.\d]+)' res/styles/gunzip
 # $(call IsLessThan,$(gzipTransfer),$(gunzipTransfer),xx)
 # echo '$(gzipTransfer) >= $(gunzipTransfer)' | bc
 
@@ -15,10 +15,10 @@ styles: styles-gzip styles-gunzip
 
 .PHONY: clean-styles
 clean-styles:
-	@rm -f $(T)/styles/*
+	@rm -f res/styles/*
 
 .PHONY: styles-gzip
-styles-gzip: $(T)/styles/gzip
+styles-gzip: res/styles/gzip
 	@echo '## $@ ##'
 	@echo " - with gzip-static on then we should serve header 'content-encoding: gzip'"
 	@echo " - with gzip-static on then we should serve header 'content-type: text/css'"
@@ -37,7 +37,7 @@ styles-gzip: $(T)/styles/gzip
 	@$(call HasHeaderKeyShowValue,$(call fHeader,gzip,$<),cache-control)
 	@$(call HasHeaderKeyShowValue,$(call fHeader,gzip,$<),strict-transport-security)
 
-$(T)/styles/gzip:
+res/styles/gzip:
 	@mkdir -p $(dir $@)
 	@curl --silent --show-error \
  --resolve $(DOMAIN):443:$(orAddress) \
@@ -49,7 +49,7 @@ $(T)/styles/gzip:
  $(URL)/styles > $@
 
 .PHONY: styles-gunzip
-styles-gunzip: $(T)/styles/gunzip
+styles-gunzip: res/styles/gunzip
 	@echo '## $@ ##'
 	@echo " - gunzip should serve header 'content-type: text/css'"
 	@echo " - gunzip should NOT serve header 'content-encoding: gzip'"
@@ -57,6 +57,6 @@ styles-gunzip: $(T)/styles/gunzip
 	@$(call ServesContentType,$(call fHeader,gunzip,$<),content-type,text/css)
 	@$(call NotServesHeader,$(call fHeader,gunzip,$<),content-encoding)
 
-$(T)/styles/gunzip:
+res/styles/gunzip:
 	@mkdir -p $(dir $@)
 	@$(call binGET,/styles,$@)

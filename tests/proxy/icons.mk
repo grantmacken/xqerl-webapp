@@ -2,7 +2,7 @@
 # ICONS
 
 .PHONY: icons
-icons: $(T)/icons/mail
+icons: res/icons/mail
 	@echo '## $@ ##'
 	@$(call ServesHeader,$(call fHeader,mail,$<),HTTP/2 200,should server http 2 )
 	@$(call HasHeaderKeyShowValue,$(call fHeader,mail,$<),strict-transport-security)
@@ -13,8 +13,8 @@ icons: $(T)/icons/mail
 
 .PHONY: clean-icons
 clean-icons:
-	@rm -f $(T)/icons/*
+	@rm -f res/icons/*
 
-$(T)/icons/mail:
+res/icons/mail:
 	@mkdir -p $(dir $@)
 	@$(call binGET,/icons/mail,$@)
