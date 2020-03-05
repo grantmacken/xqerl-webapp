@@ -120,24 +120,7 @@ jobs:
           echo ' - before we place a reverse proxy server before xqerl '
           echo '   we can test our **restXQ routes** using  *curl* and '
           echo '   the xqerl internal IPAddress and published port'
-          make xqerl-tests
-    - name: Check 
-      run: |
-          source .env
-          echo ' starting xqerl will also: '
-          echo ' - create the volumes we require'
-          echo ' - create the network we require'
-          make xqerl-up
-          echo ' - compile build xQuery files to run on the beam'
-          echo ' - the build artifact is the **xqerl-compiled-code.tar**'
-          make xqerl-build
-          ls -al deploy/xqerl-compiled-code.tar
-          echo ' - take a peek at the running xqerl container instance'
-          make xqerl-info
-          echo ' - before we place a reverse proxy server before xqerl '
-          echo '   we can test our **restXQ routes** using  *curl* and '
-          echo '   the xqerl internal IPAddress and published port'
-          make xqerl-tests
+          # make xqerl-tests
     # - name: Fetch certs and put into 'letsencypt' volume on 'github-actions' host
     #     run: |
     #         source .env
