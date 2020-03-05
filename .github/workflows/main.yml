@@ -146,8 +146,8 @@ jobs:
       run: |
           source .env
           mkdir deployed 
-          gcloud compute scp  $(GCE_NAME):~/deploy  ./deployed --recurse
-          md5 deployed/nginx-configuration.tar >> nginx-configuration.txt
+          gcloud compute scp  ${GCE_NAME}:~/deploy  ./deployed --recurse
+          md5 deployed/nginx-configuration.tar > nginx-configuration.txt
     - name: Download Artifacts
       uses: actions/download-artifact@v1
       with:
@@ -157,8 +157,3 @@ jobs:
           source .env
           md5 deploy/nginx-configuration.tar >> nginx-configuration.txt
           cat nginx-configuration.txt
-
-
-          # md5sum -c <filename>.zip.md5 <filename>.zip
-
-
