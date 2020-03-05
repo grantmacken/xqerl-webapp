@@ -36,10 +36,13 @@ jobs:
         source .env
         docker pull ${XQERL_DOCKER_IMAGE}
         docker save -o imageCache/alpine-xqerl.tar ${XQERL_DOCKER_IMAGE}
+        docker pull ${PROXY_DOCKER_IMAGE}
+        docker save -o imageCache/alpine-nginx.tar ${PROXY_DOCKER_IMAGE}
     - name: Use Image Cache
       if: steps.image-cache.outputs.cache-hit != 'true'
       run: |
         docker load -i imageCache/alpine-xqerl.tar
+        docker load -i imageCache/alpine-nginx.tar
         docker images
 
 
