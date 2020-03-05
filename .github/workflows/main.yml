@@ -99,7 +99,7 @@ jobs:
            make proxy-build
            echo ' - the build artifact is the **nginx-configuration.tar**'
            ls -al deploy/nginx-configuration.tar
-    - name: Create nginx-configuration artifact
+      - name: Create nginx-configuration artifact
         uses: actions/upload-artifact@v1
         with:
           name: nginx-configuration
