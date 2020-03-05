@@ -22,16 +22,16 @@ jobs:
           source .env
           echo '::set-env name=TERM::xterm'
     - name: Pull in docker images
-        run: |
-            source .env
-            docker login docker.pkg.github.com --username ${REPO_OWNER} --password ${{ secrets.github_token }} &>/dev/null
-            echo ' - pull in main docker images'
-            docker pull ${XQERL_DOCKER_IMAGE}
-            docker pull ${PROXY_DOCKER_IMAGE}
-            echo ' - pull in my docker images as helpers'
-            docker pull docker.pkg.github.com/grantmacken/alpine-scour/scour:0.0.2
-            docker pull docker.pkg.github.com/grantmacken/alpine-zopfli/zopfli:0.0.1
-            docker pull docker.pkg.github.com/grantmacken/alpine-cssnano/cssnano:0.0.3
+      run: |
+          source .env
+          docker login docker.pkg.github.com --username ${REPO_OWNER} --password ${{ secrets.github_token }} &>/dev/null
+          echo ' - pull in main docker images'
+          docker pull ${XQERL_DOCKER_IMAGE}
+          docker pull ${PROXY_DOCKER_IMAGE}
+          echo ' - pull in my docker images as helpers'
+          docker pull docker.pkg.github.com/grantmacken/alpine-scour/scour:0.0.2
+          docker pull docker.pkg.github.com/grantmacken/alpine-zopfli/zopfli:0.0.1
+          docker pull docker.pkg.github.com/grantmacken/alpine-cssnano/cssnano:0.0.3
       - name: Setup gcloud
         uses: googlecloudplatform/github-actions/setup-gcloud@master
         with:
