@@ -21,54 +21,18 @@ jobs:
       run: |
           source .env
           echo '::set-env name=TERM::xterm' 
-          mkdir imageCache
-          docker login docker.pkg.github.com --username ${REPO_OWNER} --password ${{ secrets.github_token }} &>/dev/null
-    - name: Image Cache
-      id: image-cache
-      uses: actions/cache@v1
-      with:
-        path: imageCache
-        key: ${{ runner.os }}-image-cache
-
-    - name: Generate Images
-      if: steps.image-cache.outputs.cache-hit != 'true'
+           mkdir imageCache
+    - name: Pull In Docker Images
       run: |
-        source .env
-        docker pull ${XQERL_DOCKER_IMAGE}
-        docker save -o imageCache/alpine-xqerl.tar ${XQERL_DOCKER_IMAGE}
-        docker pull ${PROXY_DOCKER_IMAGE}
-        docker save -o imageCache/alpine-nginx.tar ${PROXY_DOCKER_IMAGE}
-    - name: Use Image Cache
-      if: steps.image-cache.outputs.cache-hit != 'true'
-      run: |
-        docker load -i imageCache/alpine-xqerl.tar
-        docker load -i imageCache/alpine-nginx.tar
-        docker images
-
-
-    # - name: Pull in docker images
-    #   id: 
-    #   uses: actions/cache@v1
-    #   with:
-    #     path: image-cache
-    #     key: image-cache-${{ runner.os }}
-    # - name: generate images
-    #   if: steps.image-cache.outputs.cache-hit != 'true'
-    #   run: |
-    #     source .env
-    #     docker pull ${XQERL_DOCKER_IMAGE}
-    #     docker save -o ~/image-cache/alpine-xqerl.tar
-    #   if: steps.image-cache.outputs.cache-hit == 'true'
-    #   run: docker load -i ~/image-cache/alpine-xqerl.tar
-    # - name: Images Check
-    #   run: docker images
-
-        #run: |
-        #    echo ' - pull in my docker images as helpers'
-        #    docker pull ${PROXY_DOCKER_IMAGE}
-        #    docker pull docker.pkg.github.com/grantmacken/alpine-scour/scour:0.0.2
-        #    docker pull docker.pkg.github.com/grantmacken/alpine-zopfli/zopfli:0.0.1
-        #    docker pull docker.pkg.github.com/grantmacken/alpine-cssnano/cssnano:0.0.3
+          source .env
+           docker login docker.pkg.github.com --username ${REPO_OWNER} --password ${{ secrets.github_token }} &>/dev/null
+          echo ' - pull in main docker images'
+          docker pull ${XQERL_DOCKER_IMAGE}
+          docker pull ${PROXY_DOCKER_IMAGE}
+          echo ' - pull in my docker images as helpers'
+          docker pull docker.pkg.github.com/grantmacken/alpine-scour/scour:0.0.2
+          docker pull docker.pkg.github.com/grantmacken/alpine-zopfli/zopfli:0.0.1
+          docker pull docker.pkg.github.com/grantmacken/alpine-cssnano/cssnano:0.0.3
       #- name: Bring up the xqerl container, compile xQuery, then test restXQ routes
         #run: |
         #    source .env
