@@ -83,13 +83,12 @@ jobs:
          gcloud compute ssh ${GCE_NAME} --command \
          "docker run --rm --volume /home/${GCE_NAME}/deploy:/tmp \
           --entrypoint 'md5sum' ${XQERL_DOCKER_IMAGE} /tmp/xqerl-compiled-code.tar" | tee deployed-xqerl-compiled-code.hash
-    - name: Previous static-assets hash artifact
+    - name: Previous xqerl-compiled-code artifact
       if:  ${{ env.DEPLOYED_XQERL_COMPILED_CODE}} == 'true'
       uses: actions/upload-artifact@v1
       with:
         name: deployed-xqerl-compiled-code-hash
-        path: deployed-xqerl-compiled-coded.hash
-
+        path: deployed-xqerl-compiled-code.hash
 
 #          gcloud compute ssh ${GCE_NAME} --command \
 #          "docker run --rm --volume /home/${GCE_NAME}/deploy:/tmp \
