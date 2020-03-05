@@ -13,34 +13,32 @@ jobs:
     runs-on: ubuntu-latest
     # if: github.event.pull_request.merged
     steps:
-      - name: Checkout Repo
-        uses: actions/checkout@v1
-        with:
-            fetch-depth: 1
-      - name: Set environment variables
-        run: |
-            source .env
-            echo '::set-env name=TERM::xterm' 
-            mkdir image-cache
-            docker login docker.pkg.github.com --username ${REPO_OWNER} --password ${{ secrets.github_token }} &>/dev/null
-      - name: Pull in docker images
-        id: image-cache
-        uses: actions/cache@v1
-        with:
-          path: image-cache
-          key: image-cache-${{ runner.os }}
-      - name: generate images
-        if: steps.image-cache.outputs.cache-hit != 'true'
-        run: |
+    - name: Checkout Repo
+      uses: actions/checkout@v1
+      with:
+          fetch-depth: 1
+    - name: Set environment variables
+      run: |
           source .env
-          docker pull ${XQERL_DOCKER_IMAGE}
-          docker save -o ~/image-cache/alpine-xqerl.tar
-        if: steps.image-cache.outputs.cache-hit == 'true'
-        run: docker load -i ~/image-cache/alpine-xqerl.tar
-      - name: Images Check
-        run: docker images
-
-
+          echo '::set-env name=TERM::xterm' 
+          mkdir image-cache
+          docker login docker.pkg.github.com --username ${REPO_OWNER} --password ${{ secrets.github_token }} &>/dev/null
+    - name: Pull in docker images
+      id: image-cache
+      uses: actions/cache@v1
+      with:
+        path: image-cache
+        key: image-cache-${{ runner.os }}
+    - name: generate images
+      if: steps.image-cache.outputs.cache-hit != 'true'
+      run: |
+        source .env
+        docker pull ${XQERL_DOCKER_IMAGE}
+        docker save -o ~/image-cache/alpine-xqerl.tar
+      if: steps.image-cache.outputs.cache-hit == 'true'
+      run: docker load -i ~/image-cache/alpine-xqerl.tar
+    - name: Images Check
+      run: docker images
 
         #run: |
         #    echo ' - pull in my docker images as helpers'
