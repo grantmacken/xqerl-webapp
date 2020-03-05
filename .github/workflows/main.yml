@@ -96,11 +96,12 @@ jobs:
          gcloud compute ssh ${GCE_NAME} --command \
          "docker run --rm --volume /home/${GCE_NAME}/deploy:/tmp \
           --entrypoint 'md5sum' ${XQERL_DOCKER_IMAGE} /tmp/nginx-configuration.tar" | tee nginx-configuration.hash
-   - name: Create nginx-configuration artifact
-     uses: actions/upload-artifact@v1
-     with:
-       name: deployed-nginx-configuration-hash
-       path: nginx-configuration.hash
+    - name: Previous nginx-configuration hash artifact
+      if:  ${{ env.DEPLOYED_NGINX_CONFIGURATION}} == 'true'
+      uses: actions/upload-artifact@v1
+      with:
+        name: deployed-nginx-configuration-hash
+        path: nginx-configuration.hash
 
 #          #gcloud info
 #    - name: Fetch certs and put into 'letsencypt' volume on 'github-actions' host
