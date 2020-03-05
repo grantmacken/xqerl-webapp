@@ -157,5 +157,5 @@ jobs:
     - name: Md5 checksum
       run: |
           source .env
-          md5sum deploy/nginx-configuration.tar | tee -a nginx-configuration.txt
+          ls -al nginx-configuration
           cat nginx-configuration.txt
