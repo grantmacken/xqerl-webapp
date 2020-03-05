@@ -50,17 +50,20 @@ jobs:
       - name: Create compiled-xqerl-code artifact
         uses: actions/upload-artifact@v1
         with:
-          name: my-artifact
+          name: compiled-xqerl-code
           path: deploy/xqerl-compiled-code.tar
-
-
-      #- name: Build 'static assets' from src files and put into 'static-assets' volume
-      #  run: |
-      #      source .env
-      #      echo " - build static assets for [ ${DOMAIN} ]"
-      #      make assets
-      #      echo ' - the build artifact is the **static-assets.tar**'
-      #      ls -al deploy/static-assets.tar
+      - name: Build 'static assets' from src files and put into 'static-assets' volume
+        run: |
+            source .env
+            echo " - build static assets for [ ${DOMAIN} ]"
+            make assets
+            echo ' - the build artifact is the **static-assets.tar**'
+            ls -al deploy/static-assets.tar
+      - name: Create static-assets artifact
+        uses: actions/upload-artifact@v1
+        with:
+          name: static-assets
+          path: deploy/static-assets.tar
       #- name: Setup Gcloud
       #  uses: googlecloudplatform/github-actions/setup-gcloud@master
       #  with:

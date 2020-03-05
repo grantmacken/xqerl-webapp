@@ -1,6 +1,13 @@
 # xqerl-webapp
 maybe a template for a xQuery webapp projects using xqerl, but just now an experiment
 
+
+#WIP!
+
+All text a work in progress. Be warned I make lots of typos
+
+
+
 ## Containers And Container Volumes
 
 1. nginx as a *cache*, *proxy*, and *static file* server
@@ -45,20 +52,21 @@ two main working directories
  having its own directory and a **build pipeline** to the build directiory
 
 
-### xQuery modules
+### On xQuery 3.1
 
-xQuery is both 'data query language' and a 'function programing language'.
+xQuery is both ***data query language*** and a ***typed functional programing language*** ideal for building data driven
+websites asn web applications.
 
-#### data query language
+#### Data Query Language
 
 With xQuery 3.1 query data sources for have expanded beyond XML to incorporating JSON 
 and other structured data formats like CSV. It also has the capacity to deal with 
-extracting data unparsed test through [regular expressions](https://www.regular-expressions.info/xpath.html)
+extracting data unparsed text through [regular expressions](https://www.regular-expressions.info/xpath.html)
 
 Whats more query output [serialisation](https://www.w3.org/TR/xslt-xquery-serialization-31) is expanded to include
 JSON, HTML, Text and an 'adaptive output method'
 
-#### typed functional programing language
+#### Typed Functional Programing Language
 
 With xQuery has always been a **typed functional programing language**, however with xQuery 3.1 there have been several improvements.
 
