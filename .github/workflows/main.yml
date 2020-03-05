@@ -143,34 +143,8 @@ jobs:
           # gcloud compute instances list
           gcloud compute config-ssh &>/dev/null
     - name: Md5 checksum to see what tar need to be deployed
-      run |
+      run: |
           source .env
-          gcloud compute ssh ${GCE_NAME} --command ls -al deploy
+          gcloud compute ssh ${GCE_NAME} --command 'ls -al deploy'
 
-
-          # gcloud compute ssh ${GCE_NAME} --command \
-          # "docker login docker.pkg.github.com --username ${REPO_OWNER} --password ${{ secrets.github_token }}"
-          # gcloud compute ssh ${GCE_NAME} --command \
-          # "docker pull ${XQERL_DOCKER_IMAGE} && docker pull ${PROXY_DOCKER_IMAGE}"
-
-    # if: github.event.pull_request.merged
-
-    #- name: Take both containers down on 'github-actions' host
-      #run: |
-      #    source .env
-      #    make down
-    ##- name: Check deploy directory on 'github-actions' host
-    ##  run: |
-    ##      ls -al deploy
-    ##- name: Upload tars to GCE host and deploy using gcloud client
-    ##  run: |
-    ##      pushd gcloud
-    ##      make tars-into-gce-host
-    ##      make compiled-code-volume
-    ##      make xqerl-compile-code
-    ##      make static-assets-volume
-    ##      make nginx-configuration-volume
-    ##      make nginx-configuration-test
-    ##      make proxy-reload
-    ##      popd
 
