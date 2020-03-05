@@ -58,41 +58,40 @@ jobs:
           echo ::set-env name=DEPLOYED_NGINX_CONFIGURATION::$(grep 'nginx-configuration.tar' deployedTars.list && echo 'true' || echo 'false' )
           echo ::set-env name=DEPLOYED_XQERL_COMPILE_CODE::$(grep 'xqerl-compile-code.tar' deployedTars.list && echo 'true' || echo 'false' )
           echo ::set-env name=DEPLOYED_STATIC_ASSETS::$(grep 'static-assets.tar' deployedTars.list && echo 'true' || echo 'false' )
-    - name: If deployed get previous nginx-configuration deploy hash
-      if:  ${{ env.DEPLOYED_NGINX_CONFIGURATION}} == 'true'
-      run: |
-         echo ' previous nginx-configuration tar exists'
-         source .env
-         gcloud compute ssh ${GCE_NAME} --command \
-         "docker run --rm --volume /home/${GCE_NAME}/deploy:/tmp \
-          --entrypoint 'md5sum' ${XQERL_DOCKER_IMAGE} /tmp/nginx-configuration.tar" | tee deployed-nginx-configuration.hash
-    - name: If deployed upload previous nginx-configuration hash as an artifact
-      if:  ${{ env.DEPLOYED_NGINX_CONFIGURATION}} == 'true'
-      uses: actions/upload-artifact@v1
-      with:
-        name: deployed-nginx-configuration-hash
-        path: deployed-nginx-configuration.hash
-    - name: If deployed get previous static-assets deploy hash
-      if:  ${{ env.DEPLOYED_STATIC_ASSETS}} == 'true'
-      run: |
-         source .env
-         gcloud compute ssh ${GCE_NAME} --command \
-         "docker run --rm --volume /home/${GCE_NAME}/deploy:/tmp \
-          --entrypoint 'md5sum' ${XQERL_DOCKER_IMAGE} /tmp/static-assets.tar" | tee deployed-static-assets.hash
-    - name: If deployed upload previous static-assets hash as an artifact
-      if:  ${{ env.DEPLOYED_STATIC_ASSETS}} == 'true'
-      uses: actions/upload-artifact@v1
-      with:
-        name: deployed-static-assets-hash
-        path: deployed-static-assets.hash
-    - name: If deployed get previous xqerl-compiled-code deploy hash
+    # - name: If deployed get previous nginx-configuration deploy hash
+    #   if:  ${{ env.DEPLOYED_NGINX_CONFIGURATION}} == 'true'
+    #   run: |
+    #      echo ' previous nginx-configuration tar exists'
+    #      source .env
+    #      gcloud compute ssh ${GCE_NAME} --command \
+    #      "docker run --rm --workdir /home --volume /home/${GCE_NAME}/deploy:/tmp \
+    #       --entrypoint 'md5sum' ${XQERL_DOCKER_IMAGE} nginx-configuration.tar" | tee deployed-nginx-configuration.hash
+    # - name: If deployed upload previous nginx-configuration hash as an artifact
+    #   if:  ${{ env.DEPLOYED_NGINX_CONFIGURATION}} == 'true'
+    #   uses: actions/upload-artifact@v1
+    #   with:
+    #     name: deployed-nginx-configuration-hash
+    #     path: deployed-nginx-configuration.hash
+    # - name: If deployed get previous static-assets deploy hash
+    #   if:  ${{ env.DEPLOYED_STATIC_ASSETS}} == 'true'
+    #   run: |
+    #      source .env
+    #      gcloud compute ssh ${GCE_NAME} --command \
+    #      "docker run --rm --volume /home/${GCE_NAME}/deploy:/tmp \
+    #       --entrypoint 'md5sum' ${XQERL_DOCKER_IMAGE} /tmp/static-assets.tar" | tee deployed-static-assets.hash
+    # - name: If deployed upload previous static-assets hash as an artifact
+    #   if:  ${{ env.DEPLOYED_STATIC_ASSETS}} == 'true'
+    #   uses: actions/upload-artifact@v1
+    #   with:
+    #     name: deployed-static-assets-hash
+    #     path: deployed-static-assets.hash
+    - name: If xqerl-compiled-code deployed get deploy hash
       if:  ${{ env.DEPLOYED_XQERL_COMPILED_CODE}} == 'true'
       run: |
-         echo ' previous xqerl-compiled-code tar exists'
          source .env
          gcloud compute ssh ${GCE_NAME} --command \
-         "docker run --rm --volume /home/${GCE_NAME}/deploy:/tmp \
-          --entrypoint 'md5sum' ${XQERL_DOCKER_IMAGE} /tmp/xqerl-compiled-code.tar" | tee xqerl-compiled-code.txt
+         "docker run --rm --workdir /home --volume /home/${GCE_NAME}/deploy:/home \
+          --entrypoint 'md5sum' ${XQERL_DOCKER_IMAGE} xqerl-compiled-code.tar" | tee xqerl-compiled-code.txt
     # - name: If deployed upload previous xqerl-compiled-code hash as an artifact
     #   if:  ${{ env.DEPLOYED_XQERL_COMPILED_CODE}} == 'true'
     #   uses: actions/upload-artifact@v1
@@ -110,7 +109,7 @@ jobs:
           echo ' - the build artifact is the **xqerl-compiled-code.tar**'
           make xqerl-build
           ls -al deploy/xqerl-compiled-code.tar
-          md5sum deploy/xqerl-compiled-code.tar | tee -a xqerl-compiled-code.txt
+          pushd deploy && md5sum xqerl-compiled-code.tar | tee -a ../xqerl-compiled-code.txt && popd
           echo ' - - - - - - - - - '
           cat xqerl-compiled-code.txt
           echo ' - - - - - - - - - '
