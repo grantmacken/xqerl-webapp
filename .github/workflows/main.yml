@@ -50,14 +50,14 @@ jobs:
           "docker login docker.pkg.github.com --username ${REPO_OWNER} --password ${{ secrets.github_token }}"
           gcloud compute ssh ${GCE_NAME} --command \
           "docker pull ${XQERL_DOCKER_IMAGE} && docker pull ${PROXY_DOCKER_IMAGE}"
-      - name: Check for previous deployments
-        run: |
-            source .env
-            gcloud compute ssh ${GCE_NAME} --command \
-            "ls deploy" > deployedTars.list
-            echo ::set-env name=DEPLOYED_NGINX_CONFIGURATION::$(grep 'nginx-configuration.tar' deployedTars.list && echo 'true' || echo 'false' )
-            echo ::set-env name=DEPLOYED_XQERL_COMPILE_CODE::$(grep 'xqerl-compile-code.tar' deployedTars.list && echo 'true' || echo 'false' )
-            echo ::set-env name=DEPLOYED_STATIC_ASSETS::$(grep 'static-assets.tar' deployedTars.list && echo 'true' || echo 'false' )
+    - name: Check for previous deployments
+      run: |
+          source .env
+          gcloud compute ssh ${GCE_NAME} --command \
+          "ls deploy" > deployedTars.list
+          echo ::set-env name=DEPLOYED_NGINX_CONFIGURATION::$(grep 'nginx-configuration.tar' deployedTars.list && echo 'true' || echo 'false' )
+          echo ::set-env name=DEPLOYED_XQERL_COMPILE_CODE::$(grep 'xqerl-compile-code.tar' deployedTars.list && echo 'true' || echo 'false' )
+          echo ::set-env name=DEPLOYED_STATIC_ASSETS::$(grep 'static-assets.tar' deployedTars.list && echo 'true' || echo 'false' )
     - name: If deployed get previous nginx-configuration deploy hash
       if:  ${{ env.DEPLOYED_NGINX_CONFIGURATION}} == 'true'
       run: |
