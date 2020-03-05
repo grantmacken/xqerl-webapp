@@ -148,7 +148,7 @@ jobs:
           mkdir deployed 
           gcloud compute ssh ${GCE_NAME} --command \
           'docker run --rm \
-           --mount type=bind,target=/tmp,source=/home/${GCE_NAME}/deploy \
+           --volume /home/${GCE_NAME}/deploy:/tmp \
            --entrypoint "md5sum" ${XQERL_DOCKER_IMAGE} /tmp/nginx-configuration.tar' | tee nginx-configuration.txt
     - name: Download Artifacts
       uses: actions/download-artifact@v1
@@ -157,5 +157,5 @@ jobs:
     - name: Md5 checksum
       run: |
           source .env
-          md5sum deploy/nginx-configuration.tar >> nginx-configuration.txt
+          md5sum deploy/nginx-configuration.tar | tee -a nginx-configuration.txt
           cat nginx-configuration.txt
