@@ -27,7 +27,7 @@ jobs:
       id: image-cache
       uses: actions/cache@v1
       with:
-        path: prime-numbers
+        path: imageCache
         key: ${{ runner.os }}-image-cache
 
     - name: Generate Images
@@ -35,7 +35,7 @@ jobs:
       run: |
         source .env
         docker pull ${XQERL_DOCKER_IMAGE}
-        docker save -o ~/image-cache/alpine-xqerl.tar
+        docker save -o imageCache/alpine-xqerl.tar
 
     - name: Use Image Cache
       run: docker images
