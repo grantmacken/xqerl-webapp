@@ -107,16 +107,16 @@ jobs:
       with:
         name: nginx-configuration
         path: deploy/nginx-configuration.tar
-    #- name: Bring proxy container up on 'github-actions' host
-      #run: |
-      #    echo ' - with our nginx-configuration to bring the nginx proxy up successfuly we need to'
-      #    echo ' 1. have the certs in the path as specified in the config '
-      #    echo ' 2. have a resolvable *proxy pass* as specified in the config '
-      #    make proxy-up
-    #- name: Use Curl with Grep to run some website tests
-      #run: |
-      #    source .env
-      #    make proxy-tests
+    - name: Bring proxy container up on 'github-actions' host
+      run: |
+          echo ' - with our nginx-configuration to bring the nginx proxy up successfuly we need to'
+          echo ' 1. have the certs in the path as specified in the config '
+          echo ' 2. have a resolvable *proxy pass* as specified in the config '
+          make proxy-up
+    - name: Use Curl with Grep to run some website tests
+      run: |
+          source .env
+          make proxy-tests
     #- name: Take both containers down on 'github-actions' host
       #run: |
       #    source .env
