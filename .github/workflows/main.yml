@@ -21,24 +21,42 @@ jobs:
       run: |
           source .env
           echo '::set-env name=TERM::xterm' 
-          mkdir image-cache
+          mkdir imageCache
           docker login docker.pkg.github.com --username ${REPO_OWNER} --password ${{ secrets.github_token }} &>/dev/null
-    - name: Pull in docker images
+    - name: Image Cache
       id: image-cache
       uses: actions/cache@v1
       with:
-        path: image-cache
-        key: image-cache-${{ runner.os }}
-    - name: generate images
+        path: prime-numbers
+        key: ${{ runner.os }}-image-cache
+
+    - name: Generate Images
       if: steps.image-cache.outputs.cache-hit != 'true'
       run: |
         source .env
         docker pull ${XQERL_DOCKER_IMAGE}
         docker save -o ~/image-cache/alpine-xqerl.tar
-      if: steps.image-cache.outputs.cache-hit == 'true'
-      run: docker load -i ~/image-cache/alpine-xqerl.tar
-    - name: Images Check
+
+    - name: Use Image Cache
       run: docker images
+
+
+    # - name: Pull in docker images
+    #   id: 
+    #   uses: actions/cache@v1
+    #   with:
+    #     path: image-cache
+    #     key: image-cache-${{ runner.os }}
+    # - name: generate images
+    #   if: steps.image-cache.outputs.cache-hit != 'true'
+    #   run: |
+    #     source .env
+    #     docker pull ${XQERL_DOCKER_IMAGE}
+    #     docker save -o ~/image-cache/alpine-xqerl.tar
+    #   if: steps.image-cache.outputs.cache-hit == 'true'
+    #   run: docker load -i ~/image-cache/alpine-xqerl.tar
+    # - name: Images Check
+    #   run: docker images
 
         #run: |
         #    echo ' - pull in my docker images as helpers'
