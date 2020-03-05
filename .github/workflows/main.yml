@@ -89,10 +89,11 @@ jobs:
       if:  ${{ env.DEPLOYED_XQERL_COMPILED_CODE}} == 'true'
       run: |
          source .env
-         gcloud compute ssh ${GCE_NAME} --command 'which md5sum'
-         gcloud compute ssh ${GCE_NAME} --command \
-         "docker run --rm --workdir /home --volume /home/${GCE_NAME}/deploy:/home \
-          --entrypoint 'md5sum' ${XQERL_DOCKER_IMAGE} xqerl-compiled-code.tar" | tee xqerl-compiled-code.txt
+         gcloud compute ssh ${GCE_NAME} --command 'cd deploy && md5sum xqerl-compile-code.tar' > xqerl-compiled-code.hashes
+
+         # gcloud compute ssh ${GCE_NAME} --command \
+         # "docker run --rm --workdir /home --volume /home/${GCE_NAME}/deploy:/home \
+         #  --entrypoint 'md5sum' ${XQERL_DOCKER_IMAGE} xqerl-compiled-code.tar" | tee xqerl-compiled-code.txt
     # - name: If deployed upload previous xqerl-compiled-code hash as an artifact
     #   if:  ${{ env.DEPLOYED_XQERL_COMPILED_CODE}} == 'true'
     #   uses: actions/upload-artifact@v1
@@ -110,9 +111,10 @@ jobs:
           echo ' - the build artifact is the **xqerl-compiled-code.tar**'
           make xqerl-build
           ls -al deploy/xqerl-compiled-code.tar
-          pushd deploy && md5sum xqerl-compiled-code.tar | tee -a ../xqerl-compiled-code.txt && popd
+          pushd deploy && md5sum xqerl-compiled-code.tar | tee -a ../xqerl-compiled-code.hashes && popd
           echo ' - - - - - - - - - '
-          cat xqerl-compiled-code.txt
+          cat xqerl-compiled-code.hashes
+          md5sum --check xqerl-compiled-code.hashes
           echo ' - - - - - - - - - '
           echo ' - take a peek at the running xqerl container instance'
           make xqerl-info
