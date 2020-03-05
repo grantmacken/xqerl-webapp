@@ -86,9 +86,10 @@ jobs:
           "docker pull ${XQERL_DOCKER_IMAGE} && docker pull ${PROXY_DOCKER_IMAGE}"
           gcloud compute ssh ${GCE_NAME} --command \
           "ls deploy" > deployedTars.list
+    - name: Previous nginx-configuration Deploy
       if:  grep nginx-configuration.tar deployedTars.list
       run: |
-            echo ' previous nginx-configuration tar exists'
+        echo ' previous :wnginx-configuration tar exists'
             source .env
 
 
