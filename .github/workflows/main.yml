@@ -142,12 +142,14 @@ jobs:
           gcloud config set compute/zone ${GCE_ZONE}
           # gcloud compute instances list
           gcloud compute config-ssh &>/dev/null
-    - name: Copy exiting tars
+    - name: md5sum of deployed tar
       run: |
           source .env
           mkdir deployed 
-          gcloud compute scp  ${GCE_NAME}:~/deploy  ./deployed --recurse
-          md5 deployed/nginx-configuration.tar > nginx-configuration.txt
+          gcloud compute ssh ${GCE_NAME} --command \
+          'docker run --rm \
+           --mount type=bind,target=/tmp,source=/home/${GCE_NAME}/deploy \
+           --entrypoint "md5sum" ${XQERL_DOCKER_IMAGE} /tmp/nginx-configuration.tar' | tee nginx-configuration.txt
     - name: Download Artifacts
       uses: actions/download-artifact@v1
       with:
@@ -155,5 +157,5 @@ jobs:
     - name: Md5 checksum
       run: |
           source .env
-          md5 deploy/nginx-configuration.tar >> nginx-configuration.txt
+          md5sum deploy/nginx-configuration.tar >> nginx-configuration.txt
           cat nginx-configuration.txt
