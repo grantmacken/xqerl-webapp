@@ -117,13 +117,18 @@ jobs:
           source .env
           make proxy-tests
   deploy:
-    needs: build
     runs-on: ubuntu-latest
+    needs: [build]
+    steps:
     - name: Checkout Repo
       uses: actions/checkout@v1
       with:
           fetch-depth: 1
-    - name: Gcloud setup for deploy
+    - name: Set environment variables
+      run: |
+        source .env
+        echo '::set-env name=TERM::xterm' 
+    - name: Setup Gcloud
       uses: googlecloudplatform/github-actions/setup-gcloud@master
       with:
           version: "270.0.0"
@@ -139,8 +144,9 @@ jobs:
           gcloud compute config-ssh &>/dev/null
           gcloud compute ssh ${GCE_NAME} --command \
           "docker login docker.pkg.github.com --username ${REPO_OWNER} --password ${{ secrets.github_token }}"
-      gcloud compute ssh ${GCE_NAME} --command \
+          gcloud compute ssh ${GCE_NAME} --command \
           "docker pull ${XQERL_DOCKER_IMAGE} && docker pull ${PROXY_DOCKER_IMAGE}"
+
     # if: github.event.pull_request.merged
 
     #- name: Take both containers down on 'github-actions' host
