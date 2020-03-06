@@ -58,6 +58,7 @@ jobs:
           #echo ::set-env name=DEPLOYED_NGINX_CONFIGURATION::$(grep 'nginx-configuration.tar' deployedTars.list && echo 'true' || echo 'false' )
           #echo ::set-env name=DEPLOYED_STATIC_ASSETS::$(grep 'static-assets.tar' deployedTars.list && echo 'true' || echo 'false' )
           echo ::set-env name=DEPLOYED_XQERL_COMPILE_CODE::$(grep xqel-compiled-code deployedTars.list && echo 'true' || echo 'false' )
+          echo 
     # - name: If deployed get previous nginx-configuration deploy hash
     #   if:  ${{ env.DEPLOYED_NGINX_CONFIGURATION}} == 'true'
     #   run: |
@@ -114,7 +115,7 @@ jobs:
           echo ::set-env name=DEPLOY_XQERL_COMPILED_CODE::$( md5sum --check --status xqerl-compiled-code.hashes && echo 'false' || echo 'true' )
           #echo ${{ env.DEPLOY_XQERL_COM }}
     - name: Check md5 hashes of deploy tars and this build tar are different and deploy if required
-      if:  ${{ env.DEPLOY_XQERL_COMPILED_CODE }} == 'true'
+      if:  env.DEPLOY_XQERL_COMPILED_CODE == 'false'
       run: |
          echo ${{ env.DEPLOY_XQERL_COMPILED_CODE }}
       #   uses: actions/upload-artifact@v1
