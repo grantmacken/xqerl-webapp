@@ -126,7 +126,7 @@ jobs:
       with:
         name: xqerl-compiled-code-hashes
         path: xqerl-compiled-code.hashes
-    - name: If upload required upload tar artifact
+    - name: If upload required then upload tar artifact
       if:  ${{ env.UPLOAD_XQERL_COMPILED_CODE}} == 'true'
       uses: actions/upload-artifact@v1
       with:
@@ -247,7 +247,18 @@ jobs:
     - name: Set environment variables
       run: |
           source .env
-          ls -al xqerl-compiled-code-hashes
+          echo ::set-env name=DEPLOY_XQERL_COMPILED_CODE::$( md5sum --check --status xqerl-compiled-code.hashes && echo 'false' || echo 'true' )
+    - name: If upload required then deploy tar artifact into container volume
+      if:  ${{ env.UPLOAD_XQERL_COMPILED_CODE }} == 'true'
+      run: |
+            source .env
+            echo ${{ env.UPLOAD_XQERL_COMPILED_CODE }}
+    - name: If no upload required
+      if:  ${{ env.UPLOAD_XQERL_COMPILED_CODE }} == 'false'
+      run: |
+            source .env
+            echo ${{ env.UPLOAD_XQERL_COMPILED_CODE }}
+
    # - name: Md5 checksum
    #   run: |
    #       source .env
