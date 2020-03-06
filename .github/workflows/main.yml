@@ -112,7 +112,16 @@ jobs:
           md5sum deploy/xqerl-compiled-code.tar | tee xqerl-compiled-code.hashes
           # we only need to upload if the md5sum hashes are different
           echo ::set-env name=DEPLOY_XQERL_COMPILED_CODE::$( md5sum --check xqerl-compiled-code.hashes && echo 'false' || echo 'true' )
-          echo ${{ env.DEPLOY_XQERL_COMPILED_CODE }}
+          echo ${{ env.DEPLOY_XQERL_COM }}
+    - name: Given check hashes if xqerl-compiled-code hashes is 'false' then  
+      if:  ${{ env.DEPLOY_XQERL_COMPILED_CODE }}
+      run: |
+         echo ${{ env.DEPLOY_XQERL_COMPILED_CODE }}
+
+       
+      #   uses: actions/upload-artifact@v1
+    #   if:  ${{ env.UPLOAD_XQERL_COMPILED_CODE}} == 'true'
+    #   uses: actions/upload-artifact@v1PILED_CODE }}
     # - name: If upload xqerl-compiled-code hashes
     #   uses: actions/upload-artifact@v1
     #   with:
