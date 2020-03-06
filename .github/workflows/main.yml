@@ -55,9 +55,9 @@ jobs:
           source .env
           gcloud compute ssh ${GCE_NAME} --command \
           "ls deploy" > deployedTars.list
-          echo ::set-env name=DEPLOYED_NGINX_CONFIGURATION::$(grep 'nginx-configuration.tar' deployedTars.list && echo 'true' || echo 'false' )
-          echo ::set-env name=DEPLOYED_XQERL_COMPILE_CODE::$(grep 'xqerl-compiled-code.tar' deployedTars.list && echo 'true' || echo 'false' )
-          echo ::set-env name=DEPLOYED_STATIC_ASSETS::$(grep 'static-assets.tar' deployedTars.list && echo 'true' || echo 'false' )
+          #echo ::set-env name=DEPLOYED_NGINX_CONFIGURATION::$(grep 'nginx-configuration.tar' deployedTars.list && echo 'true' || echo 'false' )
+          #echo ::set-env name=DEPLOYED_STATIC_ASSETS::$(grep 'static-assets.tar' deployedTars.list && echo 'true' || echo 'false' )
+          echo ::set-env name=DEPLOYED_XQERL_COMPILE_CODE::$(grep -q 'xqerl-compiled-code.tar' deployedTars.list)
     # - name: If deployed get previous nginx-configuration deploy hash
     #   if:  ${{ env.DEPLOYED_NGINX_CONFIGURATION}} == 'true'
     #   run: |
@@ -86,7 +86,7 @@ jobs:
     #     name: deployed-static-assets-hash
     #     path: deployed-static-assets.hash
     - name: If xqerl-compiled-code deployed get deploy hash
-      if:  env.DEPLOYED_XQERL_COMPILED_CODE == 'true'
+      if:  ${{ env.DEPLOYED_XQERL_COMPILED_CODE }}
       run: |
          source .env
          gcloud compute ssh ${GCE_NAME} --command 'ls -al deploy'
@@ -112,8 +112,8 @@ jobs:
           md5sum deploy/xqerl-compiled-code.tar | tee xqerl-compiled-code.hashes
           # we only need to upload if the md5sum hashes are different
           echo ::set-env name=DEPLOY_XQERL_COMPILED_CODE::$( md5sum --check --status xqerl-compiled-code.hashes && echo 'false' || echo 'true' )
-          echo ${{ env.DEPLOY_XQERL_COM }}
-    - name: Check md5 hashes of deployed and this build tar are different and deploy if required
+          #echo ${{ env.DEPLOY_XQERL_COM }}
+    - name: Check md5 hashes of deploy tars and this build tar are different and deploy if required
       if:  env.DEPLOY_XQERL_COMPILED_CODE == 'true'
       run: |
          echo ${{ env.DEPLOY_XQERL_COMPILED_CODE }}
