@@ -245,7 +245,7 @@ jobs:
           name: xqerl-compiled-code-hashes
           path: xqerl-compiled-code.hashes
     - name: Set environment variables
-        run: |
+      run: |
           source .env
           ls -al xqerl-compiled-code-hashes
    # - name: Md5 checksum
