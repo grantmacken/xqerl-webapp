@@ -57,7 +57,7 @@ jobs:
           "ls deploy" > deployedTars.list
           #echo ::set-env name=DEPLOYED_NGINX_CONFIGURATION::$(grep 'nginx-configuration.tar' deployedTars.list && echo 'true' || echo 'false' )
           #echo ::set-env name=DEPLOYED_STATIC_ASSETS::$(grep 'static-assets.tar' deployedTars.list && echo 'true' || echo 'false' )
-          echo ::set-env name=DEPLOYED_XQERL_COMPILE_CODE::$(grep -q 'xqel-compiled-code.tar' deployedTars.list)
+          echo ::set-env name=DEPLOYED_XQERL_COMPILE_CODE::$(grep -q 'xqel-compiled-code.tar' deployedTars.list && echo 'true' || echo 'false' )
     # - name: If deployed get previous nginx-configuration deploy hash
     #   if:  ${{ env.DEPLOYED_NGINX_CONFIGURATION}} == 'true'
     #   run: |
@@ -86,7 +86,7 @@ jobs:
     #     name: deployed-static-assets-hash
     #     path: deployed-static-assets.hash
     - name: If xqerl-compiled-code deployed get deploy hash
-      if:  ${{ env.DEPLOYED_XQERL_COMPILED_CODE }} == true
+      if:  ${{ env.DEPLOYED_XQERL_COMPILED_CODE }} == 'true'
       run: |
          source .env
          gcloud compute ssh ${GCE_NAME} --command 'ls -al deploy'
