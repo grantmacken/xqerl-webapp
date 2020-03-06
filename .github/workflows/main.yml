@@ -248,16 +248,18 @@ jobs:
       run: |
           source .env
           echo ::set-env name=DEPLOY_XQERL_COMPILED_CODE::$( md5sum --check --status xqerl-compiled-code.hashes && echo 'false' || echo 'true' )
-    - name: If upload required then deploy tar artifact into container volume
-      if:  ${{ env.UPLOAD_XQERL_COMPILED_CODE }} == 'true'
+    - name: Do only if xqerl-compiled-code.tar need to be deployed
+      if:  ${{ env.DEPLOY_XQERL_COMPILED_CODE }} == 'true'
       run: |
             source .env
-            echo ${{ env.UPLOAD_XQERL_COMPILED_CODE }}
+            echo "${{ env.DEPLOY_XQERL_COMPILED_CODE }}"
+
+
     - name: If no upload required
-      if:  ${{ env.UPLOAD_XQERL_COMPILED_CODE }} == 'false'
+      if:  ${{ env.DEPLOY_XQERL_COMPILED_CODE }} == 'false'
       run: |
             source .env
-            echo ${{ env.UPLOAD_XQERL_COMPILED_CODE }}
+            echo "${{ env.DEPLOY_XQERL_COMPILED_CODE }}"
 
    # - name: Md5 checksum
    #   run: |
