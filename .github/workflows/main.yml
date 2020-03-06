@@ -112,12 +112,12 @@ jobs:
           echo 'append a hash of newly built xqerl-compiled-code.tar to file: [ xqerl-compiled-code.hashes ] '
           md5sum deploy/xqerl-compiled-code.tar | tee xqerl-compiled-code.hashes
           # we only need to upload if the md5sum hashes are different
-          echo ::set-env name=DEPLOY_XQERL_COMPILED_CODE::$( md5sum --check --status xqerl-compiled-code.hashes && echo 'false' || echo 'true' )
+          md5sum --check --status xqerl-compiled-code.hashes
           #echo ${{ env.DEPLOY_XQERL_COM }}
-    - name: Check md5 hashes of deploy tars and this build tar are different and deploy if required
-      if:  ! env.DEPLOY_XQERL_COMPILED_CODE
-      run: |
-         echo ${{ env.DEPLOY_XQERL_COMPILED_CODE }}
+    # - name: Check md5 hashes of deploy tars and this build tar are different and deploy if required
+    #   if:  ! env.DEPLOY_XQERL_COMPILED_CODE
+    #   run: |
+    #      echo ${{ env.DEPLOY_XQERL_COMPILED_CODE }}
       #   uses: actions/upload-artifact@v1
     #   if:  ${{ env.UPLOAD_XQERL_COMPILED_CODE}} == 'true'
     #   uses: actions/upload-artifact@v1PILED_CODE }}
