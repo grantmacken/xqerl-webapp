@@ -7,7 +7,7 @@ on:
 # environment variables available to all jobs and steps in this workflow
 env:
   github_sha: ${{ github.sha }}
-
+  UPLOAD_XQERL_COMPILED_CODE: 'true'
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -245,7 +245,7 @@ jobs:
       run: |
         source .env
         echo ${{ env.UPLOAD_XQERL_COMPILED_CODE }}
-        echo "${{ jobs.build.env.UPLOAD_XQERL_COMPILED_CODE }}"
+        #echo "${{ jobs.build.env.UPLOAD_XQERL_COMPILED_CODE }}"
         echo jobs.build.env.UPLOAD_XQERL_COMPILED_CODE
        # - name: Download Artifacts
    #   uses: actions/download-artifact@v1
