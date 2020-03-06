@@ -113,7 +113,7 @@ jobs:
           # we only need to upload if the md5sum hashes are different
           echo ::set-env name=DEPLOY_XQERL_COMPILED_CODE::$( md5sum --check xqerl-compiled-code.hashes && echo 'false' || echo 'true' )
           echo ${{ env.DEPLOY_XQERL_COM }}
-    - name: Given check hashes if xqerl-compiled-code hashes is 'false' then  
+    - name: Check md5 hashes of deployed and this build tar are different and deploy if required
       if:  ${{ env.DEPLOY_XQERL_COMPILED_CODE }}
       run: |
          echo ${{ env.DEPLOY_XQERL_COMPILED_CODE }}
