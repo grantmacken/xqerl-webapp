@@ -109,9 +109,10 @@ jobs:
           echo '   the xqerl internal IPAddress and published port'
           make xqerl-tests
           echo 'append a hash of newly built xqerl-compiled-code.tar to file: [ xqerl-compiled-code.hashes ] '
-          md5sum deploy/xqerl-compiled-code.tar | tee -a | tee xqerl-compiled-code.hashes
+          md5sum deploy/xqerl-compiled-code.tar | tee xqerl-compiled-code.hashes
           # we only need to upload if the md5sum hashes are different
-          echo ::set-env name=UPLOAD_XQERL_COMPILED_CODE::$( md5sum --check xqerl-compiled-code.hashes && echo 'false' || echo 'true' )
+          echo ::set-env name=DEPLOY_XQERL_COMPILED_CODE::$( md5sum --check xqerl-compiled-code.hashes && echo 'false' || echo 'true' )
+          echo ${{ env.DEPLOY_XQERL_COMPILED_CODE }}
     # - name: If upload xqerl-compiled-code hashes
     #   uses: actions/upload-artifact@v1
     #   with:
