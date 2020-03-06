@@ -21,7 +21,7 @@ jobs:
       run: |
           source .env
           echo '::set-env name=TERM::xterm'
-          # echo '::set-env name=UPLOAD_XQERL_COMPILED_CODE::false'
+          echo '::set-env name=UPLOAD_XQERL_COMPILED_CODE::false'
     - name: Pull in docker images
       run: |
           source .env
@@ -245,6 +245,7 @@ jobs:
       run: |
         source .env
         echo ${{ env.UPLOAD_XQERL_COMPILED_CODE }}
+        echo ${{ jobs.build.env.UPLOAD_XQERL_COMPILED_CODE }}
        # - name: Download Artifacts
    #   uses: actions/download-artifact@v1
    #   with:
