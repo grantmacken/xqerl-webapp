@@ -110,18 +110,35 @@ jobs:
           echo ' - compile build xQuery files to run on the beam'
           echo ' - the build artifact is the **xqerl-compiled-code.tar**'
           make xqerl-build
-          ls -al deploy/xqerl-compiled-code.tar
-          md5sum deploy/xqerl-compiled-code.tar | tee -a | tee xqerl-compiled-code.hashes
-          echo ' - - - - - - - - - '
-          cat xqerl-compiled-code.hashes
-          md5sum --check xqerl-compiled-code.hashes
-          echo ' - - - - - - - - - '
+          #ls -al deploy/xqerl-compiled-code.tar
           echo ' - take a peek at the running xqerl container instance'
           make xqerl-info
           echo ' - before we place a reverse proxy server before xqerl '
           echo '   we can test our **restXQ routes** using  *curl* and '
           echo '   the xqerl internal IPAddress and published port'
           make xqerl-tests
+          echo 'append a hash of newly built xqerl-compiled-code.tar to file: [ xqerl-compiled-code.hashes ] '
+          md5sum deploy/xqerl-compiled-code.tar | tee -a | tee xqerl-compiled-code.hashes
+          # we only need to upload if the md5sum hashes are different
+          echo ::set-env name=UPLOAD_XQERL_COMPILED_CODE:$( md5sum --check --status xqerl-compiled-code.hashes && echo 'false' || echo 'true' )
+    # - name: If upload previous xqerl-compiled-code has as an artifact
+    #   if:  ${{ env.DEPLOYED_XQERL_COMPILED_CODE}} == 'true'
+    #   uses: actions/upload-artifact@v1
+    #   with:
+    #     name: xqerl-compiled-code-hashes
+    #     path: xqerl-compiled-code.hashes
+    # - name: If upload previous xqerl-compiled-code has as an artifact
+    #   if:  ${{ env.DEPLOYED_XQERL_COMPILED_CODE}} == 'true'
+    #   uses: actions/upload-artifact@v1
+    #   with:
+    #     name: xqerl-compiled-code-hashes
+    #     path: xqerl-compiled-code.hashes
+          # - name: If deployed upload previous xqerl-compiled-code hash as an artifact
+    #   if:  ${{ env.DEPLOYED_XQERL_COMPILED_CODE}} == 'true'
+    #   uses: actions/upload-artifact@v1
+    #   with:
+    #     name: deployed-xqerl-compiled-code-hash
+    #     path: deployed-xqerl-compiled-code.hash
     # - name: Fetch certs and put into 'letsencypt' volume on 'github-actions' host
     #     run: |
     #         source .env
@@ -214,32 +231,42 @@ jobs:
 # #      run: |
 # #          source .env
 # #          make proxy-tests
-# #  deploy:
-# #    runs-on: ubuntu-latest
-# #    needs: [build]
-# #    steps:
-# #    - name: Checkout Repo
-# #      uses: actions/checkout@v1
-# #      with:
-# #          fetch-depth: 1
-# #    - name: Set environment variables
-# #      run: |
-# #        source .env
-# #        echo '::set-env name=TERM::xterm' 
-# #    - name: Setup Gcloud
-# #      uses: googlecloudplatform/github-actions/setup-gcloud@master
-# #      with:
-# #          version: "270.0.0"
-# #          service_account_email: ${{ secrets.client_email }}
-# #          service_account_key: ${{ secrets.gce_key }}
-# #    - name: Configure GCE project
-# #      run: |
-# #          source .env
-# #          echo ' - set up GCE project from .env vars '
-# #          gcloud config set project ${GCE_PROJECT}
-# #          gcloud config set compute/zone ${GCE_ZONE}
-# #          # gcloud compute instances list
-# #          gcloud compute config-ssh &>/dev/null
+#
+ deploy:
+   runs-on: ubuntu-latest
+   needs: [build]
+   steps:
+   - name: Checkout Repo
+     uses: actions/checkout@v1
+     with:
+         fetch-depth: 1
+   - name: Set environment variables
+     run: |
+       source .env
+       echo ${{ env.UPLOAD_XQERL_COMPILED_CODE }}
+       # - name: Download Artifacts
+   #   uses: actions/download-artifact@v1
+   #   with:
+   #       name: nginx-configuration
+   # - name: Md5 checksum
+   #   run: |
+   #       source .env
+   #       ls -al nginx-configuration
+   #       cat nginx-configuration.txt
+   # - name: Setup Gcloud
+   #   uses: googlecloudplatform/github-actions/setup-gcloud@master
+   #   with:
+   #       version: "270.0.0"
+   #       service_account_email: ${{ secrets.client_email }}
+   #       service_account_key: ${{ secrets.gce_key }}
+   # - name: Configure GCE project
+   #   run: |
+   #       source .env
+   #       echo ' - set up GCE project from .env vars '
+   #       gcloud config set project ${GCE_PROJECT}
+   #       gcloud config set compute/zone ${GCE_ZONE}
+   #       # gcloud compute instances list
+   #       gcloud compute config-ssh &>/dev/null
 # #    - name: md5sum of deployed tar
 # #      run: |
 # #          source .env
