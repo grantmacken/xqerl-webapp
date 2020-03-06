@@ -247,7 +247,7 @@ jobs:
     - name: Set environment variables
       run: |
           source .env
-          echo ::set-env name=DEPLOY_XQERL_COMPILED_CODE::$( md5sum --check --status xqerl-compiled-code.hashes && echo 'false' || echo 'true' )
+          echo ::set-env name=DEPLOY_XQERL_COMPILED_CODE::$( md5sum --check  xqerl-compiled-code.hashes && echo 'false' || echo 'true' )
     - name: Do only if xqerl-compiled-code.tar need to be deployed
       if:  ${{ env.DEPLOY_XQERL_COMPILED_CODE }} == 'true'
       run: |
