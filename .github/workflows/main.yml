@@ -21,7 +21,6 @@ jobs:
       run: |
           source .env
           echo '::set-env name=TERM::xterm'
-          echo '::set-env name=UPLOAD_XQERL_COMPILED_CODE::false'
     - name: Pull in docker images
       run: |
           source .env
@@ -122,18 +121,17 @@ jobs:
           md5sum deploy/xqerl-compiled-code.tar | tee -a | tee xqerl-compiled-code.hashes
           # we only need to upload if the md5sum hashes are different
           echo ::set-env name=UPLOAD_XQERL_COMPILED_CODE::$( md5sum --check --status xqerl-compiled-code.hashes && echo 'false' || echo 'true' )
-    # - name: If upload previous xqerl-compiled-code has as an artifact
-    #   if:  ${{ env.DEPLOYED_XQERL_COMPILED_CODE}} == 'true'
-    #   uses: actions/upload-artifact@v1
-    #   with:
-    #     name: xqerl-compiled-code-hashes
-    #     path: xqerl-compiled-code.hashes
-    # - name: If upload previous xqerl-compiled-code has as an artifact
-    #   if:  ${{ env.DEPLOYED_XQERL_COMPILED_CODE}} == 'true'
-    #   uses: actions/upload-artifact@v1
-    #   with:
-    #     name: xqerl-compiled-code-hashes
-    #     path: xqerl-compiled-code.hashes
+    - name: If upload xqerl-compiled-code hashes
+      uses: actions/upload-artifact@v1
+      with:
+        name: xqerl-compiled-code-hashes
+        path: xqerl-compiled-code.hashes
+    - name: If upload required upload tar artifact
+      if:  ${{ env.UPLOAD_XQERL_COMPILED_CODE}} == 'true'
+      uses: actions/upload-artifact@v1
+      with:
+        name: xqerl-compiled-code-hashes
+        path: xqerl-compiled-code.hashes
           # - name: If deployed upload previous xqerl-compiled-code hash as an artifact
     #   if:  ${{ env.DEPLOYED_XQERL_COMPILED_CODE}} == 'true'
     #   uses: actions/upload-artifact@v1
