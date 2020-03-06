@@ -246,7 +246,7 @@ jobs:
         source .env
         echo ${{ env.UPLOAD_XQERL_COMPILED_CODE }}
         #echo "${{ jobs.build.env.UPLOAD_XQERL_COMPILED_CODE }}"
-        echo jobs.build.env.UPLOAD_XQERL_COMPILED_CODE
+        # echo jobs.build.env.UPLOAD_XQERL_COMPILED_CODE
        # - name: Download Artifacts
    #   uses: actions/download-artifact@v1
    #   with:
