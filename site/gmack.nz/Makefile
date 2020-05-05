@@ -46,7 +46,7 @@ Cross = echo -n "$$(tput setaf 1) ✘ $$(tput sgr0) " && echo -n $1 && echo
 # and not the build dir
 ####################################################################
 # NOTE: xquery module list order is important
-ModuleList := newBase60 render_feed render_login render_note login routes
+ModuleList := newBase60 render_feed render_note login routes
 # render_feed render_note micropub routes
 BuildList  := $(patsubst %,$(B)/modules/%.xqm,$(ModuleList))
 VolumeList := xqerl-compiled-code xqerl-database
@@ -57,16 +57,9 @@ MountBin   := type=bind,target=$(XQERL_HOME)/bin/scripts,source=$(CURDIR)/bin
 MountAssets  := type=volume,target=$(PROXY_HOME)/html,source=static-assets
 MountBuild := type=bind,target=/tmp,source=$(CURDIR)/$(B)
 
-define ffReload
-xdotool windowactivate $(shell xdotool search  --name "Mozilla Firefox" | head -1 )
-xdotool key Control_L+F5
-endef
-
 .PHONY: build
 build: code assets
-	@$(if $(GITHUB_ACTIONS),,\
- xdotool windowactivate $(shell xdotool search  --name "Mozilla Firefox" | head -1 ) && \
- xdotool key Control_L+F5 )
+	@$(if $(GITHUB_ACTIONS),,xdotool search --onlyvisible --name "Mozilla Firefox"  key  Control_L+F5 || true)
 
 .PHONY: watch
 watch:
@@ -94,9 +87,6 @@ $(D)/xqerl-compiled-code.tar: $(BuildList)
  --mount $(MountCode) \
  --entrypoint "tar" $(XQERL_DOCKER_IMAGE) -czf - $(XQERL_HOME)/code &>/dev/null > $@
 	@#echo;printf %60s | tr ' ' '-' && echo
-
-
-
 
 
 
