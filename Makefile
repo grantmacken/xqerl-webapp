@@ -5,7 +5,7 @@ SHELL=/bin/bash
 MAKEFLAGS += --warn-undefined-variables
 MAKEFLAGS += --no-builtin-rules
 ###################################
-include .env
+include .env .version.env
 
 .PHONY: test
 test:
@@ -43,6 +43,12 @@ proxy-build:
 	@$(MAKE) -silent build
 	@popd &>/dev/null
 
+.PHONY: proxy-clean
+proxy-clean:
+	@pushd proxy &>/dev/null
+	@$(MAKE) -silent clean
+	@popd &>/dev/null
+
 .PHONY: proxy-reload
 proxy-reload:
 	@pushd proxy &>/dev/null
@@ -53,6 +59,12 @@ proxy-reload:
 proxy-tests:
 	@pushd tests/proxy &>/dev/null
 	@$(MAKE) -silent
+	@popd &>/dev/null
+
+.PHONY: proxy-info
+proxy-info:
+	@pushd tests/proxy &>/dev/null
+	@$(MAKE) -silent info
 	@popd &>/dev/null
 
 .PHONY: xqerl-up
@@ -110,16 +122,13 @@ assets:
 
 .PHONY: pull-pkgs
 pull-pkgs:
-	@#docker login docker.pkg.github.com --username $(REPO_NAME)
-	@cat ../.github-access-token | \
- docker login docker.pkg.github.com  --username $(REPO_OWNER) --password-stdin
-	@# docker pull $(PROXY_DOCKER_IMAGE) have to use local image due to mse2a SSE instruction set
-	@docker pull docker.pkg.github.com/grantmacken/alpine-scour/scour:0.0.2
-	@docker pull docker.pkg.github.com/grantmacken/alpine-zopfli/zopfli:0.0.1
-	@docker pull docker.pkg.github.com/grantmacken/alpine-cssnano/cssnano:0.0.3
+	@cat ../.github-access-token | docker login docker.pkg.github.com  --username $(REPO_OWNER) --password-stdin
+	@docker pull docker.pkg.github.com/grantmacken/alpine-xqerl/xq:$(XQ_VER)
+	@docker pull docker.pkg.github.com/grantmacken/alpine-nginx/ngx:$(NGX_VER)
+	@docker pull docker.pkg.github.com/grantmacken/alpine-scour/scour:$(SCOUR_VER)
+	@docker pull docker.pkg.github.com/grantmacken/alpine-zopfli/zopfli:$(ZOPFLI_VER)
+	@docker pull docker.pkg.github.com/grantmacken/alpine-cssnano/cssnano:$(CSSNANO_VER)
 
-.PHONY: clean
-clean:
-	@pushd proxy &>/dev/null
-	@$(MAKE) -silent clean
-	@popd &>/dev/null
+
+
+
