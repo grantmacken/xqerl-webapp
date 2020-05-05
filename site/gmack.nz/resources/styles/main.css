@@ -26,7 +26,6 @@ body {
   /* grid-gap: 1em; */
   height: 100vh;
   /* base typography */
-  background-image: url( '/icons/mackenzie');
   /* background: hsla(0, 0%, 62%, .7);  #9f9f9f */
  /* color: hsla(0, 0%, 87%, 1)   #dddddd; */  color: #333;/* color: #24292e; */
   color: hsla(0, 0%, 6%, 1); /* #0f0f0f */
@@ -42,7 +41,8 @@ body {
 
 header {
   grid-area: header;
-  background-color: hsla(93, 82%, 13%, .5); /* #1f3d06 */
+  background-image: url( '/icons/mackenzie');
+  /* background-color: hsla(93, 82%, 13%, .5); /1* #1f3d06 *1/ */
   color: #bac4b2;
   /* height: calc( 16 * 4 + 8); */
   display: flex;
@@ -81,7 +81,6 @@ body > article {
    min-width: 200px;
    max-width: 980;
    padding: 45px;
-
 }
 
 
