@@ -1,21 +1,24 @@
 SHELL=/bin/bash
 .ONESHELL:
 .SHELLFLAGS := -eu -o pipefail -c
-.DELETE_ON_ERRNGX:
+.DELETE_ON_ERROR:
 MAKEFLAGS += --warn-undefined-variables
 MAKEFLAGS += --no-builtin-rules
-LOCAL_RELOAD :=
 include ../.env
-NGX := $(PROXY_CONTAINER_NAME)
-XQ  := $(XQERL_CONTAINER_NAME)
 T := .tmp
 B := .build
 D := ../deploy
+MY_BIN_PATH=$(abspath ../bin)
 $(shell mkdir -p ./{$(T),$(B)/conf,$(D)})
 EMPTY :=
 SPACE := $(EMPTY) $(EMPTY)
 DOT := .
-DEN  = docker exec $(NGX)
+
+ifeq ($(origin GITHUB_ACTIONS),undefined)
+ GITHUB_ACTIONS := $(EMPTY)
+endif
+
+DEN  = docker exec $(PROXY_CONTAINER_NAME)
 Tick  = echo -n "$$(tput setaf 2) ✔ $$(tput sgr0) " && echo -n $1  && echo
 FileTick = $(file >$1,$2)$(call Tick,$2)
 Cross = echo -n "$$(tput setaf 1) ✘ $$(tput sgr0) " && echo -n $1 && echo
@@ -35,22 +38,47 @@ ssl_trusted_certificate $(LETSENCRYPT)/live/$(TLS_COMMON_NAME)/chain.pem;
 endef
 
 # VolumeList  := nginx-configuration static-assets letsencrypt site-lualib
-mountNginxConf   := type=volume,target=$(PROXY_HOME)/conf,source=nginx-configuration
-mountNginxHtml   := type=volume,target=$(PROXY_HOME)/html,source=static-assets
-mountLetsencrypt := type=volume,target=$(LETSENCRYPT),source=letsencrypt
-mountBuild       := type=bind,target=/tmp,source=$(CURDIR)/$(B)
+MountNginxConf   := type=volume,target=$(PROXY_HOME)/conf,source=nginx-configuration
+MountNginxHtml   := type=volume,target=$(PROXY_HOME)/html,source=static-assets
+MountLetsencrypt := type=volume,target=$(LETSENCRYPT),source=letsencrypt
+MountAssets      := type=volume,target=$(PROXY_HOME)/html,source=static-assets
+# local mounts
+MountBuild       := type=bind,target=/tmp,source=$(CURDIR)/$(B)
+MountConf      := type=bind,target=/tmp,source=$(CURDIR)/conf
+MountCerts       := type=bind,target=/tmp,source=$(CURDIR)/certs
+MountHtml       := type=bind,target=/tmp,source=$(CURDIR)/html
+MountGCE         := type=bind,target=/tmp,source=/home/$(GCE_NAME)/certs
 
-dkrCpNginxConf   := docker run --rm --mount $(mountNginxConf) --mount $(mountBuild)
-dkrTarNginxConf  := docker run --rm --mount $(mountNginxConf)
-
-dkrNginxMountAll := docker run --rm --mount $(mountNginxConf) --mount $(mountNginxHtml) --mount $(mountLetsencrypt)
+dkrCpNginxConf   := docker run --rm --mount $(MountNginxConf) --mount $(MountBuild)
+dkrNginxConf  := docker run --rm --mount $(MountNginxConf)
+dkrNginxMountAll := docker run --rm --mount $(MountNginxConf) --mount $(MountNginxHtml) --mount $(MountLetsencrypt)
 
 buildConfs := $(patsubst %,$(B)/%, $(wildcard conf/*))
 
-orAddress  := docker inspect --format='{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' $(NGX)
+orAddress  := docker inspect --format='{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' $(PROXY_CONTAINER_NAME)
 
 .PHONY: build
 build: $(D)/nginx-configuration.tar
+	@$(if $(GITHUB_ACTIONS),,\
+ xdotool windowactivate $(shell xdotool search  --name "Mozilla Firefox" | head -1 ) && \
+ xdotool key Control_L+F5 )
+
+.PHONY: restore
+restore:
+	@$(dkrCpNginxConf) --entrypoint "sh" $(PROXY_DOCKER_IMAGE) -c 'cp /tmp/conf/$(TARG) ./conf/ '
+
+.PHONY: ls
+ls:
+	@$(dkrNginxConf) --entrypoint "sh" $(PROXY_DOCKER_IMAGE) -c 'ls -al ./conf'
+
+.PHONY: rm
+rm: 
+	@$(dkrNginxConf) --entrypoint "sh" $(PROXY_DOCKER_IMAGE) -c 'rm ./conf/$(TARG)'
+
+.PHONY: cat
+cat: 
+	@$(dkrNginxConf) --entrypoint "sh" $(PROXY_DOCKER_IMAGE) -c 'cat ./conf/$(TARG)'
+
 
 .PHONY: clean
 clean: clean-tmp
@@ -72,7 +100,7 @@ $(D)/nginx-configuration.tar: $(B)/conf/certs.conf $(buildConfs)
 	@echo ' - copy build files into "nginx-confguration" volume'
 	@$(dkrCpNginxConf) --entrypoint "sh" $(PROXY_DOCKER_IMAGE) -c 'cp -r /tmp/conf ./ '
 	@echo ' - tar the "nginx-confguration" volume into deploy directory'
-	@$(dkrTarNginxConf) --entrypoint "tar" $(PROXY_DOCKER_IMAGE) -czf - $(PROXY_HOME)/conf > $@
+	@$(dkrNginxConf) --entrypoint "tar" $(PROXY_DOCKER_IMAGE) -czf - $(PROXY_HOME)/conf > $@
 
 $(B)/conf/certs.conf: export mkCertsConf:=$(mkCertsConf)
 $(B)/conf/certs.conf:
@@ -82,35 +110,63 @@ $(B)/conf/certs.conf:
 .PHONY: confs
 confs: $(buildConfs)
 
+$(B)/conf/%: $(T)/conf/%
+	@echo '## $(*) ##'
+	@cat $<
+
+xxxsss:
+	@if grep -oP 'test is successful' $< &>/dev/null ;then\
+    $(call Tick,- nginx: [ config OK ]); else \
+    $(call Cross,- nginx: [ config err ]); fi
+
+define cmdTestConf
+mv -v ./conf/$(*)  ./conf/hold_$(*)
+cp -v /tmp/$(*) ./conf/
+if ./sbin/nginx -t ; then
+  rm -v ./conf/hold_$(*)
+  true
+else 
+  mv -v  ./conf/hold_$(*) ./conf/$(*)
+  false
+fi
+endef
+
 $(B)/conf/%: conf/%
-	@echo '## $(patsubst $(B)/%,%,$@) ##'
-	$(if $(LOCAL_RELOAD),echo ' - local reload: $(LOCAL_RELOAD)',)
-	@$(if $(LOCAL_RELOAD),$(dkrCpNginxConf) --entrypoint "sh" $(PROXY_DOCKER_IMAGE) -c 'cp  /tmp/conf/$(*) ./conf/',)
-	@$(if $(LOCAL_RELOAD),$(DEN) ./sbin/nginx -t,)
-	@$(if $(LOCAL_RELOAD),$(DEN) ./sbin/nginx -s reload,)
+	@echo '## $(*) ##'
+	@mkdir -p $(dir $@)
+	$(if $(GITHUB_ACTIONS),,echo ' - test configuration')
+	@$(if $(GITHUB_ACTIONS),,\
+ $(dkrNginxMountAll) \
+ --mount $(MountConf) \
+ --network $(NETWORK) \
+ --entrypoint "sh" $(PROXY_DOCKER_IMAGE) \
+ -c '$(cmdTestConf)' \
+ )
+	$(if $(GITHUB_ACTIONS),,echo ' -  reload nginx')
+	@$(if $(GITHUB_ACTIONS),,$(DEN) ./sbin/nginx -s reload)
 	@cp $< $@
 
-.PHONY: watch-confs
-watch-confs:
+.PHONY: watch
+watch:
 	@while true; do \
-        $(MAKE) --silent confs LOCAL_RELOAD=yep ; \
+        $(MAKE) --silent confs; \
         inotifywait -qre close_write . ; \
     done
 
 #################################################
 ### PROXY UP DOWN RESTART and TEST CONFIG ###
 #################################################
-proxyRunning = $(shell docker ps --all --filter name=$(NGX) --format '{{.Status}}' | grep -oP '^Up' || true)
+proxyRunning = $(shell docker ps --all --filter name=$(PROXY_CONTAINER_NAME) --format '{{.Status}}' | grep -oP '^Up' || true)
 
-# docker inspect -f '{{.State.Running}}' $(NGX) | grep -oP '^true' || true
-# orExited  != docker ps --all --filter name=$(NGX) --format '{{.Status}}' | grep -oP '^Exited' || true
+# docker inspect -f '{{.State.Running}}' $(PROXY_CONTAINER_NAME) | grep -oP '^true' || true
+# orExited  != docker ps --all --filter name=$(PROXY_CONTAINER_NAME) --format '{{.Status}}' | grep -oP '^Exited' || true
 
 define proxyRun
 docker run --rm \
- --mount $(mountNginxConf) \
- --mount $(mountNginxHtml) \
- --mount $(mountLetsencrypt) \
- --name  $(NGX) \
+ --mount $(MountNginxConf) \
+ --mount $(MountNginxHtml) \
+ --mount $(MountLetsencrypt) \
+ --name  $(PROXY_CONTAINER_NAME) \
  --hostname nginx \
  --network $(NETWORK) \
  --publish 80:80 \
@@ -133,19 +189,13 @@ check-init: clean-tmp $(T)/network.check $(T)/certs.check
 .PHONY: up
 up: clean-tmp  $(T)/network.check $(T)/certs.check $(T)/config.check $(T)/xqerl-up.check
 	@$(if $(proxyRunning),,$(proxyRun))
-	@#$(if $(proxyRunning),docker ps --all --filter name=$(NGX) --format ' -  $(NGX) container status [ {{.Status}} ]',)
+	@#$(if $(proxyRunning),docker ps --all --filter name=$(PROXY_CONTAINER_NAME) --format ' -  $(PROXY_CONTAINER_NAME) container status [ {{.Status}} ]',)
 
 $(T)/xqerl-up.check:
-	@docker ps --all --filter name=$(XQ) --format '{{.Status}}' &> $@
+	@docker ps --all --filter name=$(XQERL_CONTAINER_NAME) --format '{{.Status}}' &> $@
 	@if grep -oP '^Up(.+)$$' $@ &>/dev/null ;then\
 		$(call Tick, - xqerl: [ $$(tail -1 $@) ]); else \
 		$(call Cross,- xqerl: [ down ]) && false; fi
-
-ddd:
-	@# if xqerl not up $@ will be removed
-	@#docker ps --all --filter name=$(XQ) --format '{{.Status}}' &> $@
-	@# grep -oP '^Up' $@ || $(call Cross, - xqerl down) && false
-	@#$(call Tick,$@, - xqerl [ $(shell tail -1 $@) ])
 
 $(T)/config.check:
 	@# if config check fails $@ will be removed
@@ -158,7 +208,7 @@ $(T)/certs.check: $(T)/volumes.check
 	@#echo '##[ $(notdir $@) ]##'
 	@# inspect mounted volume for certs
 	@docker run --rm \
- --mount $(mountLetsencrypt) \
+ --mount $(MountLetsencrypt) \
  --entrypoint "sh" $(PROXY_DOCKER_IMAGE) -c \
  'ls -al $(LETSENCRYPT)/live/$(TLS_COMMON_NAME)' > $@
 	@# checks will remove certs.check if failure
@@ -195,50 +245,57 @@ $(T)/port.check:
 .PHONY: down
 down:
 	@echo '##[ $@ ]##'
-	@$(if $(proxyRunning),echo -n ' - stopping container: ' && docker stop $(NGX),)
+	@$(if $(proxyRunning),echo -n ' - stopping container: ' && docker stop $(PROXY_CONTAINER_NAME),)
 
 .PHONY: reload
 reload:
 	@echo "## $@ ##"
 	@echo ' - local test nginx configuration'
-	@docker exec  ./sbin/nginx -t
+	@docker exec $(PROXY_CONTAINER_NAME) ./sbin/nginx -t
 	@echo ' - local restart'
-	@docker exec or ./sbin/nginx -s reload
+	@docker exec $(PROXY_CONTAINER_NAME) ./sbin/nginx -s reload
 
 .PHONY: info
-info: $(T)/log-status
-	@cat $<
+info: $(T)/log-status 	
+	@#cat $(T)/log-status
+	@echo "$$(docker exec -t $(PROXY_CONTAINER_NAME) ./sbin/nginx -V)" > $(T)/version-info
+	@cat $(T)/version-info | grep -oP 'configure arguments: \K.+' | tr ' ' '\n' > $(T)/configure.arguments
+	@# cat $(T)/configure.arguments
+	@printf %60s | tr ' ' '-' && echo
+	@echo 'nginx compiled with'
+	@printf %60s | tr ' ' '-' && echo
+	@grep -oP '^..with-\K[\w+-_]+$$' $(T)/configure.arguments
+	@printf %60s | tr ' ' '-' && echo
+	@echo 'nginx dynamic modules'
+	@printf %60s | tr ' ' '-' && echo
+	@grep -oP '^..add.dynamic.module.+modules/\K.+$$' $(T)/configure.arguments
+	@printf %60s | tr ' ' '-' && echo
+	@#/bin/grep 'configure' $(T)/version-info
 
 $(T)/log-status:
 	@echo "## $@ ##"
-	@docker ps --filter name=$(NGX) --format '  name: {{.Names}}' > $@
-	@docker ps --filter name=$(NGX) --format  'status: {{.Status}}'  >> $@
-	@docker ps --filter name=$(NGX) --format '  ports:  {{.Ports}}' >> $@
-	@docker inspect --format='IP addr: {{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' $(NGX) >> $@
+	@find $(T)/ -type f | xargs rm -f
+	@docker ps --filter name=$(PROXY_CONTAINER_NAME) --format '  name: {{.Names}}' > $@
+	@docker ps --filter name=$(PROXY_CONTAINER_NAME) --format  'status: {{.Status}}'  >> $@
+	@docker ps --filter name=$(PROXY_CONTAINER_NAME) --format '  ports:  {{.Ports}}' >> $@
+	@docker inspect --format='IP addr: {{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' $(PROXY_CONTAINER_NAME) >> $@
 
 $(T)/version-info:
-	@docker exec -t or nginx -v
-	@echo 'nginx modules'
-	@grep -oP '^..add.module.+$$' $<
-	@echo 'nginx compiled with'
-	@grep -oP '^..with-[\w+-_]+$$' $<
+	@echo "$$(docker exec $(PROXY_CONTAINER_NAME) ./sbin/nginx -V)" > $@
 
 #########################
 ### LETSENCRYPT CERTS ###
 #########################
 Gcmd := gcloud compute ssh $(GCE_NAME) --command
-GCmd := gcloud compute ssh $(GCE_NAME) --container $(NGX) --command
-mountCerts := type=bind,target=/tmp,source=$(CURDIR)/certs
-mountGCE   := type=bind,target=/tmp,source=/home/$(GCE_NAME)/certs
-
+GCmd := gcloud compute ssh $(GCE_NAME) --container $(PROXY_CONTAINER_NAME) --command
 LEpath  := $(LETSENCRYPT)/live/$(TLS_COMMON_NAME)
-CopyCerts = docker cp or:$(LEpath)/$(1).pem ./certs -L
+CopyCerts = docker cp $(PROXY_CONTAINER_NAME):$(LEpath)/$(1).pem ./certs -L
 
 .PHONY: certs-into-vol
 certs-into-vol: certs-to-host
 	@docker run --rm \
- --mount $(mountLetsencrypt) \
- --mount  $(mountCerts) \
+ --mount $(MountLetsencrypt) \
+ --mount  $(MountCerts) \
  --entrypoint "sh" $(PROXY_DOCKER_IMAGE) -c \
  'mkdir -p $(LEpath) \
  && mv /tmp/dh-param.pem $(LETSENCRYPT)/ \
@@ -248,12 +305,13 @@ certs-into-vol: certs-to-host
 certs-to-host:
 	@# or just cat use the following certs
 	@#$(Gcmd) 'rm -rf certs'
+	@find ./certs/ -type f | xargs rm -f
 	@$(Gcmd) 'mkdir -p certs \
  && $(call CopyCerts,cert)  \
  && $(call CopyCerts,fullchain)  \
  && $(call CopyCerts,chain)  \
  && $(call CopyCerts,privkey)  \
- && docker cp or:$(LETSENCRYPT)/dh-param.pem ./certs -L \
+ && docker cp $(PROXY_CONTAINER_NAME):$(LETSENCRYPT)/dh-param.pem ./certs -L \
  && ls -al ./certs'
 	@gcloud compute scp $(GCE_NAME):~/certs ./ --recurse
 	@printf %60s | tr ' ' '-' && echo
@@ -262,5 +320,20 @@ certs-to-host:
 certs-check:
 	@$(GCmd) 'ls -al $(LEpath)'
 	@docker run --rm \
- --mount $(mountLetsencrypt) \
+ --mount $(MountLetsencrypt) \
  --entrypoint "ls" $(PROXY_DOCKER_IMAGE) -alR  $(LETSENCRYPT)
+
+dkrCpNginxHtml   := docker run --rm --mount $(MountAssets) --mount $(MountHtml)
+dkrTarNginxHtml  := docker run --rm --mount $(MountAssets)
+
+.PHONY: index-html
+index-html:
+	@echo '## $@ ##'
+	@#$(dkrCpNginxHtml) --entrypoint "sh" $(PROXY_DOCKER_IMAGE) -c 'ls /tmp/'
+	@#$(dkrCpNginxHtml) --entrypoint "sh" $(PROXY_DOCKER_IMAGE) -c 'ls ./html'
+	@$(dkrCpNginxHtml) --entrypoint "sh" $(PROXY_DOCKER_IMAGE) -c 'cp /tmp/* ./html/'
+	@$(dkrCpNginxHtml) --entrypoint "sh" $(PROXY_DOCKER_IMAGE) -c 'ls ./html'
+	@echo ' - tar the "nginx-confguration" volume into deploy directory'
+	@$(dkrTarNginxHtml) --entrypoint "tar" $(PROXY_DOCKER_IMAGE) -czf - $(PROXY_HOME)/html > $@
+
+

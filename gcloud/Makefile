@@ -11,7 +11,19 @@ $(shell mkdir -p ./{$(B),$(D)})
 
 #########################
 #  GCLOUD DEPLOYMENT  ###
+# NOTE: xqerl compile order is important
+# Must match local dev ModuleList
+# ModuleList := newBase60 render_feed render_login render_note routes
 ##########################
+
+define xqOrderedCompile
+'xqerl eval \
+"xqerl:compile(\"code/src/newBase60.xqm\"),\
+xqerl:compile(\"code/src/render_feed.xqm\"),\
+xqerl:compile(\"code/src/render_login.xqm\"),\
+xqerl:compile(\"code/src/render_note.xqm\"),\
+xqerl:compile(\"code/src/routes.xqm\")."'
+endef
 
 XQ := $(XQERL_CONTAINER_NAME)
 NGX := $(PROXY_CONTAINER_NAME)
@@ -45,6 +57,11 @@ build-xqerl: $(B)/xqerl-compile.complete
 .PHONY: clean
 clean:
 	@find $(B)/ -type f | xargs rm -f
+
+.PHONY: down
+down: 
+	@$(Gcmd) 'docker stop $(PROXY_CONTAINER_NAME)'
+	@$(Gcmd) 'docker stop $(XQERL_CONTAINER_NAME)'
 
 .PHONY: tars-into-gce-host
 tars-into-gce-host: $(B)/tars-into-gce-host.moved
@@ -81,11 +98,7 @@ proxy-down:
 
 $(B)/xqerl-compile.complete: $(B)/xqerl-compiled-code.volume $(B)/xqerl.up
 	@echo '##[ $@ ]##'
-	@$(Gxq) 'xqerl eval \
-"xqerl:compile(\"code/src/newBase60.xqm\"),\
-xqerl:compile(\"code/src/render_feed.xqm\"),\
-xqerl:compile(\"code/src/render_feed.xqm\"),\
-xqerl:compile(\"code/src/routes.xqm\")."'
+	@$(Gxq) $(xqOrderedCompile)
 	@$(Gxq)  \
  'xqerl eval "lists:sort([binary_to_list(X) || X <- xqerl_code_server:library_namespaces()])"'  | tee $@
 	@printf %60s | tr ' ' '-' && echo
