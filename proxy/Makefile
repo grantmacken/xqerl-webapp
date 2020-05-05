@@ -59,9 +59,7 @@ orAddress  := docker inspect --format='{{range .NetworkSettings.Networks}}{{.IPA
 
 .PHONY: build
 build: $(D)/nginx-configuration.tar
-	@$(if $(GITHUB_ACTIONS),,\
- xdotool windowactivate $(shell xdotool search  --name "Mozilla Firefox" | head -1 ) && \
- xdotool key Control_L+F5 )
+	@$(if $(GITHUB_ACTIONS),,xdotool search --onlyvisible --name "Mozilla Firefox"  key  Control_L+F5 || true)
 
 .PHONY: restore
 restore:
