@@ -5,7 +5,7 @@ SHELL=/bin/bash
 MAKEFLAGS += --warn-undefined-variables
 MAKEFLAGS += --no-builtin-rules
 include ../.env
-T := certbot
+B := .build
 
 ##################
 ### CERTBOT    ###
@@ -16,10 +16,12 @@ EMPTY :=
 SPACE := $(EMPTY) $(EMPTY)
 DELIMIT := $(COMMA)$(EMPTY)
 AUTHENTICATOR = webroot
-OR := $(PROXY_CONTAINER_NAME)
 Gcmd := gcloud compute ssh $(GCE_NAME) --command
-Gor  := gcloud compute ssh $(GCE_NAME) --container $(OR) --command 
-
+Gcc  := gcloud compute ssh $(GCE_NAME) --container $(PROXY_CONTAINER_NAME) --command 
+# home is on certbot containwe
+# static-assets maps to $(OPENRESTY_HOME)/nginx/conf
+mountNginxHtml  :=  type=volume,source=static-assets,target=/home
+mountLetsencrypt := type=volume,source=letsencrypt,target=$(LETSENCRYPT)
 
 define certbotConfig
 
@@ -30,7 +32,7 @@ email = $(GIT_EMAIL)
 
 # Uncomment and update to generate certificates for the specified
 # domains.
-domains = gmack.nz
+domains = $(DOMAINS)
 
 # use a text interface instead of ncurses
 text = true
@@ -44,23 +46,30 @@ eff-email = true
 logs-dir = /home
 endef
 
-$(T)/letsencrypt.volume: $(T)/gce-host.uploaded
-	@$(Gcmd) 'docker cp ~/cli.ini  $(OR):$(LETSENCRYPT)/' | tee $@
+.PHONY: clean
+clean:
+	@find $(B)/ -type f | xargs rm -f
 
-$(T)/gce-host.uploaded: $(T)/cli.ini
+init: $(B)/letsencrypt.volume
+	@$(Gcmd) 'docker run -t --rm \
+ --mount $(mountNginxHtml) \
+ --mount $(mountLetsencrypt) \
+ --network $(NETWORK) \
+ --entrypoint "sh" \
+ $(PROXY_DOCKER_IMAGE) -c "cat $(LETSENCRYPT)/cli.ini"'
+
+$(B)/letsencrypt.volume: $(B)/gce-host.uploaded
+	@$(Gcmd) 'docker cp ~/cli.ini  $(PROXY_CONTAINER_NAME):$(LETSENCRYPT)/' | tee $@
+
+$(B)/gce-host.uploaded: $(B)/cli.ini
 	@gcloud compute scp ./$< $(GCE_NAME):~/cli.ini 
 	@$(Gcmd) 'ls -al cli.ini' | tee $@
 
-$(T)/cli.ini: export certbotConfig:=$(certbotConfig)
-$(T)/cli.ini:
+$(B)/cli.ini: export certbotConfig:=$(certbotConfig)
+$(B)/cli.ini:
 	@mkdir -p $(dir $@)
 	@echo "create cli config file"
 	@echo "$${certbotConfig}" | tee $@
-
-# home is on certbot containwe
-# static-assets maps to $(OPENRESTY_HOME)/nginx/conf
-mountNginxHtml  :=  type=volume,source=static-assets,target=/home
-mountLetsencrypt := type=volume,source=letsencrypt,target=$(LETSENCRYPT)
 
 .PHONY: certonly
 certonly:
@@ -69,18 +78,29 @@ certonly:
  --mount $(mountNginxHtml) \
  --mount $(mountLetsencrypt) \
  --network $(NETWORK) \
- certbot/certbot certonly --dry-run'
- 
- # --name certbot \
- # -v "letsencrypt:/etc/letsencrypt" \
- # -v "html:/home" \
- 
+ certbot/certbot certonly --expand'
+
+
+.PHONY: dry-run
+dry-run:
+	# $(@) #
+	@$(Gcmd) 'docker run -t --rm \
+ --mount $(mountNginxHtml) \
+ --mount $(mountLetsencrypt) \
+ --network $(NETWORK) \
+ certbot/certbot certonly --dry-run --expand'
+
+.PHONY: reload
+reload: 
+	@$(Gcc) './sbin/nginx -s reload'
+
+
 .PHONY: renew
 renew: nginx.reload
 
 nginx.reload: certs.renew
 	@grep -oP 'Cert not yet due for renewal' $< || \
- $(Gor) './bin/openresty -s reload' | tee $@
+ $(Gcc) './sbin/nginx -s reload' | tee $@
 
 certs.renew:
 	@$(Gcmd) 'docker run -t --rm \
@@ -89,19 +109,32 @@ certs.renew:
  --network $(NETWORK) \
  certbot/certbot renew' | tee $@
 
-
-
 .PHONY: certs
 certs:
 	@$(Gcmd) 'docker run -t --rm \
-  -v "letsencrypt:/etc/letsencrypt" \
-  -v "static-assets:/home" \
+ --mount $(mountNginxHtml) \
+ --mount $(mountLetsencrypt) \
+ --network $(NETWORK) \
  certbot/certbot certificates'
 
-.PHONY: dates
-dates:
-	@echo | openssl s_client -connect $(TLS_COMMON_NAME):443 2>/dev/null | openssl x509 -noout -dates
+.PHONY: dig
+dig:
+	@#dig gmack.nz +nocmd +nostats +noquestion
+	@echo '+++++++++++++++++++++++++++++++++++++++++++++++++++'
+	@dig @ns-cloud-d1.googledomains.com $(SUBDOMAIN) | grep status
+	@echo '+++++++++++++++++++++++++++++++++++++++++++++++++++'
+	@echo 'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx'
+	@dig @208.67.222.222 $(SUBDOMAIN) | grep status
+	@echo 'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx'
 
+.PHONY: openssl-sni
+openssl-sni:
+	@openssl s_client -servername $(TLS_COMMON_NAME) -tlsextdebug -msg -connect $(SUBDOMAIN):443
+	@2>&1 openssl s_client -connect $(TLS_COMMON_NAME):443 | openssl x509 -noout -text | grep -oP '^\s+\KDNS:.+'
+
+.PHONY: openssl-dates
+openssl-dates:
+	@echo | openssl s_client -connect $(TLS_COMMON_NAME):443 2>/dev/null | openssl x509 -noout -dates
 
 define certsHelp
 ```
@@ -116,7 +149,6 @@ on:
 
 git checkout -b certbot/init
 
-
 ```
 make certsRenew INC=certs
 make certsToLocal
@@ -128,11 +160,4 @@ mkCertsHelp: export mkCertsHelp=$(certsHelp)
 mkCertsHelp:
 	@echo "$${mkCertsHelp}"
 
-.PHONY: ls
-ls:
-	@$(Gcmd) 'docker run -t --rm \
- --mount $(mountNginxHtml) \
- --mount $(mountLetsencrypt) \
- --network $(NETWORK) \
- --entrypoint "sh" \
- $(PROXY_DOCKER_IMAGE) -c "cat $(LETSENCRYPT)/cli.ini"'
+
