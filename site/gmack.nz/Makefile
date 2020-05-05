@@ -8,10 +8,18 @@ MAKEFLAGS += --no-builtin-rules
 ### SITE gmack.nz ###
 #####################
 include $(abspath ../../.env)
+# include $(abspath ../../../.secrets.env)
 T := .tmp
 B := .build
 D := ../../deploy
+MY_BIN_PATH=$(abspath ../../bin)
 $(shell mkdir -p ./{$(D),$(T)/$(DOMAIN)/resources/{icons,styles,images,scripts},$(B)/{modules,$(DOMAIN)/resources/{icons,styles,images,scripts}}})
+EMPTY :=
+SPACE := $(EMPTY) $(EMPTY)
+DOT := .
+ifeq ($(origin GITHUB_ACTIONS),undefined)
+ GITHUB_ACTIONS := $(EMPTY)
+endif
 
 # shortcut aliases
 XQ := $(XQERL_CONTAINER_NAME)
@@ -38,7 +46,7 @@ Cross = echo -n "$$(tput setaf 1) ✘ $$(tput sgr0) " && echo -n $1 && echo
 # and not the build dir
 ####################################################################
 # NOTE: xquery module list order is important
-ModuleList := newBase60 render_feed render_feed render_note routes
+ModuleList := newBase60 render_feed render_login render_note login routes
 # render_feed render_note micropub routes
 BuildList  := $(patsubst %,$(B)/modules/%.xqm,$(ModuleList))
 VolumeList := xqerl-compiled-code xqerl-database
@@ -49,8 +57,23 @@ MountBin   := type=bind,target=$(XQERL_HOME)/bin/scripts,source=$(CURDIR)/bin
 MountAssets  := type=volume,target=$(PROXY_HOME)/html,source=static-assets
 MountBuild := type=bind,target=/tmp,source=$(CURDIR)/$(B)
 
+define ffReload
+xdotool windowactivate $(shell xdotool search  --name "Mozilla Firefox" | head -1 )
+xdotool key Control_L+F5
+endef
+
 .PHONY: build
-build: $(D)/xqerl-compiled-code.tar
+build: code assets
+	@$(if $(GITHUB_ACTIONS),,\
+ xdotool windowactivate $(shell xdotool search  --name "Mozilla Firefox" | head -1 ) && \
+ xdotool key Control_L+F5 )
+
+.PHONY: watch
+watch:
+	@while true; do \
+        $(MAKE) --silent build; \
+        inotifywait -qre close_write . ; \
+    done
 
 .PHONY: clean
 clean: clean-tmp
@@ -62,13 +85,20 @@ clean: clean-tmp
 clean-tmp:
 	@rm -fr $(T)/*
 
+PHONY: code
+code: $(D)/xqerl-compiled-code.tar
+
 $(D)/xqerl-compiled-code.tar: $(BuildList)
 	@# echo '## $(notdir $@) ##'
-	@# $(EVAL) $(compiledLibs)
 	@docker run --rm \
  --mount $(MountCode) \
  --entrypoint "tar" $(XQERL_DOCKER_IMAGE) -czf - $(XQERL_HOME)/code &>/dev/null > $@
 	@#echo;printf %60s | tr ' ' '-' && echo
+
+
+
+
+
 
 $(B)/modules/%.xqm: modules/%.xqm
 	@#echo '##[ $* ]##'
@@ -77,6 +107,9 @@ $(B)/modules/%.xqm: modules/%.xqm
 	@$(call compile,$(notdir $<)) | tee $(T)/compile_$(*).txt && echo
 	@grep -q ':I:' $(T)/compile_$(*).txt
 	@cp $< $@
+
+
+
 
 ####################
 ### XQERL UP DOWN ##
@@ -112,6 +145,7 @@ $(T)/xqerl-up.check:
 	@@if grep -oP '^Up(.+)$$' $@ &>/dev/null ;then\
  $(call Tick, - xqerl: [ $$(tail -1 $@) ]); else \
  $(call Cross,- xqerl: [ down ]) && false; fi
+	@$(MAKE) -silent info
 
 $(T)/network.check:
 	@docker network list --format '{{.Name}}' > $@
@@ -130,6 +164,19 @@ $(T)/volumes.check:
 	@$(call MustHaveVolume,nginx-configuration)
 	@$(call MustHaveVolume,letsencrypt)
 	@$(call Tick, - volumes OK!)
+
+secrets:  $(T)/secrets.loaded
+
+ $(T)/secrets.loaded: $(T)/has.secrets
+	@# secrets are below the gitrepo so secrets are not under git control
+	@grep true $< || docker cp ../../../secrets.xml $(XQ):$(XQERL_HOME)/code/src
+	@grep true $< || $(EVAL) 'xqldb_dml:insert_doc("http://$(XQ)/secrets.xml","./code/src/secrets.xml").'
+	@grep true $< || docker exec $(XQ) rm ./code/src/secrets.xml 
+	@$(EVAL) 'xqerl:run("doc-available(\"http://$(XQ)/secrets.xml\")").' > $@
+
+
+$(T)/has.secrets:
+	@$(EVAL) 'xqerl:run("doc-available(\"http://$(XQ)/secrets.xml\")").' > $@
 
 .PHONY: info
 info:
@@ -184,7 +231,6 @@ remove-content-in-assets-volume:
 	@docker run --rm \
  --mount $(MountAssets) \
  --entrypoint "rm" $(PROXY_DOCKER_IMAGE) -rf ./html/$(DOMAIN)
-
 
 #############
 ### ICONS ###
