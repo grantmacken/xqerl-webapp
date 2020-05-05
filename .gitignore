@@ -2,6 +2,7 @@ tmp
 .build
 .tmp/*
 .deploy
+.project*
 deploy
 proxy/certs
 proxy/.tmp
