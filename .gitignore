@@ -1,6 +1,6 @@
 tmp
 .build
-.tmp
+.tmp/*
 .deploy
 deploy
 proxy/certs
