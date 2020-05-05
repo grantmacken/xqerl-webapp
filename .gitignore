@@ -6,7 +6,9 @@ deploy
 proxy/certs
 proxy/.tmp
 notes
-site/gmack.nz/hold*
+site/gmack.nz/modules/hold*
+site/gmack.nz/resources/*/hold*
+site/gmack.nz/.tmp
 site/markup.nz
 tests/xqerl/res
 tests/proxy/res
