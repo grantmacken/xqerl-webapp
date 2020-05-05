@@ -26,16 +26,20 @@ declare
   %rest:path("/gmack.nz")
   %rest:GET
   %output:method("html")
-  %output:indent("yes")
-  %output:encoding("UTF-8")
-  %output:include-content-type("yes")
 function routes:home(){
     let $map := $routes:myCard
     return 
+    (
+    <rest:response>
+    <http:response status="200">
+      <http:header name="Content-Type" value="text/html; charset=utf-8"/>
+    </http:response>
+  </rest:response>,
     feed:render( $map )
+    )
 };
 
-declare 
+declare
   %rest:path("/gmack.nz/mp")
   %rest:POST('{$body}')
   %rest:query-param("id", "{$id}")
@@ -48,6 +52,8 @@ function routes:post_get_1($body, $id){
     </http:response>
   </rest:response>
 };
+
+
 
 
 
