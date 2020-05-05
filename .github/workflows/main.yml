@@ -109,9 +109,9 @@ jobs:
           echo '   we can test our **restXQ routes** using  *curl* and '
           echo '   the xqerl internal IPAddress and published port'
           make xqerl-tests
-          echo 'append a hash of newly built xqerl-compiled-code.tar to file: [ xqerl-compiled-code.hashes ] '
+          echo ' - append a hash of newly built xqerl-compiled-code.tar to file: [ xqerl-compiled-code.hashes ] '
           md5sum deploy/xqerl-compiled-code.tar | tee xqerl-compiled-code.hashes
-          # we only need to deploy if the md5sum hashes are different
+          echo ' - we only need to deploy if the md5sum hashes are different '
           md5sum --check --status xqerl-compiled-code.hashes || echo 'OK deploy'
           #echo ${{ env.DEPLOY_XQERL_COM }}
     # - name: Check md5 hashes of deploy tars and this build tar are different and deploy if required
