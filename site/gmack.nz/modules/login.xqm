@@ -8,8 +8,6 @@ declare namespace random = "http://xqerl.org/modules/random";
 declare namespace rest   = "http://exquery.org/ns/restxq";
 import module namespace newBase60  = "http://gmack.nz/#newBase60";
 
-
-
 declare
 variable $login:items := map {
        'dbSecretsURL'   : 'http://xq/secrets.xml',
@@ -187,7 +185,7 @@ function login:ghUserRequest( $token ) {
   let $userURL := 'https://api.github.com/user'
   let $resp := http:send-request(
         <http:request method='GET'>
-          <http:header name='Accept' value='Accept: application/vnd.github.v3+json'/>
+          <http:header name='Accept' value='application/vnd.github.v3+json'/>
           <http:header name='Authorization' value='{$token}'/>
         </http:request>,
         $userURL
